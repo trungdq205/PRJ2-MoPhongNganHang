@@ -1,0 +1,523 @@
+syntax = "proto3";
+
+package com.quangtrungbank.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.quangtrungbank.grpc.generated";
+option java_outer_classname = "BankServiceProto";
+
+// Dynamic Banking gRPC Service Definition
+service BankService {
+  // === Authentication & Security ===
+  rpc Login (LoginRequest) returns (LoginResponse);
+  rpc FaceLogin (FaceLoginRequest) returns (LoginResponse);
+  rpc ResetLocks (EmptyRequest) returns (SimpleResponse);
+  rpc ChangePassword (ChangePasswordRequest) returns (SimpleResponse);
+  rpc UpdateProfile (UpdateProfileRequest) returns (UserResponse);
+
+  // === Customer Accounts & Profile ===
+  rpc GetAccounts (GetAccountsRequest) returns (AccountListResponse);
+  rpc LookupAccount (LookupAccountRequest) returns (LookupAccountResponse);
+  rpc SubmitKyc (SubmitKycRequest) returns (CustomerResponse);
+
+  // === Core Transactions ===
+  rpc TransferMoney (TransferRequest) returns (TransferResponse);
+  rpc AtmDeposit (AtmTransactionRequest) returns (TransactionResponse);
+  rpc AtmWithdraw (AtmTransactionRequest) returns (TransactionResponse);
+  rpc VnpostDeposit (AtmTransactionRequest) returns (TransactionResponse);
+  rpc VnpostWithdraw (TransferRequest) returns (TransactionResponse);
+  rpc VnpostTransfer (TransferRequest) returns (TransactionResponse);
+  rpc GetTransactionHistory (TransactionHistoryRequest) returns (TransactionListResponse);
+  rpc GetAccountStatement (StatementRequest) returns (StatementResponse);
+
+  // === Cardless ATM Codes ===
+  rpc CreateAtmCode (CreateAtmCodeRequest) returns (AtmCodeResponse);
+  rpc GetAtmCodes (EmptyRequest) returns (AtmCodeListResponse);
+  rpc CancelAtmCode (CancelAtmCodeRequest) returns (SimpleResponse);
+
+  // === Savings (Tiết kiệm) ===
+  rpc OpenSavings (OpenSavingsRequest) returns (SavingsResponse);
+  rpc CloseSavings (CloseSavingsRequest) returns (SavingsResponse);
+  rpc TopUpSavings (TopUpSavingsRequest) returns (SavingsResponse);
+  rpc GetSavingsDetail (SavingsDetailRequest) returns (SavingsDetailResponse);
+  rpc GetSavingsAccounts (EmptyRequest) returns (SavingsListResponse);
+  rpc GetSavingsInterestRates (EmptyRequest) returns (InterestRateListResponse);
+
+  // === Loans (Tín dụng & Khoản vay) ===
+  rpc ApplyLoan (ApplyLoanRequest) returns (LoanResponse);
+  rpc GetLoans (EmptyRequest) returns (LoanListResponse);
+
+  // === Notifications & Support Tickets ===
+  rpc GetNotifications (NotificationRequest) returns (NotificationListResponse);
+  rpc MarkNotificationRead (MarkNotificationReadRequest) returns (SimpleResponse);
+  rpc MarkAllNotificationsRead (EmptyRequest) returns (SimpleResponse);
+  rpc CreateTicket (CreateTicketRequest) returns (TicketResponse);
+  rpc GetTickets (EmptyRequest) returns (TicketListResponse);
+
+  // === Teller Operations ===
+  rpc TellerCreateCustomer (TellerCreateCustomerRequest) returns (CustomerResponse);
+  rpc TellerToggleAccountStatus (TellerToggleAccountStatusRequest) returns (AccountResponse);
+  rpc TellerResolveTicket (TellerResolveTicketRequest) returns (TicketResponse);
+  rpc TellerGetAllTickets (EmptyRequest) returns (TicketListResponse);
+  rpc TellerUpdateCustomer (TellerUpdateCustomerRequest) returns (CustomerResponse);
+  rpc TellerApproveKyc (TellerApproveKycRequest) returns (CustomerResponse);
+}
+
+// === Common / Generic Messages ===
+message EmptyRequest {}
+
+message SimpleResponse {
+  bool success = 1;
+  string message = 2;
+  string data = 3;
+}
+
+// === Auth Messages ===
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message FaceLoginRequest {
+  string username = 1;
+  string face_data = 2;
+  double liveness_score = 3;
+}
+
+message LoginResponse {
+  bool success = 1;
+  string message = 2;
+  string token = 3;
+  string username = 4;
+  string role = 5;
+  string full_name = 6;
+  string customer_id = 7;
+  string email = 8;
+  string phone = 9;
+}
+
+message ChangePasswordRequest {
+  string current_password = 1;
+  string new_password = 2;
+  string confirm_password = 3;
+}
+
+message UpdateProfileRequest {
+  string email = 1;
+}
+
+message UserResponse {
+  bool success = 1;
+  string message = 2;
+  string username = 3;
+  string email = 4;
+  string role = 5;
+}
+
+// === Account Messages ===
+message GetAccountsRequest {
+  string customer_id = 1;
+}
+
+message AccountItem {
+  string account_no = 1;
+  string customer_id = 2;
+  string account_type = 3;
+  double balance = 4;
+  string currency = 5;
+  string status = 6;
+  string created_at = 7;
+}
+
+message AccountListResponse {
+  bool success = 1;
+  string message = 2;
+  repeated AccountItem accounts = 3;
+}
+
+message AccountResponse {
+  bool success = 1;
+  string message = 2;
+  AccountItem account = 3;
+}
+
+message LookupAccountRequest {
+  string account_no = 1;
+}
+
+message LookupAccountResponse {
+  bool success = 1;
+  string message = 2;
+  string account_no = 3;
+  string customer_name = 4;
+  string bank_name = 5;
+}
+
+// === Transaction Messages ===
+message TransferRequest {
+  string from_account = 1;
+  string to_account = 2;
+  double amount = 3;
+  string content = 4;
+  string idempotency_key = 5;
+}
+
+message TransferResponse {
+  bool success = 1;
+  string message = 2;
+  string transaction_id = 3;
+  double amount = 4;
+  double fee = 5;
+  double balance_after = 6;
+  string timestamp = 7;
+}
+
+message AtmTransactionRequest {
+  string account_no = 1;
+  double amount = 2;
+  string idempotency_key = 3;
+  string pin = 4;
+}
+
+message TransactionResponse {
+  bool success = 1;
+  string message = 2;
+  string transaction_id = 3;
+  double amount = 4;
+  double fee = 5;
+  string type = 6;
+  string status = 7;
+  string timestamp = 8;
+  string from_account = 9;
+  string to_account = 10;
+  string content = 11;
+}
+
+message StatementTransaction {
+  string id = 1;
+  string timestamp = 2;
+  string type = 3;
+  string from_account = 4;
+  string from_name = 5;
+  string to_account = 6;
+  string to_name = 7;
+  double amount = 8;
+  double fee = 9;
+  string content = 10;
+}
+
+message StatementRequest {
+  string account_no = 1;
+  string from_date = 2;
+  string to_date = 3;
+}
+
+message StatementResponse {
+  bool success = 1;
+  string message = 2;
+  string account_no = 3;
+  string customer_name = 4;
+  string from_date = 5;
+  string to_date = 6;
+  double total_in = 7;
+  double total_out = 8;
+  repeated StatementTransaction transactions = 9;
+}
+
+message TransactionHistoryRequest {
+  string account_no = 1;
+  string from_date = 2;
+  string to_date = 3;
+  string type = 4;
+  double min_amount = 5;
+  double max_amount = 6;
+  string search = 7;
+  int32 page = 8;
+  int32 size = 9;
+}
+
+message TransactionListResponse {
+  bool success = 1;
+  string message = 2;
+  int32 total_elements = 3;
+  int32 total_pages = 4;
+  int32 current_page = 5;
+  repeated StatementTransaction transactions = 6;
+}
+
+// === ATM Codes Messages ===
+message CreateAtmCodeRequest {
+  string account_no = 1;
+  string type = 2;
+  double amount = 3;
+  string pin = 4;
+}
+
+message AtmCodeItem {
+  string id = 1;
+  string account_no = 2;
+  string code = 3;
+  string type = 4;
+  double amount = 5;
+  string status = 6;
+  string expires_at = 7;
+  string created_at = 8;
+}
+
+message AtmCodeResponse {
+  bool success = 1;
+  string message = 2;
+  AtmCodeItem atm_code = 3;
+}
+
+message AtmCodeListResponse {
+  bool success = 1;
+  string message = 2;
+  repeated AtmCodeItem codes = 3;
+}
+
+message CancelAtmCodeRequest {
+  string code_id = 1;
+}
+
+// === Savings Messages ===
+message OpenSavingsRequest {
+  string source_account = 1;
+  double amount = 2;
+  int32 term_months = 3;
+  string renew_type = 4;
+  string savings_type = 5;
+  string idempotency_key = 6;
+}
+
+message CloseSavingsRequest {
+  string savings_no = 1;
+  bool is_early_close = 2;
+  double partial_amount = 3;
+  string idempotency_key = 4;
+}
+
+message TopUpSavingsRequest {
+  string savings_no = 1;
+  string source_account = 2;
+  double amount = 3;
+  string idempotency_key = 4;
+}
+
+message SavingsItem {
+  string savings_no = 1;
+  string source_account = 2;
+  double deposit_amount = 3;
+  int32 term_months = 4;
+  double interest_rate = 5;
+  double expected_interest = 6;
+  double actual_paid = 7;
+  string status = 8;
+  string renew_type = 9;
+  string savings_type = 10;
+  string start_date = 11;
+  string maturity_date = 12;
+}
+
+message SavingsResponse {
+  bool success = 1;
+  string message = 2;
+  string savings_no = 3;
+  double deposit_amount = 4;
+  int32 term_months = 5;
+  double interest_rate = 6;
+  double expected_interest = 7;
+  double actual_paid = 8;
+  string status = 9;
+  string maturity_date = 10;
+  SavingsItem savings = 11;
+}
+
+message SavingsDetailRequest {
+  string savings_id = 1;
+}
+
+message SavingsDetailResponse {
+  bool success = 1;
+  string message = 2;
+  SavingsItem savings = 3;
+  double accrued_interest = 4;
+  double early_withdraw_interest = 5;
+  repeated StatementTransaction history = 6;
+}
+
+message SavingsListResponse {
+  bool success = 1;
+  string message = 2;
+  repeated SavingsItem savings_list = 3;
+}
+
+message InterestRateItem {
+  int32 term_months = 1;
+  double interest_rate = 2;
+  string description = 3;
+}
+
+message InterestRateListResponse {
+  bool success = 1;
+  string message = 2;
+  repeated InterestRateItem rates = 3;
+}
+
+// === Loan Messages ===
+message ApplyLoanRequest {
+  string account_no = 1;
+  string loan_type = 2;
+  string title = 3;
+  double principal_amount = 4;
+  int32 term_months = 5;
+}
+
+message LoanItem {
+  string id = 1;
+  string account_no = 2;
+  string customer_id = 3;
+  string loan_type = 4;
+  string title = 5;
+  double principal_amount = 6;
+  double remaining_amount = 7;
+  double interest_rate = 8;
+  int32 term_months = 9;
+  double monthly_payment = 10;
+  string status = 11;
+  string start_date = 12;
+  string end_date = 13;
+}
+
+message LoanResponse {
+  bool success = 1;
+  string message = 2;
+  LoanItem loan = 3;
+}
+
+message LoanListResponse {
+  bool success = 1;
+  string message = 2;
+  repeated LoanItem loans = 3;
+}
+
+// === Notification Messages ===
+message NotificationRequest {
+  string customer_id = 1;
+  int32 limit = 2;
+}
+
+message NotificationItem {
+  int64 id = 1;
+  string title = 2;
+  string message = 3;
+  double amount = 4;
+  double balance_after = 5;
+  string type = 6;
+  bool is_read = 7;
+  string created_at = 8;
+}
+
+message NotificationListResponse {
+  bool success = 1;
+  string message = 2;
+  int64 unread_count = 3;
+  repeated NotificationItem notifications = 4;
+}
+
+message MarkNotificationReadRequest {
+  string notification_id = 1;
+}
+
+// === Support Ticket Messages ===
+message CreateTicketRequest {
+  string subject = 1;
+  string content = 2;
+  string account_no = 3;
+}
+
+message TicketItem {
+  string id = 1;
+  string customer_id = 2;
+  string customer_name = 3;
+  string account_no = 4;
+  string subject = 5;
+  string content = 6;
+  string status = 7;
+  string response = 8;
+  string created_at = 9;
+  string resolved_at = 10;
+}
+
+message TicketResponse {
+  bool success = 1;
+  string message = 2;
+  TicketItem ticket = 3;
+}
+
+message TicketListResponse {
+  bool success = 1;
+  string message = 2;
+  repeated TicketItem tickets = 3;
+}
+
+// === Customer & KYC Messages ===
+message SubmitKycRequest {
+  string id_card = 1;
+  string address = 2;
+  string phone = 3;
+  string front_image_url = 4;
+  string back_image_url = 5;
+  string face_image_url = 6;
+}
+
+message CustomerItem {
+  string id = 1;
+  string user_id = 2;
+  string full_name = 3;
+  string id_card = 4;
+  string phone = 5;
+  string email = 6;
+  string address = 7;
+  string kyc_status = 8;
+}
+
+message CustomerResponse {
+  bool success = 1;
+  string message = 2;
+  CustomerItem customer = 3;
+}
+
+// === Teller Messages ===
+message TellerCreateCustomerRequest {
+  string full_name = 1;
+  string id_card = 2;
+  string phone = 3;
+  string email = 4;
+  string address = 5;
+  double initial_balance = 6;
+}
+
+message TellerToggleAccountStatusRequest {
+  string account_no = 1;
+  string status = 2;
+}
+
+message TellerResolveTicketRequest {
+  string ticket_id = 1;
+  string response = 2;
+  string status = 3;
+}
+
+message TellerUpdateCustomerRequest {
+  string customer_id = 1;
+  string full_name = 2;
+  string phone = 3;
+  string email = 4;
+  string address = 5;
+}
+
+message TellerApproveKycRequest {
+  string customer_id = 1;
+  string status = 2;
+}
