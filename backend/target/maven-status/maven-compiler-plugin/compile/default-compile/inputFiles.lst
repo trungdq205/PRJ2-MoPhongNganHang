@@ -4,7 +4,6 @@ C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\AtmTransactionRequest.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\StatementRequestOrBuilder.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\NotificationItemOrBuilder.java
-C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\FaceLoginRequestOrBuilder.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\LoanListResponseOrBuilder.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\dto\CreateTicketRequest.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\CustomerItem.java
@@ -20,7 +19,6 @@ C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\ApplyLoanRequestOrBuilder.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\repository\SupportTicketRepository.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\OpenSavingsRequestOrBuilder.java
-C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\FaceLoginRequest.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\EmptyRequestOrBuilder.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\StatementRequest.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\dto\LoginResponse.java
@@ -41,7 +39,6 @@ C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\ma
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\LookupAccountRequestOrBuilder.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\entity\Account.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\service\TellerService.java
-C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\TellerApproveKycRequestOrBuilder.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\AccountListResponse.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\grpc-java\com\quangtrungbank\grpc\generated\BankServiceGrpc.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\ApplyLoanRequest.java
@@ -83,7 +80,6 @@ C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\ma
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\SavingsItem.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\CustomerItemOrBuilder.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\NotificationItem.java
-C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\TellerApproveKycRequest.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\entity\Teller.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\UserResponse.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\dto\AtmTransactionRequest.java
@@ -133,7 +129,6 @@ C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\MarkNotificationReadRequestOrBuilder.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\config\JwtAuthenticationFilter.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\config\SecurityConfig.java
-C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\dto\FaceLoginRequest.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\repository\UserRepository.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\repository\LoanRepository.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\config\JwtService.java
@@ -151,9 +146,7 @@ C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\TransferResponse.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\GetAccountsRequestOrBuilder.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\AtmCodeItemOrBuilder.java
-C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\SubmitKycRequest.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\SavingsDetailResponse.java
-C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\SubmitKycRequestOrBuilder.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\SavingsListResponse.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\AtmTransactionRequestOrBuilder.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\LoginResponseOrBuilder.java
@@ -162,7 +155,6 @@ C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\SimpleResponse.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\TellerResolveTicketRequest.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\TellerResolveTicketRequestOrBuilder.java
-C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\src\main\java\com\quangtrungbank\dto\SubmitKycRequest.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\TopUpSavingsRequest.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\AtmCodeResponse.java
 C:\Users\doanq\.gemini\antigravity\scratch\MoPhongHeThongNganHang\backend\target\generated-sources\protobuf\java\com\quangtrungbank\grpc\generated\TicketItem.java

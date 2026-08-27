@@ -35,6 +35,9 @@ public class Notification {
     @Column(nullable = false, length = 20)
     private String type = "MONEY_IN"; // MONEY_IN, MONEY_OUT, SYSTEM
 
+    @Column(name = "recipient_role", nullable = false, length = 20)
+    private String recipientRole = "CUSTOMER";
+
     @Column(name = "is_read")
     private boolean read = false;
 
@@ -45,6 +48,10 @@ public class Notification {
     }
 
     public Notification(String id, String customerId, String accountNo, String title, String message, BigDecimal amount, BigDecimal balanceAfter, String type, boolean read, LocalDateTime createdAt) {
+        this(id, customerId, accountNo, title, message, amount, balanceAfter, type, "CUSTOMER", read, createdAt);
+    }
+
+    public Notification(String id, String customerId, String accountNo, String title, String message, BigDecimal amount, BigDecimal balanceAfter, String type, String recipientRole, boolean read, LocalDateTime createdAt) {
         this.id = id;
         this.customerId = customerId;
         this.accountNo = accountNo;
@@ -53,6 +60,7 @@ public class Notification {
         this.amount = amount;
         this.balanceAfter = balanceAfter;
         this.type = type;
+        this.recipientRole = recipientRole != null && !recipientRole.isBlank() ? recipientRole : "CUSTOMER";
         this.read = read;
         this.createdAt = createdAt;
     }
@@ -119,6 +127,14 @@ public class Notification {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public String getRecipientRole() {
+        return recipientRole;
+    }
+
+    public void setRecipientRole(String recipientRole) {
+        this.recipientRole = recipientRole != null && !recipientRole.isBlank() ? recipientRole : "CUSTOMER";
     }
 
     public boolean isRead() {

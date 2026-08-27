@@ -24,6 +24,8 @@ public class TellerService {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final SupportTicketRepository supportTicketRepository;
+    private final LoanRepository loanRepository;
+    private final NotificationRepository notificationRepository;
     private final PasswordEncoder passwordEncoder;
 
     public TellerService(UserRepository userRepository,
@@ -31,12 +33,16 @@ public class TellerService {
                          AccountRepository accountRepository,
                          TransactionRepository transactionRepository,
                          SupportTicketRepository supportTicketRepository,
+                         LoanRepository loanRepository,
+                         NotificationRepository notificationRepository,
                          PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.customerRepository = customerRepository;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.supportTicketRepository = supportTicketRepository;
+        this.loanRepository = loanRepository;
+        this.notificationRepository = notificationRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -100,7 +106,7 @@ public class TellerService {
         // Nếu nạp tiền ban đầu > 0, tạo giao dịch DEPOSIT
         if (balance.compareTo(BigDecimal.ZERO) > 0) {
             Transaction txn = new Transaction(
-                "TXN-" + (10000 + new Random().nextInt(90000)),
+                CustomerService.generateNumericTxnId(),
                 "NẠP TẠI QUẦY",
                 "GDV: " + currentTeller.getFullName(),
                 accNo,
@@ -213,20 +219,162 @@ public class TellerService {
         return ApiResponse.ok("Cập nhật thông tin khách hàng thành công!", cust);
     }
 
-    @Transactional
-    public ApiResponse<Customer> approveKyc(String customerId, String status, User currentTeller) {
-        if (!"TELLER".equals(currentTeller.getRole()) && !"ADMIN".equals(currentTeller.getRole())) {
-            return ApiResponse.error("Chỉ Giao dịch viên hoặc Admin mới có quyền thực hiện");
-        }
-        Optional<Customer> custOpt = customerRepository.findById(customerId);
-        if (custOpt.isEmpty()) return ApiResponse.error("Hồ sơ khách hàng không tồn tại");
+    // ═══════════════════════════════════════════════════════════
+    // NGHIỆP VỤ THẨM ĐỊNH & GIẢI NGÂN KHOẢN VAY (TELLER LOAN)
+    // ═══════════════════════════════════════════════════════════
 
-        Customer cust = custOpt.get();
-        cust.setKycStatus(status);
-        if ("VERIFIED".equals(status)) {
-            cust.setKycVerifiedAt(LocalDateTime.now());
+    public ApiResponse<List<Loan>> getAllLoans(User currentTeller) {
+        if (currentTeller != null && !"TELLER".equalsIgnoreCase(currentTeller.getRole()) && !"ADMIN".equalsIgnoreCase(currentTeller.getRole())) {
+            return ApiResponse.error("Chỉ Giao dịch viên hoặc Quản trị viên mới có quyền xem danh sách khoản vay");
         }
-        customerRepository.save(cust);
-        return ApiResponse.ok("Xử lý duyệt eKYC thành công: " + status, cust);
+        List<Loan> list = loanRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "appliedAt"));
+        return ApiResponse.ok("Lấy danh sách tất cả hồ sơ vay vốn thành công", list);
+    }
+
+    @Transactional
+    public ApiResponse<Object> approveLoan(String loanId, String officerNote, String collateralHandoverCode, User currentTeller) {
+        if (currentTeller != null && !"TELLER".equalsIgnoreCase(currentTeller.getRole()) && !"ADMIN".equalsIgnoreCase(currentTeller.getRole())) {
+            return ApiResponse.error("Chỉ Giao dịch viên hoặc Quản trị viên mới có quyền phê duyệt khoản vay");
+        }
+
+        Optional<Loan> loanOpt = loanRepository.findById(loanId);
+        if (loanOpt.isEmpty()) {
+            loanOpt = loanRepository.findAll().stream()
+                .filter(l -> loanId.equals(l.getId()) || loanId.equals(l.getContractNo()))
+                .findFirst();
+        }
+        if (loanOpt.isEmpty()) {
+            return ApiResponse.error("Hồ sơ vay không tồn tại");
+        }
+
+        Loan loan = loanOpt.get();
+        if (!"PENDING".equalsIgnoreCase(loan.getStatus())) {
+            return ApiResponse.error("Hồ sơ vay này đã được xử lý trước đó");
+        }
+
+        // Tìm tài khoản nhận giải ngân của khách hàng
+        Optional<Account> accOpt = accountRepository.findByAccountNo(loan.getAccountNo());
+        if (accOpt.isEmpty()) {
+            accOpt = accountRepository.findByCustomerId(loan.getCustomerId()).stream()
+                .filter(a -> "PAYMENT".equalsIgnoreCase(a.getType()) && "ACTIVE".equalsIgnoreCase(a.getStatus()))
+                .findFirst();
+        }
+        if (accOpt.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy tài khoản thanh toán của khách hàng để giải ngân");
+        }
+
+        Account acc = accOpt.get();
+
+        String tellerName = currentTeller != null ? (currentTeller.getFullName() + " (" + currentTeller.getUsername() + ")") : "Giao dịch viên";
+
+        // Cập nhật trạng thái khoản vay
+        LocalDateTime disburseTime = LocalDateTime.now();
+        loan.setStatus("ACTIVE");
+        loan.setApprovedBy(tellerName);
+        loan.setApprovedAt(disburseTime);
+        loan.setRejectionReason(null);
+        loan.setInstallmentPaidCount(0);
+        loan.setNextDueDate(disburseTime.toLocalDate().plusMonths(1).toString());
+        loanRepository.save(loan);
+
+        // Cộng tiền giải ngân vào tài khoản thanh toán của khách hàng
+        acc.setBalance(acc.getBalance().add(loan.getPrincipalAmount()));
+        accountRepository.save(acc);
+
+        // Ghi nhận bản ghi Transaction giải ngân
+        String txnId = String.valueOf(1000000000L + (long)(new Random().nextDouble() * 8999999999L));
+        String contractOrId = loan.getContractNo() != null && !loan.getContractNo().isBlank() ? loan.getContractNo() : loan.getId();
+        Transaction txn = new Transaction(
+            txnId,
+            "DISBURSE-" + loan.getId(),
+            "QUỸ TÍN DỤNG QTB",
+            "Ngân hàng TMCP QuangTrung (QTB)",
+            acc.getAccountNo(),
+            loan.getCustomerName() != null ? loan.getCustomerName() : "Khách hàng",
+            loan.getPrincipalAmount(),
+            BigDecimal.ZERO,
+            "DEPOSIT",
+            "Giải ngân hợp đồng tín dụng " + contractOrId + " - " + loan.getTitle(),
+            LocalDateTime.now(),
+            "SUCCESS"
+        );
+        transactionRepository.save(txn);
+
+        // Đẩy thông báo biến động số dư Có (+) giải ngân về cho khách hàng
+        String notifId = "NOTIF-" + System.currentTimeMillis() + "-" + (100 + new Random().nextInt(900));
+        String notifMsg = "Tài khoản " + acc.getAccountNo() + " +" + formatMoney(loan.getPrincipalAmount()) + " VNĐ. Giải ngân hợp đồng tín dụng " + contractOrId + " (" + loan.getTitle() + ").";
+        Notification notif = new Notification(
+            notifId,
+            loan.getCustomerId(),
+            acc.getAccountNo(),
+            "Biến động số dư Có (+)",
+            notifMsg,
+            loan.getPrincipalAmount(),
+            acc.getBalance(),
+            "MONEY_IN",
+            false,
+            LocalDateTime.now()
+        );
+        notificationRepository.save(notif);
+
+        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        data.put("loanId", loan.getId());
+        data.put("contractNo", loan.getContractNo());
+        data.put("disbursedAmount", loan.getPrincipalAmount());
+        data.put("accountNo", acc.getAccountNo());
+        data.put("newAccountBalance", acc.getBalance());
+        data.put("status", "ACTIVE");
+
+        return ApiResponse.ok("Đã phê duyệt và GIẢI NGÂN thành công " + formatMoney(loan.getPrincipalAmount()) + " VNĐ vào tài khoản " + acc.getAccountNo() + "!", data);
+    }
+
+    @Transactional
+    public ApiResponse<Object> rejectLoan(String loanId, String reason, User currentTeller) {
+        if (currentTeller != null && !"TELLER".equalsIgnoreCase(currentTeller.getRole()) && !"ADMIN".equalsIgnoreCase(currentTeller.getRole())) {
+            return ApiResponse.error("Chỉ Giao dịch viên hoặc Quản trị viên mới có quyền từ chối hồ sơ vay");
+        }
+
+        Optional<Loan> loanOpt = loanRepository.findById(loanId);
+        if (loanOpt.isEmpty()) {
+            loanOpt = loanRepository.findAll().stream()
+                .filter(l -> loanId.equals(l.getId()) || loanId.equals(l.getContractNo()))
+                .findFirst();
+        }
+        if (loanOpt.isEmpty()) {
+            return ApiResponse.error("Hồ sơ vay không tồn tại");
+        }
+
+        Loan loan = loanOpt.get();
+        loan.setStatus("REJECTED");
+        loan.setRejectionReason(reason != null && !reason.isBlank() ? reason : "Hồ sơ chưa đạt tiêu chuẩn điều kiện tín dụng ngân hàng");
+        loanRepository.save(loan);
+
+        // Gửi thông báo từ chối cho khách hàng
+        String contractOrId = loan.getContractNo() != null && !loan.getContractNo().isBlank() ? loan.getContractNo() : loan.getId();
+        String notifId = "NOTIF-" + System.currentTimeMillis() + "-" + (100 + new Random().nextInt(900));
+        String notifMsg = "Hồ sơ vay vốn " + contractOrId + " (" + loan.getTitle() + ") đã bị từ chối. Lý do: " + loan.getRejectionReason();
+        Notification notif = new Notification(
+            notifId,
+            loan.getCustomerId(),
+            loan.getAccountNo(),
+            "Hồ sơ vay vốn bị từ chối",
+            notifMsg,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            "INFO",
+            false,
+            LocalDateTime.now()
+        );
+        notificationRepository.save(notif);
+
+        return ApiResponse.ok("Đã từ chối cấp tín dụng cho khoản vay " + contractOrId, loan);
+    }
+
+    private String formatMoney(BigDecimal amount) {
+        if (amount == null) return "0";
+        java.text.DecimalFormatSymbols symbols = new java.text.DecimalFormatSymbols();
+        symbols.setGroupingSeparator('.');
+        java.text.DecimalFormat df = new java.text.DecimalFormat("#,##0", symbols);
+        return df.format(amount);
     }
 }

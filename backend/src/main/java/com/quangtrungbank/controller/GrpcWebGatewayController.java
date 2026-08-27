@@ -86,7 +86,6 @@ public class GrpcWebGatewayController {
         return switch (rpcMethod) {
             // === Auth ===
             case "Login", "login" -> grpcBankService.loginRpc(payload);
-            case "FaceLogin", "faceLogin", "face-login" -> grpcBankService.faceLoginRpc(payload);
             case "ResetLocks", "resetLocks" -> grpcBankService.resetLocksRpc();
             case "ChangePassword", "changePassword" -> grpcBankService.changePasswordRpc(payload, currentUser);
             case "UpdateProfile", "updateProfile" -> grpcBankService.updateProfileRpc(payload, currentUser);
@@ -94,7 +93,6 @@ public class GrpcWebGatewayController {
             // === Account ===
             case "GetAccounts", "getAccounts" -> grpcBankService.getAccountsRpc(payload, currentUser);
             case "LookupAccount", "lookupAccount" -> grpcBankService.lookupAccountRpc(payload);
-            case "SubmitKyc", "submitKyc" -> grpcBankService.submitKycRpc(payload, currentUser);
 
             // === Transactions ===
             case "TransferMoney", "transferMoney" -> grpcBankService.transferMoneyRpc(payload, currentUser);
@@ -117,10 +115,14 @@ public class GrpcWebGatewayController {
             case "GetSavingsDetail", "getSavingsDetail" -> grpcBankService.getSavingsDetailRpc(payload, currentUser);
             case "GetSavingsAccounts", "getSavingsAccounts" -> grpcBankService.getSavingsAccountsRpc(currentUser);
             case "GetSavingsInterestRates", "getSavingsInterestRates" -> grpcBankService.getSavingsInterestRatesRpc();
+            case "UpdateSavingsInterestRates", "updateSavingsInterestRates" -> grpcBankService.updateSavingsInterestRatesRpc(payload);
 
             // === Loans ===
             case "ApplyLoan", "applyLoan" -> grpcBankService.applyLoanRpc(payload, currentUser);
             case "GetLoans", "getLoans" -> grpcBankService.getLoansRpc(currentUser);
+            case "GetLoanInterestRates", "getLoanInterestRates" -> grpcBankService.getLoanInterestRatesRpc();
+            case "UpdateLoanInterestRates", "updateLoanInterestRates" -> grpcBankService.updateLoanInterestRatesRpc(payload);
+            case "PayLoan", "payLoan", "PayLoanInstallment", "payLoanInstallment" -> grpcBankService.payLoanRpc(payload, currentUser);
 
             // === Notifications & Tickets ===
             case "GetNotifications", "getNotifications" -> grpcBankService.getNotificationsRpc(currentUser);
@@ -135,7 +137,9 @@ public class GrpcWebGatewayController {
             case "TellerResolveTicket", "tellerResolveTicket" -> grpcBankService.tellerResolveTicketRpc(payload, currentUser);
             case "TellerGetAllTickets", "tellerGetAllTickets" -> grpcBankService.tellerGetAllTicketsRpc(currentUser);
             case "TellerUpdateCustomer", "tellerUpdateCustomer" -> grpcBankService.tellerUpdateCustomerRpc(payload, currentUser);
-            case "TellerApproveKyc", "tellerApproveKyc" -> grpcBankService.tellerApproveKycRpc(payload, currentUser);
+            case "TellerGetAllLoans", "tellerGetAllLoans" -> grpcBankService.tellerGetAllLoansRpc(currentUser);
+            case "TellerApproveLoan", "tellerApproveLoan" -> grpcBankService.tellerApproveLoanRpc(payload, currentUser);
+            case "TellerRejectLoan", "tellerRejectLoan" -> grpcBankService.tellerRejectLoanRpc(payload, currentUser);
 
             default -> {
                 Map<String, Object> unknown = new HashMap<>();

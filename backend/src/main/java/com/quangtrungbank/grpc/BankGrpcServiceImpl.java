@@ -67,33 +67,7 @@ public class BankGrpcServiceImpl extends BankServiceGrpc.BankServiceImplBase {
         }
     }
 
-    @Override
-    public void faceLogin(FaceLoginRequest request, StreamObserver<LoginResponse> responseObserver) {
-        try {
-            Map<String, Object> req = new HashMap<>();
-            req.put("username", request.getUsername());
-            req.put("face_data", request.getFaceData());
-            req.put("liveness_score", request.getLivenessScore());
 
-            Map<String, Object> res = grpcBankService.faceLoginRpc(req);
-            LoginResponse response = LoginResponse.newBuilder()
-                    .setSuccess(Boolean.TRUE.equals(res.get("success")))
-                    .setMessage(String.valueOf(res.getOrDefault("message", "")))
-                    .setToken(String.valueOf(res.getOrDefault("token", "")))
-                    .setUsername(String.valueOf(res.getOrDefault("username", "")))
-                    .setRole(String.valueOf(res.getOrDefault("role", "")))
-                    .setFullName(String.valueOf(res.getOrDefault("full_name", "")))
-                    .setCustomerId(String.valueOf(res.getOrDefault("customer_id", "")))
-                    .setEmail(String.valueOf(res.getOrDefault("email", "")))
-                    .setPhone(String.valueOf(res.getOrDefault("phone", "")))
-                    .build();
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        } catch (Exception ex) {
-            responseObserver.onNext(LoginResponse.newBuilder().setSuccess(false).setMessage(ex.getMessage()).build());
-            responseObserver.onCompleted();
-        }
-    }
 
     @Override
     public void resetLocks(EmptyRequest request, StreamObserver<SimpleResponse> responseObserver) {

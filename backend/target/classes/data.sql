@@ -19,8 +19,8 @@ INSERT IGNORE INTO accounts (id, account_no, customer_id, type, balance, currenc
 (3, '1000987654', 'CUST-1002', 'PAYMENT', 85500000.00, 'VND', 'ACTIVE', '2025-03-10 14:15:00');
 
 INSERT IGNORE INTO transactions (id, from_account, from_name, to_account, to_name, amount, fee, type, content, timestamp, status) VALUES
-('TXN-90281', '1000123456', 'Nguyễn Văn An', '1000987654', 'Trần Thị Bình', 5000000.00, 0.00, 'TRANSFER', 'Chuyển tiền mua máy tính', '2026-08-01 10:30:15', 'SUCCESS'),
-('TXN-90282', 'HỆ THỐNG', 'Ngân hàng QuangTrung Bank', '1000123456', 'Nguyễn Văn An', 45000000.00, 0.00, 'DEPOSIT', 'Nhận lương tháng 07/2026', '2026-08-02 08:15:00', 'SUCCESS');
+('90281', '1000123456', 'Nguyễn Văn An', '1000987654', 'Trần Thị Bình', 5000000.00, 0.00, 'TRANSFER', 'Chuyển tiền mua máy tính', '2026-08-01 10:30:15', 'SUCCESS'),
+('90282', 'HỆ THỐNG', 'Ngân hàng QuangTrung Bank', '1000123456', 'Nguyễn Văn An', 45000000.00, 0.00, 'DEPOSIT', 'Nhận lương tháng 07/2026', '2026-08-02 08:15:00', 'SUCCESS');
 
 INSERT IGNORE INTO atm_codes (id, code, customer_id, account_no, type, amount, pin, status, created_at) VALUES
 ('ATMC-892104', '892104', 'CUST-1001', '1000123456', 'WITHDRAW', 1000000.00, '1234', 'PENDING', '2026-08-07 08:30:00');

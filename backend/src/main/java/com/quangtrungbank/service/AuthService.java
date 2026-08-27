@@ -121,40 +121,7 @@ public class AuthService {
         return LoginResult.success("Đăng nhập thành công!", loginResponse);
     }
 
-    /**
-     * Xử lý đăng nhập bằng nhận diện khuôn mặt FaceID.
-     */
-    public LoginResult loginWithFace(com.quangtrungbank.dto.FaceLoginRequest request) {
-        String targetUsername = request != null && request.getUsername() != null && !request.getUsername().trim().isEmpty()
-                ? request.getUsername().trim()
-                : "customer1";
 
-        Optional<User> userOpt = userRepository.findByUsername(targetUsername);
-        if (userOpt.isEmpty()) {
-            userOpt = userRepository.findByPhone(targetUsername);
-        }
-        if (userOpt.isEmpty()) {
-            userOpt = userRepository.findAll().stream().filter(u -> "CUSTOMER".equals(u.getRole())).findFirst();
-        }
-
-        if (userOpt.isEmpty()) {
-            return LoginResult.error("Không tìm thấy thông tin khuôn mặt khách hàng hợp lệ trên hệ thống.");
-        }
-
-        User user = userOpt.get();
-
-        if (user.isAccountLocked()) {
-            return LoginResult.error("Tài khoản đang bị tạm khóa. Vui lòng quay lại sau.");
-        }
-
-        user.setFailedLoginAttempts(0);
-        user.setAccountLockedUntil(null);
-        userRepository.save(user);
-
-        String token = jwtService.generateToken(user);
-        LoginResponse loginResponse = new LoginResponse(token, user);
-        return LoginResult.success("Đăng nhập bằng FaceID thành công! Xin chào " + user.getFullName(), loginResponse);
-    }
 
     /**
      * Xử lý đăng nhập thất bại — tăng bộ đếm, khóa nếu vượt quá giới hạn.

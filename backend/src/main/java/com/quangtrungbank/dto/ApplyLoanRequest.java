@@ -22,6 +22,8 @@ public class ApplyLoanRequest {
     @NotNull(message = "Thời hạn vay không được để trống")
     private Integer termMonths;
 
+    private BigDecimal interestRate;
+
     public ApplyLoanRequest() {}
 
     public String getAccountNo() { return accountNo; }
@@ -38,4 +40,7 @@ public class ApplyLoanRequest {
 
     public Integer getTermMonths() { return termMonths; }
     public void setTermMonths(Integer termMonths) { this.termMonths = termMonths; }
+
+    public BigDecimal getInterestRate() { return interestRate; }
+    public void setInterestRate(BigDecimal interestRate) { this.interestRate = interestRate; }
 }

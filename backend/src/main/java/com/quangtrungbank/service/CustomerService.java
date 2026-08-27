@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
@@ -63,6 +64,15 @@ public class CustomerService {
         this.loanRepository = loanRepository;
         this.idempotencyService = idempotencyService;
         this.notificationRepository = notificationRepository;
+    }
+
+    /**
+     * Sinh mã giao dịch thuần số (8-9 chữ số), không có tiền tố chữ cái, ngắn gọn và duy nhất.
+     */
+    public static String generateNumericTxnId() {
+        long timePart = (System.currentTimeMillis() / 1000) % 100000;
+        int randPart = 1000 + new Random().nextInt(9000);
+        return String.valueOf(timePart * 10000L + randPart);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -256,8 +266,8 @@ public class CustomerService {
         String fromName = getFullNameForAccount(source);
         String toName = getFullNameForAccount(target);
 
-        // Ghi nhận giao dịch
-        String txnId = "TXN-" + System.currentTimeMillis() + (100 + new Random().nextInt(900));
+        // Ghi nhận giao dịch với mã thuần số
+        String txnId = generateNumericTxnId();
         Transaction txn = new Transaction(
             txnId,
             idempotencyKey,
@@ -514,7 +524,28 @@ public class CustomerService {
             }
 
             if (type != null && !type.isBlank() && !"ALL".equalsIgnoreCase(type.trim())) {
-                predicates.add(cb.equal(cb.upper(root.get("type")), type.trim().toUpperCase()));
+                String t = type.trim().toUpperCase();
+                if ("SAVINGS_DEPOSIT".equals(t) || "OPEN_SAVINGS".equals(t)) {
+                    predicates.add(root.get("type").in(List.of("SAVINGS_DEPOSIT", "OPEN_SAVINGS", "SAVINGS_TOPUP", "SAVINGS")));
+                } else if ("SAVINGS_SETTLEMENT".equals(t) || "CLOSE_SAVINGS".equals(t)) {
+                    predicates.add(root.get("type").in(List.of("SAVINGS_SETTLEMENT", "CLOSE_SAVINGS", "WITHDRAW_SAVINGS", "SAVINGS_WITHDRAW")));
+                } else if ("DEPOSIT".equals(t)) {
+                    predicates.add(root.get("type").in(List.of("DEPOSIT", "ATM_DEPOSIT", "VNPOST_DEPOSIT")));
+                } else if ("WITHDRAW".equals(t)) {
+                    predicates.add(root.get("type").in(List.of("WITHDRAW", "ATM_WITHDRAW", "VNPOST_WITHDRAW", "CARD_ATM")));
+                } else if ("TRANSFER".equals(t)) {
+                    predicates.add(root.get("type").in(List.of("TRANSFER", "TRANSFER_OUT", "VNPOST_TRANSFER", "CARD_POS")));
+                } else if ("TRANSFER_IN".equals(t) || "RECEIVE".equals(t)) {
+                    predicates.add(root.get("type").in(List.of("TRANSFER_IN", "RECEIVE", "TRANSFER")));
+                } else if ("LOAN_DISBURSEMENT".equals(t) || "DISBURSEMENT".equals(t)) {
+                    predicates.add(root.get("type").in(List.of("LOAN_DISBURSEMENT", "DISBURSEMENT")));
+                } else if ("LOAN_REPAYMENT".equals(t) || "REPAYMENT".equals(t) || "LOAN_PAYMENT".equals(t) || "LOAN_SETTLEMENT".equals(t)) {
+                    predicates.add(root.get("type").in(List.of("LOAN_REPAYMENT", "REPAYMENT", "LOAN_PAYMENT", "LOAN_SETTLEMENT")));
+                } else if ("INTEREST".equals(t) || "INTEREST_CREDIT".equals(t)) {
+                    predicates.add(root.get("type").in(List.of("INTEREST", "INTEREST_CREDIT", "SAVINGS_INTEREST")));
+                } else {
+                    predicates.add(cb.equal(cb.upper(root.get("type")), t));
+                }
             }
 
             if (minAmount != null && minAmount.compareTo(BigDecimal.ZERO) >= 0) {
@@ -893,7 +924,7 @@ public class CustomerService {
         accountRepository.save(acc);
 
         String code = "VNPOST-W-" + (100000 + new Random().nextInt(900000));
-        String txnId = "TXN-" + System.currentTimeMillis() + (100 + new Random().nextInt(900));
+        String txnId = generateNumericTxnId();
 
         Transaction txn = new Transaction(
             txnId,
@@ -964,7 +995,7 @@ public class CustomerService {
         accountRepository.save(acc);
 
         String code = "VNPOST-T-" + (100000 + new Random().nextInt(900000));
-        String txnId = "TXN-" + System.currentTimeMillis() + (100 + new Random().nextInt(900));
+        String txnId = generateNumericTxnId();
 
         Transaction txn = new Transaction(
             txnId,
@@ -1141,7 +1172,7 @@ public class CustomerService {
 
         // Ghi nhận biến động số dư giao dịch
         String toNameDesc = isDemand ? "Tiết Kiệm Không Kỳ Hạn (" + annualRate + "%/năm)" : "Tiết Kiệm " + request.getTermMonths() + " Tháng (" + annualRate + "%/năm)";
-        String txnId = "TXN-SAV-" + System.currentTimeMillis() + (100 + new Random().nextInt(900));
+        String txnId = generateNumericTxnId();
         Transaction txn = new Transaction(
             txnId,
             idempotencyKey,
@@ -1237,8 +1268,8 @@ public class CustomerService {
 
         Account targetAcc = targetAccOpt.get();
         LocalDate now = LocalDate.now();
-        long daysActive = ChronoUnit.DAYS.between(sav.getCreatedAt(), now);
-        if (daysActive <= 0) daysActive = 1;
+        LocalDate createdDate = sav.getCreatedAt() != null ? sav.getCreatedAt() : now;
+        long daysActive = Math.max(0, ChronoUnit.DAYS.between(createdDate, now));
 
         boolean isDemand = "DEMAND".equalsIgnoreCase(sav.getSavingsType()) || sav.getTermMonths() == 0;
         boolean isPartial = request.getPartialAmount() != null && request.getPartialAmount().compareTo(BigDecimal.ZERO) > 0;
@@ -1283,7 +1314,7 @@ public class CustomerService {
             savingsAccountRepository.save(sav);
 
             // Ghi nhận Transaction
-            String txnId = "TXN-SAV-WDR-" + System.currentTimeMillis() + (100 + new Random().nextInt(900));
+            String txnId = generateNumericTxnId();
             Transaction txn = new Transaction(
                 txnId,
                 idempotencyKey,
@@ -1364,7 +1395,7 @@ public class CustomerService {
         accountRepository.save(targetAcc);
 
         // Ghi Transaction
-        String txnId = "TXN-SAV-CLS-" + System.currentTimeMillis() + (100 + new Random().nextInt(900));
+        String txnId = generateNumericTxnId();
         Transaction txn = new Transaction(
             txnId,
             idempotencyKey,
@@ -1483,7 +1514,7 @@ public class CustomerService {
         savingsAccountRepository.save(sav);
 
         // Ghi nhận Transaction
-        String txnId = "TXN-SAV-TOP-" + System.currentTimeMillis() + (100 + new Random().nextInt(900));
+        String txnId = generateNumericTxnId();
         Transaction txn = new Transaction(
             txnId,
             idempotencyKey,
@@ -1522,8 +1553,8 @@ public class CustomerService {
 
         SavingsAccount sav = savOpt.get();
         LocalDate now = LocalDate.now();
-        long daysActive = ChronoUnit.DAYS.between(sav.getCreatedAt(), now);
-        if (daysActive <= 0) daysActive = 1;
+        LocalDate createdDate = sav.getCreatedAt() != null ? sav.getCreatedAt() : now;
+        long daysActive = Math.max(0, ChronoUnit.DAYS.between(createdDate, now));
 
         boolean isDemand = "DEMAND".equalsIgnoreCase(sav.getSavingsType()) || sav.getTermMonths() == 0;
         boolean isMatured = sav.getMaturityDate() != null && !now.isBefore(sav.getMaturityDate());
@@ -1588,6 +1619,72 @@ public class CustomerService {
         return ApiResponse.ok("Lấy biểu lãi suất tiết kiệm thành công", list);
     }
 
+    @Transactional
+    public ApiResponse<List<SavingsInterestRate>> updateSavingsInterestRates(List<Map<String, Object>> rates) {
+        if (rates == null || rates.isEmpty()) {
+            return ApiResponse.error("Danh sách lãi suất không hợp lệ");
+        }
+        for (Map<String, Object> r : rates) {
+            Integer term = null;
+            if (r.get("term") != null) term = Integer.valueOf(String.valueOf(r.get("term")));
+            else if (r.get("termMonths") != null) term = Integer.valueOf(String.valueOf(r.get("termMonths")));
+
+            BigDecimal rate = null;
+            if (r.get("rate") != null) rate = new BigDecimal(String.valueOf(r.get("rate")));
+            else if (r.get("annualRate") != null) rate = new BigDecimal(String.valueOf(r.get("annualRate")));
+
+            if (term != null && rate != null) {
+                Optional<SavingsInterestRate> existingOpt = savingsInterestRateRepository.findByTermMonthsAndIsActiveTrue(term);
+                if (existingOpt.isPresent()) {
+                    SavingsInterestRate existing = existingOpt.get();
+                    existing.setAnnualRate(rate);
+                    savingsInterestRateRepository.save(existing);
+                } else {
+                    String label = term == 0 ? "Không kỳ hạn" : (term + " Tháng");
+                    BigDecimal minAmount = term == 0 ? BigDecimal.valueOf(100000) : BigDecimal.valueOf(1000000);
+                    SavingsInterestRate newRate = new SavingsInterestRate(term, label, rate, minAmount);
+                    savingsInterestRateRepository.save(newRate);
+                }
+            }
+        }
+        List<SavingsInterestRate> list = savingsInterestRateRepository.findByIsActiveTrueOrderByTermMonthsAsc();
+        return ApiResponse.ok("Cập nhật biểu lãi suất tiết kiệm thành công", list);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // BIỂU LÃI SUẤT CHO VAY (Loan Interest Rates)
+    // ═══════════════════════════════════════════════════════════
+
+    private final Map<String, Map<String, Object>> loanInterestRates = new java.util.concurrent.ConcurrentHashMap<>(Map.of(
+        "CONSUMER", new java.util.concurrent.ConcurrentHashMap<>(Map.of("6", 8.90, "12", 9.50, "24", 10.50, "36", 11.50, "48", 12.00, "60", 12.50)),
+        "CAR", new java.util.concurrent.ConcurrentHashMap<>(Map.of("12", 7.80, "24", 8.20, "36", 8.50, "48", 8.90, "60", 9.20, "84", 9.80)),
+        "MORTGAGE", new java.util.concurrent.ConcurrentHashMap<>(Map.of("36", 6.80, "60", 7.50, "120", 8.20, "180", 8.60, "240", 8.90)),
+        "BUSINESS", new java.util.concurrent.ConcurrentHashMap<>(Map.of("6", 6.80, "12", 7.50, "24", 7.80, "36", 8.00, "60", 8.40, "120", 8.80))
+    ));
+
+    public ApiResponse<Map<String, Map<String, Object>>> getLoanInterestRates() {
+        return ApiResponse.ok("Lấy biểu lãi suất cho vay thành công", loanInterestRates);
+    }
+
+    public ApiResponse<Map<String, Map<String, Object>>> updateLoanInterestRates(Map<String, Object> newRates) {
+        if (newRates != null) {
+            for (Map.Entry<String, Object> entry : newRates.entrySet()) {
+                String pkg = entry.getKey();
+                if (entry.getValue() instanceof Map<?, ?> termMap) {
+                    Map<String, Object> target = loanInterestRates.computeIfAbsent(pkg, k -> new java.util.concurrent.ConcurrentHashMap<>());
+                    for (Map.Entry<?, ?> tEntry : termMap.entrySet()) {
+                        try {
+                            String term = String.valueOf(tEntry.getKey());
+                            Double val = Double.valueOf(String.valueOf(tEntry.getValue()));
+                            target.put(term, val);
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+        }
+        return ApiResponse.ok("Cập nhật biểu lãi suất cho vay thành công", loanInterestRates);
+    }
+
     // ═══════════════════════════════════════════════════════════
     // KHOẢN VAY VỐN (Loans)
     // ═══════════════════════════════════════════════════════════
@@ -1595,84 +1692,227 @@ public class CustomerService {
     @Transactional
     public ApiResponse<Loan> applyLoan(ApplyLoanRequest request, User currentUser) {
         String myCustId = getCustomerIdForUser(currentUser);
+        if (myCustId == null && currentUser != null && currentUser.getId() != null) {
+            Optional<Customer> custOpt = customerRepository.findByUserId(currentUser.getId());
+            if (custOpt.isPresent()) {
+                myCustId = custOpt.get().getId();
+            }
+        }
+        if (myCustId == null && request.getAccountNo() != null) {
+            Optional<Account> accOpt = accountRepository.findByAccountNo(request.getAccountNo());
+            if (accOpt.isPresent()) {
+                myCustId = accOpt.get().getCustomerId();
+            }
+        }
         if (myCustId == null) return ApiResponse.error("Không tìm thấy thông tin khách hàng");
 
-        String id = "LOAN-" + System.currentTimeMillis();
-        BigDecimal rate = BigDecimal.valueOf(10.5);
-        if ("CAR".equals(request.getLoanType())) rate = BigDecimal.valueOf(8.8);
-        else if ("MORTGAGE".equals(request.getLoanType())) rate = BigDecimal.valueOf(7.9);
-        else if ("OVERDRAFT".equals(request.getLoanType())) rate = BigDecimal.valueOf(11.0);
+        String id = generateNumericTxnId();
+        BigDecimal rate = request.getInterestRate();
+        if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
+            rate = BigDecimal.valueOf(10.5);
+            if ("CAR".equals(request.getLoanType())) rate = BigDecimal.valueOf(7.8);
+            else if ("MORTGAGE".equals(request.getLoanType())) rate = BigDecimal.valueOf(6.8);
+            else if ("BUSINESS".equals(request.getLoanType())) rate = BigDecimal.valueOf(6.8);
+        }
 
+        int termMonths = request.getTermMonths() != null && request.getTermMonths() > 0 ? request.getTermMonths() : 12;
         BigDecimal monthlyInterestRate = rate.divide(BigDecimal.valueOf(1200), 6, java.math.RoundingMode.HALF_UP);
         BigDecimal monthlyPayment = request.getPrincipalAmount()
-            .divide(BigDecimal.valueOf(request.getTermMonths()), 2, java.math.RoundingMode.HALF_UP)
+            .divide(BigDecimal.valueOf(termMonths), 2, java.math.RoundingMode.HALF_UP)
             .add(request.getPrincipalAmount().multiply(monthlyInterestRate));
 
+        String contractNo = "HDTD-" + java.time.LocalDate.now().getYear() + "-" + (1000 + new java.util.Random().nextInt(9000));
+        String customerName = currentUser != null && currentUser.getFullName() != null && !currentUser.getFullName().isBlank()
+            ? currentUser.getFullName()
+            : customerRepository.findById(myCustId).map(c -> c.getUser() != null ? c.getUser().getFullName() : "Khách hàng").orElse("Khách hàng");
+
         Loan loan = new Loan();
-        loan.setId(id);
+        loan.setId("LOAN-" + id);
+        loan.setContractNo(contractNo);
         loan.setCustomerId(myCustId);
-        loan.setCustomerName(currentUser.getFullName());
+        loan.setCustomerName(customerName);
         loan.setAccountNo(request.getAccountNo());
         loan.setLoanType(request.getLoanType());
-        loan.setTitle(request.getTitle());
+        loan.setTitle(request.getTitle() != null && !request.getTitle().isBlank() ? request.getTitle() : "Vay vốn tín dụng");
         loan.setPrincipalAmount(request.getPrincipalAmount());
         loan.setRemainingBalance(request.getPrincipalAmount());
-        loan.setTermMonths(request.getTermMonths());
+        loan.setTermMonths(termMonths);
         loan.setInterestRate(rate);
         loan.setMonthlyPayment(monthlyPayment);
-        loan.setNextDueDate(java.time.LocalDate.now().plusMonths(1).toString());
+        loan.setNextDueDate("Chờ giải ngân");
+        loan.setInstallmentPaidCount(0);
         loan.setStatus("PENDING");
         loan.setAppliedAt(LocalDateTime.now());
 
         loanRepository.save(loan);
+
+        // Tạo thông báo gửi cho khách hàng (Thông tin tiếp nhận hồ sơ, chưa giải ngân tiền)
+        String notifMsg = "Hồ sơ đăng ký vay vốn [" + loan.getTitle() + "] số tiền " + formatMoney(request.getPrincipalAmount()) + " VNĐ (" + contractNo + ") đã được tiếp nhận và chuyển chuyên viên thẩm định.";
+        pushBalanceNotification(myCustId, request.getAccountNo(), "Đăng ký vay vốn thành công", notifMsg, BigDecimal.ZERO, null, "INFO");
+
         return ApiResponse.ok("Nộp hồ sơ vay vốn thành công! Hồ sơ đang được chuyên viên tín dụng thẩm định.", loan);
     }
 
     public ApiResponse<List<Loan>> getLoans(User currentUser) {
         String myCustId = getCustomerIdForUser(currentUser);
-        if (myCustId == null) return ApiResponse.error("Không tìm thấy thông tin khách hàng");
+        if (myCustId == null && currentUser != null && currentUser.getId() != null) {
+            Optional<Customer> custOpt = customerRepository.findByUserId(currentUser.getId());
+            if (custOpt.isPresent()) {
+                myCustId = custOpt.get().getId();
+            }
+        }
+        if (myCustId == null) {
+            return ApiResponse.ok("Lấy danh sách khoản vay thành công", List.of());
+        }
         List<Loan> list = loanRepository.findByCustomerIdOrderByAppliedAtDesc(myCustId);
         return ApiResponse.ok("Lấy danh sách khoản vay thành công", list);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // ĐỊNH DANH EKYC (eKYC Verification)
-    // ═══════════════════════════════════════════════════════════
-
     @Transactional
-    public ApiResponse<Customer> submitKyc(SubmitKycRequest request, User currentUser) {
-        String myCustId = getCustomerIdForUser(currentUser);
-        if (myCustId == null) return ApiResponse.error("Không tìm thấy thông tin khách hàng");
-
-        Optional<Customer> custOpt = customerRepository.findById(myCustId);
-        if (custOpt.isEmpty()) return ApiResponse.error("Khách hàng không tồn tại");
-
-        Customer cust = custOpt.get();
-        cust.setIdCardFront(request.getIdCardFront());
-        cust.setIdCardBack(request.getIdCardBack());
-        cust.setSelfiePhoto(request.getSelfiePhoto());
-        cust.setKycStatus("VERIFIED"); // Tự động duyệt mô phỏng eKYC
-        cust.setKycVerifiedAt(LocalDateTime.now());
-
-        customerRepository.save(cust);
-        return ApiResponse.ok("Xác thực eKYC thành công! Hạn mức tài khoản đã được nâng lên tối đa.", cust);
-    }
-
-    @Transactional
-    public ApiResponse<Customer> approveKyc(String customerId, String newStatus, User currentUser) {
-        if (!"ADMIN".equals(currentUser.getRole()) && !"TELLER".equals(currentUser.getRole())) {
-            return ApiResponse.error("Chỉ Giao dịch viên hoặc Admin mới có quyền duyệt eKYC");
+    public ApiResponse<Object> payLoan(String loanId, boolean isPayOffAll, User currentUser, String idempotencyKey) {
+        Optional<Loan> loanOpt = loanRepository.findById(loanId);
+        if (loanOpt.isEmpty()) {
+            loanOpt = loanRepository.findAll().stream()
+                .filter(l -> loanId.equals(l.getId()) || loanId.equals(l.getContractNo()))
+                .findFirst();
         }
-        Optional<Customer> custOpt = customerRepository.findById(customerId);
-        if (custOpt.isEmpty()) return ApiResponse.error("Khách hàng không tồn tại");
 
-        Customer cust = custOpt.get();
-        cust.setKycStatus(newStatus);
-        if ("VERIFIED".equals(newStatus)) {
-            cust.setKycVerifiedAt(LocalDateTime.now());
+        if (loanOpt.isEmpty()) {
+            return ApiResponse.error("Khoản vay không tồn tại");
         }
-        customerRepository.save(cust);
-        return ApiResponse.ok("Cập nhật trạng thái eKYC thành công: " + newStatus, cust);
+
+        Loan loan = loanOpt.get();
+        String myCustId = currentUser != null ? getCustomerIdForUser(currentUser) : null;
+        if (myCustId == null) {
+            myCustId = loan.getCustomerId();
+        }
+
+        if (myCustId != null && !myCustId.equals(loan.getCustomerId())) {
+            return ApiResponse.error("Bạn không có quyền thao tác trên khoản vay này");
+        }
+
+        if (!"ACTIVE".equalsIgnoreCase(loan.getStatus())) {
+            return ApiResponse.error("Khoản vay hiện không trong trạng thái hoạt động để thanh toán");
+        }
+
+        // Tìm tài khoản trích nợ
+        Optional<Account> payAccOpt = accountRepository.findByAccountNo(loan.getAccountNo());
+        if (payAccOpt.isEmpty()) {
+            payAccOpt = accountRepository.findByCustomerId(myCustId).stream()
+                .filter(a -> "PAYMENT".equalsIgnoreCase(a.getType()) && "ACTIVE".equalsIgnoreCase(a.getStatus()))
+                .findFirst();
+        }
+
+        if (payAccOpt.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy tài khoản thanh toán để trích nợ");
+        }
+
+        Account payAcc = payAccOpt.get();
+
+        BigDecimal payAmount;
+        BigDecimal penaltyFee = BigDecimal.ZERO;
+
+        if (isPayOffAll) {
+            // Phí phạt tất toán trước hạn (1.5% trên số dư nợ còn lại)
+            penaltyFee = loan.getRemainingBalance()
+                .multiply(BigDecimal.valueOf(0.015))
+                .setScale(0, java.math.RoundingMode.HALF_UP);
+            payAmount = loan.getRemainingBalance().add(penaltyFee);
+        } else {
+            payAmount = loan.getMonthlyPayment() != null && loan.getMonthlyPayment().compareTo(BigDecimal.ZERO) > 0
+                ? loan.getMonthlyPayment().min(loan.getRemainingBalance())
+                : loan.getRemainingBalance();
+        }
+
+        if (payAcc.getBalance().compareTo(payAmount) < 0) {
+            String msg = "Số dư tài khoản " + payAcc.getAccountNo() + " không đủ để thanh toán nợ. Cần: " + formatMoney(payAmount) + " VNĐ";
+            if (penaltyFee.compareTo(BigDecimal.ZERO) > 0) {
+                msg += " (Gồm " + formatMoney(penaltyFee) + " VNĐ phí tất toán trước hạn 1.5%)";
+            }
+            msg += ", Hiện có: " + formatMoney(payAcc.getBalance()) + " VNĐ";
+            return ApiResponse.error(msg);
+        }
+
+        // Trừ tiền tài khoản
+        payAcc.setBalance(payAcc.getBalance().subtract(payAmount));
+        accountRepository.save(payAcc);
+
+        String contractOrId = loan.getContractNo() != null && !loan.getContractNo().isBlank() ? loan.getContractNo() : loan.getId();
+
+        if (isPayOffAll) {
+            loan.setRemainingBalance(BigDecimal.ZERO);
+            loan.setStatus("PAID_OFF");
+        } else {
+            BigDecimal termMonthsBd = BigDecimal.valueOf(loan.getTermMonths() != null && loan.getTermMonths() > 0 ? loan.getTermMonths() : 12);
+            BigDecimal monthlyPrincipal = loan.getPrincipalAmount().divide(termMonthsBd, 0, java.math.RoundingMode.HALF_UP);
+            BigDecimal newRemaining = loan.getRemainingBalance().subtract(monthlyPrincipal);
+            if (newRemaining.compareTo(BigDecimal.ZERO) <= 0) {
+                newRemaining = BigDecimal.ZERO;
+            }
+            loan.setRemainingBalance(newRemaining);
+
+            int paidCount = (loan.getInstallmentPaidCount() != null ? loan.getInstallmentPaidCount() : 0) + 1;
+            loan.setInstallmentPaidCount(paidCount);
+
+            if (newRemaining.compareTo(BigDecimal.ZERO) <= 0 || (loan.getTermMonths() != null && paidCount >= loan.getTermMonths())) {
+                loan.setRemainingBalance(BigDecimal.ZERO);
+                loan.setStatus("PAID_OFF");
+                loan.setNextDueDate("Đã tất toán");
+            } else {
+                try {
+                    LocalDateTime baseTime = loan.getApprovedAt() != null ? loan.getApprovedAt() 
+                        : (loan.getAppliedAt() != null ? loan.getAppliedAt() : LocalDateTime.now());
+                    java.time.LocalDate nextDue = baseTime.toLocalDate().plusMonths(paidCount + 1);
+                    loan.setNextDueDate(nextDue.toString());
+                } catch (Exception ignored) {
+                    loan.setNextDueDate(java.time.LocalDate.now().plusMonths(1).toString());
+                }
+            }
+        }
+        loanRepository.save(loan);
+
+        // Tạo Transaction
+        String txnId = generateNumericTxnId();
+        String txnDesc = isPayOffAll
+            ? "Tất toán toàn bộ hợp đồng tín dụng " + contractOrId
+            : "Thanh toán kỳ nợ số " + (loan.getInstallmentPaidCount() != null ? loan.getInstallmentPaidCount() : 1) + " hợp đồng " + contractOrId;
+
+        String payerName = currentUser != null && currentUser.getFullName() != null && !currentUser.getFullName().isBlank()
+            ? currentUser.getFullName()
+            : (loan.getCustomerName() != null && !loan.getCustomerName().isBlank() ? loan.getCustomerName() : "Khách hàng");
+
+        Transaction txn = new Transaction(
+            txnId,
+            idempotencyKey,
+            payAcc.getAccountNo(),
+            payerName,
+            contractOrId,
+            "QuangTrung Bank - Thu nợ " + contractOrId,
+            payAmount,
+            penaltyFee,
+            "LOAN_REPAYMENT",
+            txnDesc,
+            LocalDateTime.now(),
+            "SUCCESS"
+        );
+        transactionRepository.save(txn);
+
+        // Tạo Notification
+        String notifMsg = "Tài khoản " + payAcc.getAccountNo() + " -" + formatMoney(payAmount) + " VNĐ. "
+            + (isPayOffAll ? "Tất toán hợp đồng " : "Thanh toán kỳ nợ ") + contractOrId;
+        pushBalanceNotification(myCustId, payAcc.getAccountNo(), "Biến động số dư Nợ (-)", notifMsg, payAmount, payAcc.getBalance(), "MONEY_OUT");
+
+        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        data.put("loanId", loan.getId());
+        data.put("contractNo", loan.getContractNo());
+        data.put("paidAmount", payAmount);
+        data.put("remainingBalance", loan.getRemainingBalance());
+        data.put("status", loan.getStatus());
+        data.put("installmentPaidCount", loan.getInstallmentPaidCount());
+        data.put("accountBalance", payAcc.getBalance());
+
+        String successMsg = "Thanh toán " + (isPayOffAll ? "tất toán toàn bộ" : "kỳ nợ") + " thành công " + formatMoney(payAmount) + " VNĐ! Dư nợ gốc còn lại: " + formatMoney(loan.getRemainingBalance()) + " VNĐ";
+        return ApiResponse.ok(successMsg, data);
     }
 
     // ═══════════════════════════════════════════════════════════

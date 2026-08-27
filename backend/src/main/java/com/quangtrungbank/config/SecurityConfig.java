@@ -79,13 +79,10 @@ public class SecurityConfig {
                 // gRPC Auth endpoints công khai
                 .requestMatchers(
                     "/api/grpc/Login", "/api/grpc/login",
-                    "/api/grpc/FaceLogin", "/api/grpc/faceLogin", "/api/grpc/face-login",
                     "/api/grpc/ResetLocks", "/api/grpc/resetLocks",
                     "/grpc/com.quangtrungbank.grpc.BankService/Login",
-                    "/grpc/com.quangtrungbank.grpc.BankService/FaceLogin",
                     "/grpc/com.quangtrungbank.grpc.BankService/ResetLocks",
                     "/grpc/BankService/Login",
-                    "/grpc/BankService/FaceLogin",
                     "/grpc/BankService/ResetLocks"
                 ).permitAll()
                 // Tất cả gRPC RPC endpoints khác: Yêu cầu JWT token hợp lệ

@@ -10,7 +10,6 @@ option java_outer_classname = "BankServiceProto";
 service BankService {
   // === Authentication & Security ===
   rpc Login (LoginRequest) returns (LoginResponse);
-  rpc FaceLogin (FaceLoginRequest) returns (LoginResponse);
   rpc ResetLocks (EmptyRequest) returns (SimpleResponse);
   rpc ChangePassword (ChangePasswordRequest) returns (SimpleResponse);
   rpc UpdateProfile (UpdateProfileRequest) returns (UserResponse);
@@ -18,7 +17,6 @@ service BankService {
   // === Customer Accounts & Profile ===
   rpc GetAccounts (GetAccountsRequest) returns (AccountListResponse);
   rpc LookupAccount (LookupAccountRequest) returns (LookupAccountResponse);
-  rpc SubmitKyc (SubmitKycRequest) returns (CustomerResponse);
 
   // === Core Transactions ===
   rpc TransferMoney (TransferRequest) returns (TransferResponse);
@@ -60,7 +58,6 @@ service BankService {
   rpc TellerResolveTicket (TellerResolveTicketRequest) returns (TicketResponse);
   rpc TellerGetAllTickets (EmptyRequest) returns (TicketListResponse);
   rpc TellerUpdateCustomer (TellerUpdateCustomerRequest) returns (CustomerResponse);
-  rpc TellerApproveKyc (TellerApproveKycRequest) returns (CustomerResponse);
 }
 
 // === Common / Generic Messages ===
@@ -76,12 +73,6 @@ message SimpleResponse {
 message LoginRequest {
   string username = 1;
   string password = 2;
-}
-
-message FaceLoginRequest {
-  string username = 1;
-  string face_data = 2;
-  double liveness_score = 3;
 }
 
 message LoginResponse {
@@ -461,15 +452,7 @@ message TicketListResponse {
   repeated TicketItem tickets = 3;
 }
 
-// === Customer & KYC Messages ===
-message SubmitKycRequest {
-  string id_card = 1;
-  string address = 2;
-  string phone = 3;
-  string front_image_url = 4;
-  string back_image_url = 5;
-  string face_image_url = 6;
-}
+// === Customer Messages ===
 
 message CustomerItem {
   string id = 1;
@@ -515,9 +498,4 @@ message TellerUpdateCustomerRequest {
   string phone = 3;
   string email = 4;
   string address = 5;
-}
-
-message TellerApproveKycRequest {
-  string customer_id = 1;
-  string status = 2;
 }

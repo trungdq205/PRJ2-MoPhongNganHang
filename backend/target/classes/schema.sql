@@ -104,3 +104,18 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS notifications (
+    id VARCHAR(50) PRIMARY KEY,
+    customer_id VARCHAR(50) NOT NULL,
+    account_no VARCHAR(50),
+    title VARCHAR(150) NOT NULL,
+    message VARCHAR(500),
+    amount DECIMAL(15, 2) DEFAULT 0.00,
+    balance_after DECIMAL(15, 2) DEFAULT 0.00,
+    type VARCHAR(20) NOT NULL DEFAULT 'MONEY_IN',
+    recipient_role VARCHAR(20) NOT NULL DEFAULT 'CUSTOMER',
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_notif_cust_time (customer_id, created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+

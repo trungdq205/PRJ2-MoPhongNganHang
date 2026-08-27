@@ -9,4 +9,9 @@ public interface CustomerRepository extends JpaRepository<Customer, String> {
      * Tìm hồ sơ Customer theo User ID (liên kết 1-1 với bảng users).
      */
     Optional<Customer> findByUserId(Long userId);
+
+    /**
+     * Tìm hồ sơ Customer theo số CCCD/CMND.
+     */
+    Optional<Customer> findByIdCard(String idCard);
 }

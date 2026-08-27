@@ -24,7 +24,7 @@ public class Loan {
     private String accountNo;
 
     @Column(name = "loan_type", nullable = false, length = 30)
-    private String loanType; // CONSUMER, CAR, MORTGAGE, OVERDRAFT
+    private String loanType; // CONSUMER, CAR, MORTGAGE, BUSINESS
 
     @Column(nullable = false, length = 150)
     private String title;
@@ -49,6 +49,12 @@ public class Loan {
 
     @Column(nullable = false, length = 30)
     private String status = "PENDING"; // PENDING, ACTIVE, REJECTED, PAID_OFF
+
+    @Column(name = "contract_no", length = 50)
+    private String contractNo;
+
+    @Column(name = "installment_paid_count")
+    private Integer installmentPaidCount = 0;
 
     @Column(name = "applied_at")
     private LocalDateTime appliedAt = LocalDateTime.now();
@@ -111,6 +117,12 @@ public class Loan {
 
     public String getApprovedBy() { return approvedBy; }
     public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
+
+    public String getContractNo() { return contractNo; }
+    public void setContractNo(String contractNo) { this.contractNo = contractNo; }
+
+    public Integer getInstallmentPaidCount() { return installmentPaidCount != null ? installmentPaidCount : 0; }
+    public void setInstallmentPaidCount(Integer installmentPaidCount) { this.installmentPaidCount = installmentPaidCount; }
 
     public String getRejectionReason() { return rejectionReason; }
     public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }

@@ -34,6 +34,9 @@ public class GrpcBankService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private LoanRepository loanRepository;
+
     public User resolveUserIfNull(User currentUser, String accountNo) {
         if (currentUser != null) return currentUser;
         if (accountNo == null || accountNo.isBlank()) return null;
@@ -110,32 +113,7 @@ public class GrpcBankService {
         return result;
     }
 
-    public Map<String, Object> faceLoginRpc(Map<String, Object> req) {
-        Map<String, Object> result = new HashMap<>();
-        FaceLoginRequest dto = new FaceLoginRequest();
-        dto.setUsername(getString(req, "username"));
-        dto.setFaceData(getString(req, "face_data", "faceData"));
-        Object scoreObj = req.get("liveness_score") != null ? req.get("liveness_score") : req.get("livenessScore");
-        dto.setLivenessScore(scoreObj != null ? Double.parseDouble(scoreObj.toString()) : 99.5);
 
-        AuthService.LoginResult res = authService.loginWithFace(dto);
-        result.put("success", res.isSuccess());
-        result.put("message", res.getMessage());
-        if (res.isSuccess() && res.getData() != null) {
-            LoginResponse d = res.getData();
-            result.put("token", d.getToken());
-            result.put("username", d.getUsername());
-            result.put("role", d.getRole());
-            result.put("full_name", d.getFullName());
-            result.put("email", d.getEmail());
-            result.put("phone", d.getPhone());
-            if (d.getUserId() != null) {
-                customerRepository.findByUserId(d.getUserId()).ifPresent(c -> result.put("customer_id", c.getId()));
-            }
-            result.put("data", d);
-        }
-        return result;
-    }
 
     public Map<String, Object> resetLocksRpc() {
         authService.resetAllLocks();
@@ -206,20 +184,6 @@ public class GrpcBankService {
             result.put("customer_name", map.get("customerName"));
             result.put("bank_name", map.get("bankName"));
         }
-        result.put("data", res.getData());
-        return result;
-    }
-
-    public Map<String, Object> submitKycRpc(Map<String, Object> req, User currentUser) {
-        SubmitKycRequest dto = new SubmitKycRequest();
-        dto.setIdCardFront(getString(req, "front_image_url", "frontImageUrl", "id_card_front", "idCardFront"));
-        dto.setIdCardBack(getString(req, "back_image_url", "backImageUrl", "id_card_back", "idCardBack"));
-        dto.setSelfiePhoto(getString(req, "face_image_url", "faceImageUrl", "selfie_photo", "selfiePhoto"));
-
-        ApiResponse<Customer> res = customerService.submitKyc(dto, currentUser);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", res.isSuccess());
-        result.put("message", res.getMessage());
         result.put("data", res.getData());
         return result;
     }
@@ -556,6 +520,42 @@ public class GrpcBankService {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> updateSavingsInterestRatesRpc(Map<String, Object> req) {
+        List<Map<String, Object>> rates = (List<Map<String, Object>>) req.get("rates");
+        ApiResponse<List<SavingsInterestRate>> res = customerService.updateSavingsInterestRates(rates);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", res.isSuccess());
+        result.put("message", res.getMessage());
+        result.put("rates", res.getData() != null ? res.getData() : List.of());
+        result.put("data", res.getData());
+        return result;
+    }
+
+    public Map<String, Object> getLoanInterestRatesRpc() {
+        ApiResponse<Map<String, Map<String, Object>>> res = customerService.getLoanInterestRates();
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", res.isSuccess());
+        result.put("message", res.getMessage());
+        result.put("rates", res.getData());
+        result.put("data", res.getData());
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> updateLoanInterestRatesRpc(Map<String, Object> req) {
+        Map<String, Object> rates = (Map<String, Object>) req.get("loanRates");
+        if (rates == null) rates = (Map<String, Object>) req.get("rates");
+        if (rates == null) rates = req;
+        ApiResponse<Map<String, Map<String, Object>>> res = customerService.updateLoanInterestRates(rates);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", res.isSuccess());
+        result.put("message", res.getMessage());
+        result.put("rates", res.getData());
+        result.put("data", res.getData());
+        return result;
+    }
+
     // === Loans RPCs ===
     public Map<String, Object> applyLoanRpc(Map<String, Object> req, User currentUser) {
         ApplyLoanRequest dto = new ApplyLoanRequest();
@@ -580,6 +580,27 @@ public class GrpcBankService {
         result.put("success", res.isSuccess());
         result.put("message", res.getMessage());
         result.put("loans", res.getData() != null ? res.getData() : List.of());
+        result.put("data", res.getData());
+        return result;
+    }
+
+    @Transactional
+    public Map<String, Object> payLoanRpc(Map<String, Object> req, User currentUser) {
+        String loanId = getString(req, "loan_id", "loanId");
+        boolean isPayOffAll = Boolean.parseBoolean(String.valueOf(req.getOrDefault("is_pay_off_all", req.get("isPayOffAll"))));
+        String idempotencyKey = getString(req, "idempotency_key", "idempotencyKey");
+
+        if (currentUser == null && loanId != null) {
+            Optional<Loan> lOpt = loanRepository.findById(loanId);
+            if (lOpt.isPresent()) {
+                currentUser = resolveUserIfNull(null, lOpt.get().getAccountNo());
+            }
+        }
+
+        ApiResponse<Object> res = customerService.payLoan(loanId, isPayOffAll, currentUser, idempotencyKey);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", res.isSuccess());
+        result.put("message", res.getMessage());
         result.put("data", res.getData());
         return result;
     }
@@ -719,11 +740,36 @@ public class GrpcBankService {
         return result;
     }
 
-    public Map<String, Object> tellerApproveKycRpc(Map<String, Object> req, User currentTeller) {
-        String customerId = getString(req, "customer_id", "customerId");
-        String status = getString(req, "status");
+    public Map<String, Object> tellerGetAllLoansRpc(User currentTeller) {
+        ApiResponse<List<Loan>> res = tellerService.getAllLoans(currentTeller);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", res.isSuccess());
+        result.put("message", res.getMessage());
+        result.put("loans", res.getData() != null ? res.getData() : List.of());
+        result.put("data", res.getData());
+        return result;
+    }
 
-        ApiResponse<Customer> res = tellerService.approveKyc(customerId, status, currentTeller);
+    @Transactional
+    public Map<String, Object> tellerApproveLoanRpc(Map<String, Object> req, User currentTeller) {
+        String loanId = getString(req, "loan_id", "loanId");
+        String officerNote = getString(req, "officer_note", "officerNote");
+        String collateralHandoverCode = getString(req, "collateral_handover_code", "collateralHandoverCode");
+
+        ApiResponse<Object> res = tellerService.approveLoan(loanId, officerNote, collateralHandoverCode, currentTeller);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", res.isSuccess());
+        result.put("message", res.getMessage());
+        result.put("data", res.getData());
+        return result;
+    }
+
+    @Transactional
+    public Map<String, Object> tellerRejectLoanRpc(Map<String, Object> req, User currentTeller) {
+        String loanId = getString(req, "loan_id", "loanId");
+        String reason = getString(req, "reason");
+
+        ApiResponse<Object> res = tellerService.rejectLoan(loanId, reason, currentTeller);
         Map<String, Object> result = new HashMap<>();
         result.put("success", res.isSuccess());
         result.put("message", res.getMessage());

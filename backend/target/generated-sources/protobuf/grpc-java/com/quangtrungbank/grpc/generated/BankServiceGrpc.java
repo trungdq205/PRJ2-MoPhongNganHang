@@ -49,37 +49,6 @@ public final class BankServiceGrpc {
     return getLoginMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.FaceLoginRequest,
-      com.quangtrungbank.grpc.generated.LoginResponse> getFaceLoginMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "FaceLogin",
-      requestType = com.quangtrungbank.grpc.generated.FaceLoginRequest.class,
-      responseType = com.quangtrungbank.grpc.generated.LoginResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.FaceLoginRequest,
-      com.quangtrungbank.grpc.generated.LoginResponse> getFaceLoginMethod() {
-    io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.FaceLoginRequest, com.quangtrungbank.grpc.generated.LoginResponse> getFaceLoginMethod;
-    if ((getFaceLoginMethod = BankServiceGrpc.getFaceLoginMethod) == null) {
-      synchronized (BankServiceGrpc.class) {
-        if ((getFaceLoginMethod = BankServiceGrpc.getFaceLoginMethod) == null) {
-          BankServiceGrpc.getFaceLoginMethod = getFaceLoginMethod =
-              io.grpc.MethodDescriptor.<com.quangtrungbank.grpc.generated.FaceLoginRequest, com.quangtrungbank.grpc.generated.LoginResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "FaceLogin"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.FaceLoginRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.LoginResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BankServiceMethodDescriptorSupplier("FaceLogin"))
-              .build();
-        }
-      }
-    }
-    return getFaceLoginMethod;
-  }
-
   private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.EmptyRequest,
       com.quangtrungbank.grpc.generated.SimpleResponse> getResetLocksMethod;
 
@@ -233,37 +202,6 @@ public final class BankServiceGrpc {
       }
     }
     return getLookupAccountMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.SubmitKycRequest,
-      com.quangtrungbank.grpc.generated.CustomerResponse> getSubmitKycMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "SubmitKyc",
-      requestType = com.quangtrungbank.grpc.generated.SubmitKycRequest.class,
-      responseType = com.quangtrungbank.grpc.generated.CustomerResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.SubmitKycRequest,
-      com.quangtrungbank.grpc.generated.CustomerResponse> getSubmitKycMethod() {
-    io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.SubmitKycRequest, com.quangtrungbank.grpc.generated.CustomerResponse> getSubmitKycMethod;
-    if ((getSubmitKycMethod = BankServiceGrpc.getSubmitKycMethod) == null) {
-      synchronized (BankServiceGrpc.class) {
-        if ((getSubmitKycMethod = BankServiceGrpc.getSubmitKycMethod) == null) {
-          BankServiceGrpc.getSubmitKycMethod = getSubmitKycMethod =
-              io.grpc.MethodDescriptor.<com.quangtrungbank.grpc.generated.SubmitKycRequest, com.quangtrungbank.grpc.generated.CustomerResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "SubmitKyc"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.SubmitKycRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.CustomerResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BankServiceMethodDescriptorSupplier("SubmitKyc"))
-              .build();
-        }
-      }
-    }
-    return getSubmitKycMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TransferRequest,
@@ -1165,37 +1103,6 @@ public final class BankServiceGrpc {
     return getTellerUpdateCustomerMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TellerApproveKycRequest,
-      com.quangtrungbank.grpc.generated.CustomerResponse> getTellerApproveKycMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "TellerApproveKyc",
-      requestType = com.quangtrungbank.grpc.generated.TellerApproveKycRequest.class,
-      responseType = com.quangtrungbank.grpc.generated.CustomerResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TellerApproveKycRequest,
-      com.quangtrungbank.grpc.generated.CustomerResponse> getTellerApproveKycMethod() {
-    io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TellerApproveKycRequest, com.quangtrungbank.grpc.generated.CustomerResponse> getTellerApproveKycMethod;
-    if ((getTellerApproveKycMethod = BankServiceGrpc.getTellerApproveKycMethod) == null) {
-      synchronized (BankServiceGrpc.class) {
-        if ((getTellerApproveKycMethod = BankServiceGrpc.getTellerApproveKycMethod) == null) {
-          BankServiceGrpc.getTellerApproveKycMethod = getTellerApproveKycMethod =
-              io.grpc.MethodDescriptor.<com.quangtrungbank.grpc.generated.TellerApproveKycRequest, com.quangtrungbank.grpc.generated.CustomerResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "TellerApproveKyc"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.TellerApproveKycRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.CustomerResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BankServiceMethodDescriptorSupplier("TellerApproveKyc"))
-              .build();
-        }
-      }
-    }
-    return getTellerApproveKycMethod;
-  }
-
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -1259,13 +1166,6 @@ public final class BankServiceGrpc {
 
     /**
      */
-    default void faceLogin(com.quangtrungbank.grpc.generated.FaceLoginRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.LoginResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getFaceLoginMethod(), responseObserver);
-    }
-
-    /**
-     */
     default void resetLocks(com.quangtrungbank.grpc.generated.EmptyRequest request,
         io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.SimpleResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getResetLocksMethod(), responseObserver);
@@ -1300,13 +1200,6 @@ public final class BankServiceGrpc {
     default void lookupAccount(com.quangtrungbank.grpc.generated.LookupAccountRequest request,
         io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.LookupAccountResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getLookupAccountMethod(), responseObserver);
-    }
-
-    /**
-     */
-    default void submitKyc(com.quangtrungbank.grpc.generated.SubmitKycRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.CustomerResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubmitKycMethod(), responseObserver);
     }
 
     /**
@@ -1529,13 +1422,6 @@ public final class BankServiceGrpc {
         io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.CustomerResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getTellerUpdateCustomerMethod(), responseObserver);
     }
-
-    /**
-     */
-    default void tellerApproveKyc(com.quangtrungbank.grpc.generated.TellerApproveKycRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.CustomerResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getTellerApproveKycMethod(), responseObserver);
-    }
   }
 
   /**
@@ -1584,14 +1470,6 @@ public final class BankServiceGrpc {
 
     /**
      */
-    public void faceLogin(com.quangtrungbank.grpc.generated.FaceLoginRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.LoginResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getFaceLoginMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     */
     public void resetLocks(com.quangtrungbank.grpc.generated.EmptyRequest request,
         io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.SimpleResponse> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
@@ -1631,14 +1509,6 @@ public final class BankServiceGrpc {
         io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.LookupAccountResponse> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getLookupAccountMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     */
-    public void submitKyc(com.quangtrungbank.grpc.generated.SubmitKycRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.CustomerResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getSubmitKycMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -1890,14 +1760,6 @@ public final class BankServiceGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getTellerUpdateCustomerMethod(), getCallOptions()), request, responseObserver);
     }
-
-    /**
-     */
-    public void tellerApproveKyc(com.quangtrungbank.grpc.generated.TellerApproveKycRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.CustomerResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getTellerApproveKycMethod(), getCallOptions()), request, responseObserver);
-    }
   }
 
   /**
@@ -1927,13 +1789,6 @@ public final class BankServiceGrpc {
     public com.quangtrungbank.grpc.generated.LoginResponse login(com.quangtrungbank.grpc.generated.LoginRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getLoginMethod(), getCallOptions(), request);
-    }
-
-    /**
-     */
-    public com.quangtrungbank.grpc.generated.LoginResponse faceLogin(com.quangtrungbank.grpc.generated.FaceLoginRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getFaceLoginMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1972,13 +1827,6 @@ public final class BankServiceGrpc {
     public com.quangtrungbank.grpc.generated.LookupAccountResponse lookupAccount(com.quangtrungbank.grpc.generated.LookupAccountRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getLookupAccountMethod(), getCallOptions(), request);
-    }
-
-    /**
-     */
-    public com.quangtrungbank.grpc.generated.CustomerResponse submitKyc(com.quangtrungbank.grpc.generated.SubmitKycRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getSubmitKycMethod(), getCallOptions(), request);
     }
 
     /**
@@ -2201,13 +2049,6 @@ public final class BankServiceGrpc {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getTellerUpdateCustomerMethod(), getCallOptions(), request);
     }
-
-    /**
-     */
-    public com.quangtrungbank.grpc.generated.CustomerResponse tellerApproveKyc(com.quangtrungbank.grpc.generated.TellerApproveKycRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getTellerApproveKycMethod(), getCallOptions(), request);
-    }
   }
 
   /**
@@ -2238,14 +2079,6 @@ public final class BankServiceGrpc {
         com.quangtrungbank.grpc.generated.LoginRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getLoginMethod(), getCallOptions()), request);
-    }
-
-    /**
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.quangtrungbank.grpc.generated.LoginResponse> faceLogin(
-        com.quangtrungbank.grpc.generated.FaceLoginRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getFaceLoginMethod(), getCallOptions()), request);
     }
 
     /**
@@ -2289,14 +2122,6 @@ public final class BankServiceGrpc {
         com.quangtrungbank.grpc.generated.LookupAccountRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getLookupAccountMethod(), getCallOptions()), request);
-    }
-
-    /**
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.quangtrungbank.grpc.generated.CustomerResponse> submitKyc(
-        com.quangtrungbank.grpc.generated.SubmitKycRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getSubmitKycMethod(), getCallOptions()), request);
     }
 
     /**
@@ -2548,54 +2373,43 @@ public final class BankServiceGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getTellerUpdateCustomerMethod(), getCallOptions()), request);
     }
-
-    /**
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.quangtrungbank.grpc.generated.CustomerResponse> tellerApproveKyc(
-        com.quangtrungbank.grpc.generated.TellerApproveKycRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getTellerApproveKycMethod(), getCallOptions()), request);
-    }
   }
 
   private static final int METHODID_LOGIN = 0;
-  private static final int METHODID_FACE_LOGIN = 1;
-  private static final int METHODID_RESET_LOCKS = 2;
-  private static final int METHODID_CHANGE_PASSWORD = 3;
-  private static final int METHODID_UPDATE_PROFILE = 4;
-  private static final int METHODID_GET_ACCOUNTS = 5;
-  private static final int METHODID_LOOKUP_ACCOUNT = 6;
-  private static final int METHODID_SUBMIT_KYC = 7;
-  private static final int METHODID_TRANSFER_MONEY = 8;
-  private static final int METHODID_ATM_DEPOSIT = 9;
-  private static final int METHODID_ATM_WITHDRAW = 10;
-  private static final int METHODID_VNPOST_DEPOSIT = 11;
-  private static final int METHODID_VNPOST_WITHDRAW = 12;
-  private static final int METHODID_VNPOST_TRANSFER = 13;
-  private static final int METHODID_GET_TRANSACTION_HISTORY = 14;
-  private static final int METHODID_GET_ACCOUNT_STATEMENT = 15;
-  private static final int METHODID_CREATE_ATM_CODE = 16;
-  private static final int METHODID_GET_ATM_CODES = 17;
-  private static final int METHODID_CANCEL_ATM_CODE = 18;
-  private static final int METHODID_OPEN_SAVINGS = 19;
-  private static final int METHODID_CLOSE_SAVINGS = 20;
-  private static final int METHODID_TOP_UP_SAVINGS = 21;
-  private static final int METHODID_GET_SAVINGS_DETAIL = 22;
-  private static final int METHODID_GET_SAVINGS_ACCOUNTS = 23;
-  private static final int METHODID_GET_SAVINGS_INTEREST_RATES = 24;
-  private static final int METHODID_APPLY_LOAN = 25;
-  private static final int METHODID_GET_LOANS = 26;
-  private static final int METHODID_GET_NOTIFICATIONS = 27;
-  private static final int METHODID_MARK_NOTIFICATION_READ = 28;
-  private static final int METHODID_MARK_ALL_NOTIFICATIONS_READ = 29;
-  private static final int METHODID_CREATE_TICKET = 30;
-  private static final int METHODID_GET_TICKETS = 31;
-  private static final int METHODID_TELLER_CREATE_CUSTOMER = 32;
-  private static final int METHODID_TELLER_TOGGLE_ACCOUNT_STATUS = 33;
-  private static final int METHODID_TELLER_RESOLVE_TICKET = 34;
-  private static final int METHODID_TELLER_GET_ALL_TICKETS = 35;
-  private static final int METHODID_TELLER_UPDATE_CUSTOMER = 36;
-  private static final int METHODID_TELLER_APPROVE_KYC = 37;
+  private static final int METHODID_RESET_LOCKS = 1;
+  private static final int METHODID_CHANGE_PASSWORD = 2;
+  private static final int METHODID_UPDATE_PROFILE = 3;
+  private static final int METHODID_GET_ACCOUNTS = 4;
+  private static final int METHODID_LOOKUP_ACCOUNT = 5;
+  private static final int METHODID_TRANSFER_MONEY = 6;
+  private static final int METHODID_ATM_DEPOSIT = 7;
+  private static final int METHODID_ATM_WITHDRAW = 8;
+  private static final int METHODID_VNPOST_DEPOSIT = 9;
+  private static final int METHODID_VNPOST_WITHDRAW = 10;
+  private static final int METHODID_VNPOST_TRANSFER = 11;
+  private static final int METHODID_GET_TRANSACTION_HISTORY = 12;
+  private static final int METHODID_GET_ACCOUNT_STATEMENT = 13;
+  private static final int METHODID_CREATE_ATM_CODE = 14;
+  private static final int METHODID_GET_ATM_CODES = 15;
+  private static final int METHODID_CANCEL_ATM_CODE = 16;
+  private static final int METHODID_OPEN_SAVINGS = 17;
+  private static final int METHODID_CLOSE_SAVINGS = 18;
+  private static final int METHODID_TOP_UP_SAVINGS = 19;
+  private static final int METHODID_GET_SAVINGS_DETAIL = 20;
+  private static final int METHODID_GET_SAVINGS_ACCOUNTS = 21;
+  private static final int METHODID_GET_SAVINGS_INTEREST_RATES = 22;
+  private static final int METHODID_APPLY_LOAN = 23;
+  private static final int METHODID_GET_LOANS = 24;
+  private static final int METHODID_GET_NOTIFICATIONS = 25;
+  private static final int METHODID_MARK_NOTIFICATION_READ = 26;
+  private static final int METHODID_MARK_ALL_NOTIFICATIONS_READ = 27;
+  private static final int METHODID_CREATE_TICKET = 28;
+  private static final int METHODID_GET_TICKETS = 29;
+  private static final int METHODID_TELLER_CREATE_CUSTOMER = 30;
+  private static final int METHODID_TELLER_TOGGLE_ACCOUNT_STATUS = 31;
+  private static final int METHODID_TELLER_RESOLVE_TICKET = 32;
+  private static final int METHODID_TELLER_GET_ALL_TICKETS = 33;
+  private static final int METHODID_TELLER_UPDATE_CUSTOMER = 34;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -2618,10 +2432,6 @@ public final class BankServiceGrpc {
           serviceImpl.login((com.quangtrungbank.grpc.generated.LoginRequest) request,
               (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.LoginResponse>) responseObserver);
           break;
-        case METHODID_FACE_LOGIN:
-          serviceImpl.faceLogin((com.quangtrungbank.grpc.generated.FaceLoginRequest) request,
-              (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.LoginResponse>) responseObserver);
-          break;
         case METHODID_RESET_LOCKS:
           serviceImpl.resetLocks((com.quangtrungbank.grpc.generated.EmptyRequest) request,
               (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.SimpleResponse>) responseObserver);
@@ -2641,10 +2451,6 @@ public final class BankServiceGrpc {
         case METHODID_LOOKUP_ACCOUNT:
           serviceImpl.lookupAccount((com.quangtrungbank.grpc.generated.LookupAccountRequest) request,
               (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.LookupAccountResponse>) responseObserver);
-          break;
-        case METHODID_SUBMIT_KYC:
-          serviceImpl.submitKyc((com.quangtrungbank.grpc.generated.SubmitKycRequest) request,
-              (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.CustomerResponse>) responseObserver);
           break;
         case METHODID_TRANSFER_MONEY:
           serviceImpl.transferMoney((com.quangtrungbank.grpc.generated.TransferRequest) request,
@@ -2762,10 +2568,6 @@ public final class BankServiceGrpc {
           serviceImpl.tellerUpdateCustomer((com.quangtrungbank.grpc.generated.TellerUpdateCustomerRequest) request,
               (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.CustomerResponse>) responseObserver);
           break;
-        case METHODID_TELLER_APPROVE_KYC:
-          serviceImpl.tellerApproveKyc((com.quangtrungbank.grpc.generated.TellerApproveKycRequest) request,
-              (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.CustomerResponse>) responseObserver);
-          break;
         default:
           throw new AssertionError();
       }
@@ -2791,13 +2593,6 @@ public final class BankServiceGrpc {
               com.quangtrungbank.grpc.generated.LoginRequest,
               com.quangtrungbank.grpc.generated.LoginResponse>(
                 service, METHODID_LOGIN)))
-        .addMethod(
-          getFaceLoginMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              com.quangtrungbank.grpc.generated.FaceLoginRequest,
-              com.quangtrungbank.grpc.generated.LoginResponse>(
-                service, METHODID_FACE_LOGIN)))
         .addMethod(
           getResetLocksMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -2833,13 +2628,6 @@ public final class BankServiceGrpc {
               com.quangtrungbank.grpc.generated.LookupAccountRequest,
               com.quangtrungbank.grpc.generated.LookupAccountResponse>(
                 service, METHODID_LOOKUP_ACCOUNT)))
-        .addMethod(
-          getSubmitKycMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              com.quangtrungbank.grpc.generated.SubmitKycRequest,
-              com.quangtrungbank.grpc.generated.CustomerResponse>(
-                service, METHODID_SUBMIT_KYC)))
         .addMethod(
           getTransferMoneyMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -3043,13 +2831,6 @@ public final class BankServiceGrpc {
               com.quangtrungbank.grpc.generated.TellerUpdateCustomerRequest,
               com.quangtrungbank.grpc.generated.CustomerResponse>(
                 service, METHODID_TELLER_UPDATE_CUSTOMER)))
-        .addMethod(
-          getTellerApproveKycMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              com.quangtrungbank.grpc.generated.TellerApproveKycRequest,
-              com.quangtrungbank.grpc.generated.CustomerResponse>(
-                service, METHODID_TELLER_APPROVE_KYC)))
         .build();
   }
 
@@ -3099,13 +2880,11 @@ public final class BankServiceGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new BankServiceFileDescriptorSupplier())
               .addMethod(getLoginMethod())
-              .addMethod(getFaceLoginMethod())
               .addMethod(getResetLocksMethod())
               .addMethod(getChangePasswordMethod())
               .addMethod(getUpdateProfileMethod())
               .addMethod(getGetAccountsMethod())
               .addMethod(getLookupAccountMethod())
-              .addMethod(getSubmitKycMethod())
               .addMethod(getTransferMoneyMethod())
               .addMethod(getAtmDepositMethod())
               .addMethod(getAtmWithdrawMethod())
@@ -3135,7 +2914,6 @@ public final class BankServiceGrpc {
               .addMethod(getTellerResolveTicketMethod())
               .addMethod(getTellerGetAllTicketsMethod())
               .addMethod(getTellerUpdateCustomerMethod())
-              .addMethod(getTellerApproveKycMethod())
               .build();
         }
       }
