@@ -87,6 +87,7 @@ public class GrpcWebGatewayController {
             // === Auth ===
             case "Login", "login" -> grpcBankService.loginRpc(payload);
             case "ResetLocks", "resetLocks" -> grpcBankService.resetLocksRpc();
+            case "VerifyPassword", "verifyPassword" -> grpcBankService.verifyPasswordRpc(payload, currentUser);
             case "ChangePassword", "changePassword" -> grpcBankService.changePasswordRpc(payload, currentUser);
             case "UpdateProfile", "updateProfile" -> grpcBankService.updateProfileRpc(payload, currentUser);
 
@@ -98,8 +99,6 @@ public class GrpcWebGatewayController {
             case "TransferMoney", "transferMoney" -> grpcBankService.transferMoneyRpc(payload, currentUser);
             case "AtmDeposit", "atmDeposit" -> grpcBankService.atmDepositRpc(payload, currentUser);
             case "AtmWithdraw", "atmWithdraw" -> grpcBankService.atmWithdrawRpc(payload, currentUser);
-            case "VnpostWithdraw", "vnpostWithdraw" -> grpcBankService.vnpostWithdrawRpc(payload, currentUser);
-            case "VnpostTransfer", "vnpostTransfer" -> grpcBankService.vnpostTransferRpc(payload, currentUser);
             case "GetTransactionHistory", "getTransactionHistory" -> grpcBankService.getTransactionHistoryRpc(payload, currentUser);
             case "GetAccountStatement", "getAccountStatement" -> grpcBankService.getAccountStatementRpc(payload, currentUser);
 
@@ -124,18 +123,14 @@ public class GrpcWebGatewayController {
             case "UpdateLoanInterestRates", "updateLoanInterestRates" -> grpcBankService.updateLoanInterestRatesRpc(payload);
             case "PayLoan", "payLoan", "PayLoanInstallment", "payLoanInstallment" -> grpcBankService.payLoanRpc(payload, currentUser);
 
-            // === Notifications & Tickets ===
+            // === Notifications ===
             case "GetNotifications", "getNotifications" -> grpcBankService.getNotificationsRpc(currentUser);
             case "MarkNotificationRead", "markNotificationRead" -> grpcBankService.markNotificationReadRpc(payload, currentUser);
             case "MarkAllNotificationsRead", "markAllNotificationsRead" -> grpcBankService.markAllNotificationsReadRpc(currentUser);
-            case "CreateTicket", "createTicket" -> grpcBankService.createTicketRpc(payload, currentUser);
-            case "GetTickets", "getTickets" -> grpcBankService.getTicketsRpc(currentUser);
 
             // === Teller Operations ===
             case "TellerCreateCustomer", "tellerCreateCustomer" -> grpcBankService.tellerCreateCustomerRpc(payload, currentUser);
             case "TellerToggleAccountStatus", "tellerToggleAccountStatus" -> grpcBankService.tellerToggleAccountStatusRpc(payload, currentUser);
-            case "TellerResolveTicket", "tellerResolveTicket" -> grpcBankService.tellerResolveTicketRpc(payload, currentUser);
-            case "TellerGetAllTickets", "tellerGetAllTickets" -> grpcBankService.tellerGetAllTicketsRpc(currentUser);
             case "TellerUpdateCustomer", "tellerUpdateCustomer" -> grpcBankService.tellerUpdateCustomerRpc(payload, currentUser);
             case "TellerGetAllLoans", "tellerGetAllLoans" -> grpcBankService.tellerGetAllLoansRpc(currentUser);
             case "TellerApproveLoan", "tellerApproveLoan" -> grpcBankService.tellerApproveLoanRpc(payload, currentUser);

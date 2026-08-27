@@ -17,7 +17,11 @@ public class Customer {
     @Column(name = "id_card", nullable = false, unique = true, length = 20)
     private String idCard;
 
+    @Column(name = "address")
     private String address;
+
+    @Column(name = "contact_address")
+    private String contactAddress;
 
     @Column(name = "kyc_status", length = 20)
     private String kycStatus = "NOT_VERIFIED";
@@ -45,6 +49,16 @@ public class Customer {
         this.user = user;
         this.idCard = idCard;
         this.address = address;
+        this.contactAddress = address;
+        this.kycStatus = "NOT_VERIFIED";
+    }
+
+    public Customer(String id, User user, String idCard, String address, String contactAddress) {
+        this.id = id;
+        this.user = user;
+        this.idCard = idCard;
+        this.address = address;
+        this.contactAddress = contactAddress != null && !contactAddress.isBlank() ? contactAddress : address;
         this.kycStatus = "NOT_VERIFIED";
     }
 
@@ -78,6 +92,14 @@ public class Customer {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getContactAddress() {
+        return contactAddress;
+    }
+
+    public void setContactAddress(String contactAddress) {
+        this.contactAddress = contactAddress;
     }
 
     public String getKycStatus() {

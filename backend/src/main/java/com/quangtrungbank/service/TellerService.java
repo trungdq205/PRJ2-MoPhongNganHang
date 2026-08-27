@@ -2,7 +2,6 @@ package com.quangtrungbank.service;
 
 import com.quangtrungbank.dto.ApiResponse;
 import com.quangtrungbank.dto.CreateCustomerRequest;
-import com.quangtrungbank.dto.ResolveTicketRequest;
 import com.quangtrungbank.dto.UpdateCustomerRequest;
 import com.quangtrungbank.entity.*;
 import com.quangtrungbank.repository.*;
@@ -23,7 +22,6 @@ public class TellerService {
     private final CustomerRepository customerRepository;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
-    private final SupportTicketRepository supportTicketRepository;
     private final LoanRepository loanRepository;
     private final NotificationRepository notificationRepository;
     private final PasswordEncoder passwordEncoder;
@@ -32,7 +30,6 @@ public class TellerService {
                          CustomerRepository customerRepository,
                          AccountRepository accountRepository,
                          TransactionRepository transactionRepository,
-                         SupportTicketRepository supportTicketRepository,
                          LoanRepository loanRepository,
                          NotificationRepository notificationRepository,
                          PasswordEncoder passwordEncoder) {
@@ -40,7 +37,6 @@ public class TellerService {
         this.customerRepository = customerRepository;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
-        this.supportTicketRepository = supportTicketRepository;
         this.loanRepository = loanRepository;
         this.notificationRepository = notificationRepository;
         this.passwordEncoder = passwordEncoder;
@@ -143,37 +139,7 @@ public class TellerService {
         return ApiResponse.ok(String.format("Đã chuyển trạng thái tài khoản %s thành %s", accountNo, status), acc);
     }
 
-    /**
-     * Giao dịch viên xử lý đơn hỗ trợ / khiếu nại.
-     */
-    @Transactional
-    public ApiResponse<SupportTicket> resolveTicket(String ticketId, ResolveTicketRequest request, User currentTeller) {
-        if (!"TELLER".equals(currentTeller.getRole()) && !"ADMIN".equals(currentTeller.getRole())) {
-            return ApiResponse.error("Không có quyền thao tác");
-        }
 
-        Optional<SupportTicket> ticketOpt = supportTicketRepository.findById(ticketId);
-        if (ticketOpt.isEmpty()) return ApiResponse.error("Đơn hỗ trợ không tồn tại");
-
-        SupportTicket ticket = ticketOpt.get();
-        ticket.setStatus(request.getStatus() != null ? request.getStatus() : "RESOLVED");
-        ticket.setResponse(request.getResponse());
-        ticket.setAssignedTo(currentTeller.getFullName());
-        supportTicketRepository.save(ticket);
-
-        return ApiResponse.ok("Đã xử lý đơn hỗ trợ " + ticketId, ticket);
-    }
-
-    /**
-     * Lấy danh sách tất cả yêu cầu hỗ trợ cho Teller.
-     */
-    public ApiResponse<List<SupportTicket>> getAllTickets(User currentTeller) {
-        if (!"TELLER".equals(currentTeller.getRole()) && !"ADMIN".equals(currentTeller.getRole())) {
-            return ApiResponse.error("Không có quyền truy cập");
-        }
-        List<SupportTicket> list = supportTicketRepository.findAllByOrderByCreatedAtDesc();
-        return ApiResponse.ok("Lấy danh sách thành công", list);
-    }
 
     /**
      * Giao dịch viên chỉnh sửa thông tin khách hàng (Họ tên, SĐT, Email, Địa chỉ).

@@ -32,7 +32,6 @@ public class CustomerService {
     private final CustomerRepository customerRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final SupportTicketRepository supportTicketRepository;
     private final AtmCodeRepository atmCodeRepository;
     private final SavingsAccountRepository savingsAccountRepository;
     private final SavingsInterestRateRepository savingsInterestRateRepository;
@@ -45,7 +44,6 @@ public class CustomerService {
                            CustomerRepository customerRepository,
                            UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
-                           SupportTicketRepository supportTicketRepository,
                            AtmCodeRepository atmCodeRepository,
                            SavingsAccountRepository savingsAccountRepository,
                            SavingsInterestRateRepository savingsInterestRateRepository,
@@ -57,7 +55,6 @@ public class CustomerService {
         this.customerRepository = customerRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.supportTicketRepository = supportTicketRepository;
         this.atmCodeRepository = atmCodeRepository;
         this.savingsAccountRepository = savingsAccountRepository;
         this.savingsInterestRateRepository = savingsInterestRateRepository;
@@ -698,7 +695,40 @@ public class CustomerService {
 
         userRepository.saveAndFlush(user);
 
+        if (request.getContactAddress() != null && !request.getContactAddress().isBlank()) {
+            Optional<Customer> custOpt = customerRepository.findByUserId(user.getId());
+            if (custOpt.isPresent()) {
+                Customer cust = custOpt.get();
+                cust.setContactAddress(request.getContactAddress().trim());
+                customerRepository.saveAndFlush(cust);
+            }
+        }
+
         return ApiResponse.ok("Cập nhật thông tin liên lạc thành công!", user);
+    }
+
+    /**
+     * Xác minh mật khẩu hiện tại của người dùng trước khi tiến hành quy trình bảo mật (ví dụ đổi mật khẩu).
+     */
+    public ApiResponse<Boolean> verifyPassword(String currentPassword, User currentUser) {
+        if (currentUser == null) {
+            return ApiResponse.error("Phiên làm việc không hợp lệ");
+        }
+        if (currentPassword == null || currentPassword.isBlank()) {
+            return ApiResponse.error("Vui lòng nhập mật khẩu hiện tại");
+        }
+
+        Optional<User> userOpt = userRepository.findById(currentUser.getId());
+        if (userOpt.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy người dùng trong hệ thống");
+        }
+
+        User user = userOpt.get();
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            return ApiResponse.error("Mật khẩu hiện tại không chính xác. Vui lòng kiểm tra lại.");
+        }
+
+        return ApiResponse.ok("Mật khẩu hiện tại chính xác.", true);
     }
 
     /**
@@ -737,58 +767,18 @@ public class CustomerService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword().trim()));
         userRepository.save(user);
 
+        // 5. Lưu thông báo bảo mật vào Notification Repository
+        String myCustId = getCustomerIdForUser(user);
+        if (myCustId != null && !myCustId.isBlank()) {
+            String timeStr = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy").format(LocalDateTime.now());
+            String notifMsg = "Mật khẩu đăng nhập tài khoản của quý khách đã được thay đổi thành công vào lúc " + timeStr + ". Vui lòng liên hệ hotline 1900 6868 nếu quý khách không thực hiện thao tác này.";
+            pushBalanceNotification(myCustId, "", "Cảnh báo bảo mật: Đổi mật khẩu thành công", notifMsg, BigDecimal.ZERO, BigDecimal.ZERO, "SECURITY");
+        }
+
         return ApiResponse.ok("Đổi mật khẩu thành công! Vui lòng ghi nhớ mật khẩu mới của quý khách.");
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // GỬI HỖ TRỢ / KHIẾU NẠI (Support Tickets)
-    // ═══════════════════════════════════════════════════════════
 
-    /**
-     * Tạo yêu cầu hỗ trợ / khiếu nại mới.
-     */
-    @Transactional
-    public ApiResponse<SupportTicket> createTicket(CreateTicketRequest request, User currentUser) {
-        String myCustId = getCustomerIdForUser(currentUser);
-        if (myCustId == null) {
-            return ApiResponse.error("Không tìm thấy thông tin hồ sơ khách hàng");
-        }
-
-        String ticketId = "TCK-" + System.currentTimeMillis() + (10 + new Random().nextInt(90));
-        SupportTicket ticket = new SupportTicket(
-            ticketId,
-            myCustId,
-            currentUser.getFullName(),
-            request.getAccountNo() != null ? request.getAccountNo() : "N/A",
-            request.getSubject(),
-            request.getContent(),
-            "PENDING",
-            "Tự động phân công",
-            "",
-            LocalDateTime.now()
-        );
-
-        supportTicketRepository.save(ticket);
-        return ApiResponse.ok("Đã gửi yêu cầu hỗ trợ thành công. Giao dịch viên sẽ phản hồi sớm nhất!", ticket);
-    }
-
-    /**
-     * Lấy danh sách yêu cầu hỗ trợ của khách hàng.
-     */
-    public ApiResponse<List<SupportTicket>> getTickets(User currentUser) {
-        String myCustId = getCustomerIdForUser(currentUser);
-        if (myCustId == null && !"ADMIN".equals(currentUser.getRole()) && !"TELLER".equals(currentUser.getRole())) {
-            return ApiResponse.error("Không có quyền truy cập");
-        }
-
-        List<SupportTicket> tickets;
-        if ("ADMIN".equals(currentUser.getRole()) || "TELLER".equals(currentUser.getRole())) {
-            tickets = supportTicketRepository.findAllByOrderByCreatedAtDesc();
-        } else {
-            tickets = supportTicketRepository.findByCustomerIdOrderByCreatedAtDesc(myCustId);
-        }
-        return ApiResponse.ok("Lấy danh sách yêu cầu hỗ trợ thành công", tickets);
-    }
 
     // ═══════════════════════════════════════════════════════════
     // MÃ ATM KHÔNG DÙNG THẺ (Cardless ATM Codes)
@@ -870,151 +860,7 @@ public class CustomerService {
         return ApiResponse.ok("Đã hủy thành công mã ATM " + code.getCode(), code.getCode());
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // RÚT / CHUYỂN TIỀN MẶT VNPOST (VNPOST Cash Services)
-    // ═══════════════════════════════════════════════════════════
 
-    /**
-     * Rút tiền mặt VNPOST (có Idempotency).
-     */
-    public ApiResponse<Transaction> vnpostWithdraw(TransferRequest request, User currentUser) {
-        return vnpostWithdraw(request, currentUser, request.getIdempotencyKey());
-    }
-
-    public ApiResponse<Transaction> vnpostWithdraw(TransferRequest request, User currentUser, String idempotencyKey) {
-        String key = (idempotencyKey != null && !idempotencyKey.isBlank()) ? idempotencyKey : request.getIdempotencyKey();
-        Long userId = currentUser != null ? currentUser.getId() : null;
-
-        if (key != null && !key.isBlank()) {
-            IdempotencyService.IdempotencyCheckResult<Transaction> check =
-                idempotencyService.validateAndLock(key, userId, "/api/customer/vnpost/withdraw", request, Transaction.class);
-            if (check.isReplayed()) return check.getCachedResponse();
-            if (check.isInProgress()) return ApiResponse.error(check.getErrorMessage());
-            if (check.isError()) return ApiResponse.error(check.getErrorMessage());
-        }
-
-        try {
-            ApiResponse<Transaction> response = executeVnpostWithdraw(request, currentUser, key);
-            if (key != null && !key.isBlank()) {
-                if (response.isSuccess()) idempotencyService.markCompleted(key, response);
-                else idempotencyService.markFailedOrRelease(key);
-            }
-            return response;
-        } catch (Exception e) {
-            if (key != null && !key.isBlank()) idempotencyService.markFailedOrRelease(key);
-            throw e;
-        }
-    }
-
-    @Transactional
-    public ApiResponse<Transaction> executeVnpostWithdraw(TransferRequest request, User currentUser, String idempotencyKey) {
-        if (!hasAccessToAccount(currentUser, request.getFromAccNo())) {
-            return ApiResponse.error("Bạn không có quyền trích tiền từ tài khoản này");
-        }
-
-        Optional<Account> accOpt = accountRepository.findByAccountNoForUpdate(request.getFromAccNo());
-        if (accOpt.isEmpty()) return ApiResponse.error("Tài khoản không tồn tại");
-
-        Account acc = accOpt.get();
-        if (acc.getBalance().compareTo(request.getAmount()) < 0) {
-            return ApiResponse.error("Số dư tài khoản không đủ");
-        }
-
-        acc.setBalance(acc.getBalance().subtract(request.getAmount()));
-        accountRepository.save(acc);
-
-        String code = "VNPOST-W-" + (100000 + new Random().nextInt(900000));
-        String txnId = generateNumericTxnId();
-
-        Transaction txn = new Transaction(
-            txnId,
-            idempotencyKey,
-            acc.getAccountNo(),
-            currentUser.getFullName(),
-            "VNPOST CASH POST OFFICE",
-            "Bưu cục VNPOST",
-            request.getAmount(),
-            BigDecimal.ZERO,
-            "WITHDRAW",
-            "Rút tiền mặt tại bưu cục VNPOST (Mã: " + code + ")",
-            LocalDateTime.now(),
-            "SUCCESS"
-        );
-
-        transactionRepository.save(txn);
-        return ApiResponse.ok("Đã tạo mã rút tiền mặt VNPOST thành công! Mã: " + code, txn);
-    }
-
-    /**
-     * Chuyển tiền mặt VNPOST (có Idempotency).
-     */
-    public ApiResponse<Transaction> vnpostTransfer(TransferRequest request, User currentUser) {
-        return vnpostTransfer(request, currentUser, request.getIdempotencyKey());
-    }
-
-    public ApiResponse<Transaction> vnpostTransfer(TransferRequest request, User currentUser, String idempotencyKey) {
-        String key = (idempotencyKey != null && !idempotencyKey.isBlank()) ? idempotencyKey : request.getIdempotencyKey();
-        Long userId = currentUser != null ? currentUser.getId() : null;
-
-        if (key != null && !key.isBlank()) {
-            IdempotencyService.IdempotencyCheckResult<Transaction> check =
-                idempotencyService.validateAndLock(key, userId, "/api/customer/vnpost/transfer", request, Transaction.class);
-            if (check.isReplayed()) return check.getCachedResponse();
-            if (check.isInProgress()) return ApiResponse.error(check.getErrorMessage());
-            if (check.isError()) return ApiResponse.error(check.getErrorMessage());
-        }
-
-        try {
-            ApiResponse<Transaction> response = executeVnpostTransfer(request, currentUser, key);
-            if (key != null && !key.isBlank()) {
-                if (response.isSuccess()) idempotencyService.markCompleted(key, response);
-                else idempotencyService.markFailedOrRelease(key);
-            }
-            return response;
-        } catch (Exception e) {
-            if (key != null && !key.isBlank()) idempotencyService.markFailedOrRelease(key);
-            throw e;
-        }
-    }
-
-    @Transactional
-    public ApiResponse<Transaction> executeVnpostTransfer(TransferRequest request, User currentUser, String idempotencyKey) {
-        if (!hasAccessToAccount(currentUser, request.getFromAccNo())) {
-            return ApiResponse.error("Bạn không có quyền trích tiền từ tài khoản này");
-        }
-
-        Optional<Account> accOpt = accountRepository.findByAccountNoForUpdate(request.getFromAccNo());
-        if (accOpt.isEmpty()) return ApiResponse.error("Tài khoản không tồn tại");
-
-        Account acc = accOpt.get();
-        if (acc.getBalance().compareTo(request.getAmount()) < 0) {
-            return ApiResponse.error("Số dư tài khoản không đủ");
-        }
-
-        acc.setBalance(acc.getBalance().subtract(request.getAmount()));
-        accountRepository.save(acc);
-
-        String code = "VNPOST-T-" + (100000 + new Random().nextInt(900000));
-        String txnId = generateNumericTxnId();
-
-        Transaction txn = new Transaction(
-            txnId,
-            idempotencyKey,
-            acc.getAccountNo(),
-            currentUser.getFullName(),
-            request.getToAccNo() != null ? request.getToAccNo() : "VNPOST CASH",
-            "Người nhận tiền mặt VNPOST",
-            request.getAmount(),
-            BigDecimal.ZERO,
-            "TRANSFER",
-            request.getContent() != null ? request.getContent() : ("Chuyển tiền mặt VNPOST (Mã: " + code + ")"),
-            LocalDateTime.now(),
-            "SUCCESS"
-        );
-
-        transactionRepository.save(txn);
-        return ApiResponse.ok("Tạo lệnh chuyển tiền mặt VNPOST thành công! Mã: " + code, txn);
-    }
 
     /**
      * Tra cứu thông tin tài khoản thụ hưởng theo số tài khoản.

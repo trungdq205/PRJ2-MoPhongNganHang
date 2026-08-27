@@ -13,11 +13,19 @@ public class UpdateProfileRequest {
     @Size(max = 100, message = "Email tối đa 100 ký tự")
     private String email;
 
+    @Size(max = 255, message = "Địa chỉ liên hệ tối đa 255 ký tự")
+    private String contactAddress;
+
     public UpdateProfileRequest() {
     }
 
     public UpdateProfileRequest(String email) {
         this.email = email;
+    }
+
+    public UpdateProfileRequest(String email, String contactAddress) {
+        this.email = email;
+        this.contactAddress = contactAddress;
     }
 
     public String getEmail() {
@@ -26,5 +34,13 @@ public class UpdateProfileRequest {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getContactAddress() {
+        return contactAddress;
+    }
+
+    public void setContactAddress(String contactAddress) {
+        this.contactAddress = contactAddress;
     }
 }

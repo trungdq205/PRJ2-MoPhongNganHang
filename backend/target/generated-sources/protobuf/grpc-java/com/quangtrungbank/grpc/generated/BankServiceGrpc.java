@@ -297,99 +297,6 @@ public final class BankServiceGrpc {
     return getAtmWithdrawMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.AtmTransactionRequest,
-      com.quangtrungbank.grpc.generated.TransactionResponse> getVnpostDepositMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "VnpostDeposit",
-      requestType = com.quangtrungbank.grpc.generated.AtmTransactionRequest.class,
-      responseType = com.quangtrungbank.grpc.generated.TransactionResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.AtmTransactionRequest,
-      com.quangtrungbank.grpc.generated.TransactionResponse> getVnpostDepositMethod() {
-    io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.AtmTransactionRequest, com.quangtrungbank.grpc.generated.TransactionResponse> getVnpostDepositMethod;
-    if ((getVnpostDepositMethod = BankServiceGrpc.getVnpostDepositMethod) == null) {
-      synchronized (BankServiceGrpc.class) {
-        if ((getVnpostDepositMethod = BankServiceGrpc.getVnpostDepositMethod) == null) {
-          BankServiceGrpc.getVnpostDepositMethod = getVnpostDepositMethod =
-              io.grpc.MethodDescriptor.<com.quangtrungbank.grpc.generated.AtmTransactionRequest, com.quangtrungbank.grpc.generated.TransactionResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "VnpostDeposit"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.AtmTransactionRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.TransactionResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BankServiceMethodDescriptorSupplier("VnpostDeposit"))
-              .build();
-        }
-      }
-    }
-    return getVnpostDepositMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TransferRequest,
-      com.quangtrungbank.grpc.generated.TransactionResponse> getVnpostWithdrawMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "VnpostWithdraw",
-      requestType = com.quangtrungbank.grpc.generated.TransferRequest.class,
-      responseType = com.quangtrungbank.grpc.generated.TransactionResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TransferRequest,
-      com.quangtrungbank.grpc.generated.TransactionResponse> getVnpostWithdrawMethod() {
-    io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TransferRequest, com.quangtrungbank.grpc.generated.TransactionResponse> getVnpostWithdrawMethod;
-    if ((getVnpostWithdrawMethod = BankServiceGrpc.getVnpostWithdrawMethod) == null) {
-      synchronized (BankServiceGrpc.class) {
-        if ((getVnpostWithdrawMethod = BankServiceGrpc.getVnpostWithdrawMethod) == null) {
-          BankServiceGrpc.getVnpostWithdrawMethod = getVnpostWithdrawMethod =
-              io.grpc.MethodDescriptor.<com.quangtrungbank.grpc.generated.TransferRequest, com.quangtrungbank.grpc.generated.TransactionResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "VnpostWithdraw"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.TransferRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.TransactionResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BankServiceMethodDescriptorSupplier("VnpostWithdraw"))
-              .build();
-        }
-      }
-    }
-    return getVnpostWithdrawMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TransferRequest,
-      com.quangtrungbank.grpc.generated.TransactionResponse> getVnpostTransferMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "VnpostTransfer",
-      requestType = com.quangtrungbank.grpc.generated.TransferRequest.class,
-      responseType = com.quangtrungbank.grpc.generated.TransactionResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TransferRequest,
-      com.quangtrungbank.grpc.generated.TransactionResponse> getVnpostTransferMethod() {
-    io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TransferRequest, com.quangtrungbank.grpc.generated.TransactionResponse> getVnpostTransferMethod;
-    if ((getVnpostTransferMethod = BankServiceGrpc.getVnpostTransferMethod) == null) {
-      synchronized (BankServiceGrpc.class) {
-        if ((getVnpostTransferMethod = BankServiceGrpc.getVnpostTransferMethod) == null) {
-          BankServiceGrpc.getVnpostTransferMethod = getVnpostTransferMethod =
-              io.grpc.MethodDescriptor.<com.quangtrungbank.grpc.generated.TransferRequest, com.quangtrungbank.grpc.generated.TransactionResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "VnpostTransfer"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.TransferRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.TransactionResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BankServiceMethodDescriptorSupplier("VnpostTransfer"))
-              .build();
-        }
-      }
-    }
-    return getVnpostTransferMethod;
-  }
-
   private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TransactionHistoryRequest,
       com.quangtrungbank.grpc.generated.TransactionListResponse> getGetTransactionHistoryMethod;
 
@@ -886,68 +793,6 @@ public final class BankServiceGrpc {
     return getMarkAllNotificationsReadMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.CreateTicketRequest,
-      com.quangtrungbank.grpc.generated.TicketResponse> getCreateTicketMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "CreateTicket",
-      requestType = com.quangtrungbank.grpc.generated.CreateTicketRequest.class,
-      responseType = com.quangtrungbank.grpc.generated.TicketResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.CreateTicketRequest,
-      com.quangtrungbank.grpc.generated.TicketResponse> getCreateTicketMethod() {
-    io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.CreateTicketRequest, com.quangtrungbank.grpc.generated.TicketResponse> getCreateTicketMethod;
-    if ((getCreateTicketMethod = BankServiceGrpc.getCreateTicketMethod) == null) {
-      synchronized (BankServiceGrpc.class) {
-        if ((getCreateTicketMethod = BankServiceGrpc.getCreateTicketMethod) == null) {
-          BankServiceGrpc.getCreateTicketMethod = getCreateTicketMethod =
-              io.grpc.MethodDescriptor.<com.quangtrungbank.grpc.generated.CreateTicketRequest, com.quangtrungbank.grpc.generated.TicketResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "CreateTicket"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.CreateTicketRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.TicketResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BankServiceMethodDescriptorSupplier("CreateTicket"))
-              .build();
-        }
-      }
-    }
-    return getCreateTicketMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.EmptyRequest,
-      com.quangtrungbank.grpc.generated.TicketListResponse> getGetTicketsMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "GetTickets",
-      requestType = com.quangtrungbank.grpc.generated.EmptyRequest.class,
-      responseType = com.quangtrungbank.grpc.generated.TicketListResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.EmptyRequest,
-      com.quangtrungbank.grpc.generated.TicketListResponse> getGetTicketsMethod() {
-    io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.EmptyRequest, com.quangtrungbank.grpc.generated.TicketListResponse> getGetTicketsMethod;
-    if ((getGetTicketsMethod = BankServiceGrpc.getGetTicketsMethod) == null) {
-      synchronized (BankServiceGrpc.class) {
-        if ((getGetTicketsMethod = BankServiceGrpc.getGetTicketsMethod) == null) {
-          BankServiceGrpc.getGetTicketsMethod = getGetTicketsMethod =
-              io.grpc.MethodDescriptor.<com.quangtrungbank.grpc.generated.EmptyRequest, com.quangtrungbank.grpc.generated.TicketListResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "GetTickets"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.EmptyRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.TicketListResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BankServiceMethodDescriptorSupplier("GetTickets"))
-              .build();
-        }
-      }
-    }
-    return getGetTicketsMethod;
-  }
-
   private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TellerCreateCustomerRequest,
       com.quangtrungbank.grpc.generated.CustomerResponse> getTellerCreateCustomerMethod;
 
@@ -1008,68 +853,6 @@ public final class BankServiceGrpc {
       }
     }
     return getTellerToggleAccountStatusMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TellerResolveTicketRequest,
-      com.quangtrungbank.grpc.generated.TicketResponse> getTellerResolveTicketMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "TellerResolveTicket",
-      requestType = com.quangtrungbank.grpc.generated.TellerResolveTicketRequest.class,
-      responseType = com.quangtrungbank.grpc.generated.TicketResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TellerResolveTicketRequest,
-      com.quangtrungbank.grpc.generated.TicketResponse> getTellerResolveTicketMethod() {
-    io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TellerResolveTicketRequest, com.quangtrungbank.grpc.generated.TicketResponse> getTellerResolveTicketMethod;
-    if ((getTellerResolveTicketMethod = BankServiceGrpc.getTellerResolveTicketMethod) == null) {
-      synchronized (BankServiceGrpc.class) {
-        if ((getTellerResolveTicketMethod = BankServiceGrpc.getTellerResolveTicketMethod) == null) {
-          BankServiceGrpc.getTellerResolveTicketMethod = getTellerResolveTicketMethod =
-              io.grpc.MethodDescriptor.<com.quangtrungbank.grpc.generated.TellerResolveTicketRequest, com.quangtrungbank.grpc.generated.TicketResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "TellerResolveTicket"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.TellerResolveTicketRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.TicketResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BankServiceMethodDescriptorSupplier("TellerResolveTicket"))
-              .build();
-        }
-      }
-    }
-    return getTellerResolveTicketMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.EmptyRequest,
-      com.quangtrungbank.grpc.generated.TicketListResponse> getTellerGetAllTicketsMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "TellerGetAllTickets",
-      requestType = com.quangtrungbank.grpc.generated.EmptyRequest.class,
-      responseType = com.quangtrungbank.grpc.generated.TicketListResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.EmptyRequest,
-      com.quangtrungbank.grpc.generated.TicketListResponse> getTellerGetAllTicketsMethod() {
-    io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.EmptyRequest, com.quangtrungbank.grpc.generated.TicketListResponse> getTellerGetAllTicketsMethod;
-    if ((getTellerGetAllTicketsMethod = BankServiceGrpc.getTellerGetAllTicketsMethod) == null) {
-      synchronized (BankServiceGrpc.class) {
-        if ((getTellerGetAllTicketsMethod = BankServiceGrpc.getTellerGetAllTicketsMethod) == null) {
-          BankServiceGrpc.getTellerGetAllTicketsMethod = getTellerGetAllTicketsMethod =
-              io.grpc.MethodDescriptor.<com.quangtrungbank.grpc.generated.EmptyRequest, com.quangtrungbank.grpc.generated.TicketListResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "TellerGetAllTickets"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.EmptyRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.quangtrungbank.grpc.generated.TicketListResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BankServiceMethodDescriptorSupplier("TellerGetAllTickets"))
-              .build();
-        }
-      }
-    }
-    return getTellerGetAllTicketsMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<com.quangtrungbank.grpc.generated.TellerUpdateCustomerRequest,
@@ -1228,27 +1011,6 @@ public final class BankServiceGrpc {
 
     /**
      */
-    default void vnpostDeposit(com.quangtrungbank.grpc.generated.AtmTransactionRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TransactionResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getVnpostDepositMethod(), responseObserver);
-    }
-
-    /**
-     */
-    default void vnpostWithdraw(com.quangtrungbank.grpc.generated.TransferRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TransactionResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getVnpostWithdrawMethod(), responseObserver);
-    }
-
-    /**
-     */
-    default void vnpostTransfer(com.quangtrungbank.grpc.generated.TransferRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TransactionResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getVnpostTransferMethod(), responseObserver);
-    }
-
-    /**
-     */
     default void getTransactionHistory(com.quangtrungbank.grpc.generated.TransactionHistoryRequest request,
         io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TransactionListResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetTransactionHistoryMethod(), responseObserver);
@@ -1349,7 +1111,7 @@ public final class BankServiceGrpc {
 
     /**
      * <pre>
-     * === Notifications &amp; Support Tickets ===
+     * === Notifications ===
      * </pre>
      */
     default void getNotifications(com.quangtrungbank.grpc.generated.NotificationRequest request,
@@ -1372,20 +1134,6 @@ public final class BankServiceGrpc {
     }
 
     /**
-     */
-    default void createTicket(com.quangtrungbank.grpc.generated.CreateTicketRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TicketResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateTicketMethod(), responseObserver);
-    }
-
-    /**
-     */
-    default void getTickets(com.quangtrungbank.grpc.generated.EmptyRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TicketListResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetTicketsMethod(), responseObserver);
-    }
-
-    /**
      * <pre>
      * === Teller Operations ===
      * </pre>
@@ -1400,20 +1148,6 @@ public final class BankServiceGrpc {
     default void tellerToggleAccountStatus(com.quangtrungbank.grpc.generated.TellerToggleAccountStatusRequest request,
         io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.AccountResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getTellerToggleAccountStatusMethod(), responseObserver);
-    }
-
-    /**
-     */
-    default void tellerResolveTicket(com.quangtrungbank.grpc.generated.TellerResolveTicketRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TicketResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getTellerResolveTicketMethod(), responseObserver);
-    }
-
-    /**
-     */
-    default void tellerGetAllTickets(com.quangtrungbank.grpc.generated.EmptyRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TicketListResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getTellerGetAllTicketsMethod(), responseObserver);
     }
 
     /**
@@ -1540,30 +1274,6 @@ public final class BankServiceGrpc {
 
     /**
      */
-    public void vnpostDeposit(com.quangtrungbank.grpc.generated.AtmTransactionRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TransactionResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getVnpostDepositMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     */
-    public void vnpostWithdraw(com.quangtrungbank.grpc.generated.TransferRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TransactionResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getVnpostWithdrawMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     */
-    public void vnpostTransfer(com.quangtrungbank.grpc.generated.TransferRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TransactionResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getVnpostTransferMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     */
     public void getTransactionHistory(com.quangtrungbank.grpc.generated.TransactionHistoryRequest request,
         io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TransactionListResponse> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
@@ -1677,7 +1387,7 @@ public final class BankServiceGrpc {
 
     /**
      * <pre>
-     * === Notifications &amp; Support Tickets ===
+     * === Notifications ===
      * </pre>
      */
     public void getNotifications(com.quangtrungbank.grpc.generated.NotificationRequest request,
@@ -1703,22 +1413,6 @@ public final class BankServiceGrpc {
     }
 
     /**
-     */
-    public void createTicket(com.quangtrungbank.grpc.generated.CreateTicketRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TicketResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getCreateTicketMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     */
-    public void getTickets(com.quangtrungbank.grpc.generated.EmptyRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TicketListResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetTicketsMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
      * <pre>
      * === Teller Operations ===
      * </pre>
@@ -1735,22 +1429,6 @@ public final class BankServiceGrpc {
         io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.AccountResponse> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getTellerToggleAccountStatusMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     */
-    public void tellerResolveTicket(com.quangtrungbank.grpc.generated.TellerResolveTicketRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TicketResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getTellerResolveTicketMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     */
-    public void tellerGetAllTickets(com.quangtrungbank.grpc.generated.EmptyRequest request,
-        io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TicketListResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getTellerGetAllTicketsMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -1855,27 +1533,6 @@ public final class BankServiceGrpc {
 
     /**
      */
-    public com.quangtrungbank.grpc.generated.TransactionResponse vnpostDeposit(com.quangtrungbank.grpc.generated.AtmTransactionRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getVnpostDepositMethod(), getCallOptions(), request);
-    }
-
-    /**
-     */
-    public com.quangtrungbank.grpc.generated.TransactionResponse vnpostWithdraw(com.quangtrungbank.grpc.generated.TransferRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getVnpostWithdrawMethod(), getCallOptions(), request);
-    }
-
-    /**
-     */
-    public com.quangtrungbank.grpc.generated.TransactionResponse vnpostTransfer(com.quangtrungbank.grpc.generated.TransferRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getVnpostTransferMethod(), getCallOptions(), request);
-    }
-
-    /**
-     */
     public com.quangtrungbank.grpc.generated.TransactionListResponse getTransactionHistory(com.quangtrungbank.grpc.generated.TransactionHistoryRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetTransactionHistoryMethod(), getCallOptions(), request);
@@ -1976,7 +1633,7 @@ public final class BankServiceGrpc {
 
     /**
      * <pre>
-     * === Notifications &amp; Support Tickets ===
+     * === Notifications ===
      * </pre>
      */
     public com.quangtrungbank.grpc.generated.NotificationListResponse getNotifications(com.quangtrungbank.grpc.generated.NotificationRequest request) {
@@ -1999,20 +1656,6 @@ public final class BankServiceGrpc {
     }
 
     /**
-     */
-    public com.quangtrungbank.grpc.generated.TicketResponse createTicket(com.quangtrungbank.grpc.generated.CreateTicketRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getCreateTicketMethod(), getCallOptions(), request);
-    }
-
-    /**
-     */
-    public com.quangtrungbank.grpc.generated.TicketListResponse getTickets(com.quangtrungbank.grpc.generated.EmptyRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetTicketsMethod(), getCallOptions(), request);
-    }
-
-    /**
      * <pre>
      * === Teller Operations ===
      * </pre>
@@ -2027,20 +1670,6 @@ public final class BankServiceGrpc {
     public com.quangtrungbank.grpc.generated.AccountResponse tellerToggleAccountStatus(com.quangtrungbank.grpc.generated.TellerToggleAccountStatusRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getTellerToggleAccountStatusMethod(), getCallOptions(), request);
-    }
-
-    /**
-     */
-    public com.quangtrungbank.grpc.generated.TicketResponse tellerResolveTicket(com.quangtrungbank.grpc.generated.TellerResolveTicketRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getTellerResolveTicketMethod(), getCallOptions(), request);
-    }
-
-    /**
-     */
-    public com.quangtrungbank.grpc.generated.TicketListResponse tellerGetAllTickets(com.quangtrungbank.grpc.generated.EmptyRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getTellerGetAllTicketsMethod(), getCallOptions(), request);
     }
 
     /**
@@ -2149,30 +1778,6 @@ public final class BankServiceGrpc {
         com.quangtrungbank.grpc.generated.AtmTransactionRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getAtmWithdrawMethod(), getCallOptions()), request);
-    }
-
-    /**
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.quangtrungbank.grpc.generated.TransactionResponse> vnpostDeposit(
-        com.quangtrungbank.grpc.generated.AtmTransactionRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getVnpostDepositMethod(), getCallOptions()), request);
-    }
-
-    /**
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.quangtrungbank.grpc.generated.TransactionResponse> vnpostWithdraw(
-        com.quangtrungbank.grpc.generated.TransferRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getVnpostWithdrawMethod(), getCallOptions()), request);
-    }
-
-    /**
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.quangtrungbank.grpc.generated.TransactionResponse> vnpostTransfer(
-        com.quangtrungbank.grpc.generated.TransferRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getVnpostTransferMethod(), getCallOptions()), request);
     }
 
     /**
@@ -2290,7 +1895,7 @@ public final class BankServiceGrpc {
 
     /**
      * <pre>
-     * === Notifications &amp; Support Tickets ===
+     * === Notifications ===
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.quangtrungbank.grpc.generated.NotificationListResponse> getNotifications(
@@ -2316,22 +1921,6 @@ public final class BankServiceGrpc {
     }
 
     /**
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.quangtrungbank.grpc.generated.TicketResponse> createTicket(
-        com.quangtrungbank.grpc.generated.CreateTicketRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getCreateTicketMethod(), getCallOptions()), request);
-    }
-
-    /**
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.quangtrungbank.grpc.generated.TicketListResponse> getTickets(
-        com.quangtrungbank.grpc.generated.EmptyRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetTicketsMethod(), getCallOptions()), request);
-    }
-
-    /**
      * <pre>
      * === Teller Operations ===
      * </pre>
@@ -2352,22 +1941,6 @@ public final class BankServiceGrpc {
 
     /**
      */
-    public com.google.common.util.concurrent.ListenableFuture<com.quangtrungbank.grpc.generated.TicketResponse> tellerResolveTicket(
-        com.quangtrungbank.grpc.generated.TellerResolveTicketRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getTellerResolveTicketMethod(), getCallOptions()), request);
-    }
-
-    /**
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.quangtrungbank.grpc.generated.TicketListResponse> tellerGetAllTickets(
-        com.quangtrungbank.grpc.generated.EmptyRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getTellerGetAllTicketsMethod(), getCallOptions()), request);
-    }
-
-    /**
-     */
     public com.google.common.util.concurrent.ListenableFuture<com.quangtrungbank.grpc.generated.CustomerResponse> tellerUpdateCustomer(
         com.quangtrungbank.grpc.generated.TellerUpdateCustomerRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
@@ -2384,32 +1957,25 @@ public final class BankServiceGrpc {
   private static final int METHODID_TRANSFER_MONEY = 6;
   private static final int METHODID_ATM_DEPOSIT = 7;
   private static final int METHODID_ATM_WITHDRAW = 8;
-  private static final int METHODID_VNPOST_DEPOSIT = 9;
-  private static final int METHODID_VNPOST_WITHDRAW = 10;
-  private static final int METHODID_VNPOST_TRANSFER = 11;
-  private static final int METHODID_GET_TRANSACTION_HISTORY = 12;
-  private static final int METHODID_GET_ACCOUNT_STATEMENT = 13;
-  private static final int METHODID_CREATE_ATM_CODE = 14;
-  private static final int METHODID_GET_ATM_CODES = 15;
-  private static final int METHODID_CANCEL_ATM_CODE = 16;
-  private static final int METHODID_OPEN_SAVINGS = 17;
-  private static final int METHODID_CLOSE_SAVINGS = 18;
-  private static final int METHODID_TOP_UP_SAVINGS = 19;
-  private static final int METHODID_GET_SAVINGS_DETAIL = 20;
-  private static final int METHODID_GET_SAVINGS_ACCOUNTS = 21;
-  private static final int METHODID_GET_SAVINGS_INTEREST_RATES = 22;
-  private static final int METHODID_APPLY_LOAN = 23;
-  private static final int METHODID_GET_LOANS = 24;
-  private static final int METHODID_GET_NOTIFICATIONS = 25;
-  private static final int METHODID_MARK_NOTIFICATION_READ = 26;
-  private static final int METHODID_MARK_ALL_NOTIFICATIONS_READ = 27;
-  private static final int METHODID_CREATE_TICKET = 28;
-  private static final int METHODID_GET_TICKETS = 29;
-  private static final int METHODID_TELLER_CREATE_CUSTOMER = 30;
-  private static final int METHODID_TELLER_TOGGLE_ACCOUNT_STATUS = 31;
-  private static final int METHODID_TELLER_RESOLVE_TICKET = 32;
-  private static final int METHODID_TELLER_GET_ALL_TICKETS = 33;
-  private static final int METHODID_TELLER_UPDATE_CUSTOMER = 34;
+  private static final int METHODID_GET_TRANSACTION_HISTORY = 9;
+  private static final int METHODID_GET_ACCOUNT_STATEMENT = 10;
+  private static final int METHODID_CREATE_ATM_CODE = 11;
+  private static final int METHODID_GET_ATM_CODES = 12;
+  private static final int METHODID_CANCEL_ATM_CODE = 13;
+  private static final int METHODID_OPEN_SAVINGS = 14;
+  private static final int METHODID_CLOSE_SAVINGS = 15;
+  private static final int METHODID_TOP_UP_SAVINGS = 16;
+  private static final int METHODID_GET_SAVINGS_DETAIL = 17;
+  private static final int METHODID_GET_SAVINGS_ACCOUNTS = 18;
+  private static final int METHODID_GET_SAVINGS_INTEREST_RATES = 19;
+  private static final int METHODID_APPLY_LOAN = 20;
+  private static final int METHODID_GET_LOANS = 21;
+  private static final int METHODID_GET_NOTIFICATIONS = 22;
+  private static final int METHODID_MARK_NOTIFICATION_READ = 23;
+  private static final int METHODID_MARK_ALL_NOTIFICATIONS_READ = 24;
+  private static final int METHODID_TELLER_CREATE_CUSTOMER = 25;
+  private static final int METHODID_TELLER_TOGGLE_ACCOUNT_STATUS = 26;
+  private static final int METHODID_TELLER_UPDATE_CUSTOMER = 27;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -2462,18 +2028,6 @@ public final class BankServiceGrpc {
           break;
         case METHODID_ATM_WITHDRAW:
           serviceImpl.atmWithdraw((com.quangtrungbank.grpc.generated.AtmTransactionRequest) request,
-              (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TransactionResponse>) responseObserver);
-          break;
-        case METHODID_VNPOST_DEPOSIT:
-          serviceImpl.vnpostDeposit((com.quangtrungbank.grpc.generated.AtmTransactionRequest) request,
-              (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TransactionResponse>) responseObserver);
-          break;
-        case METHODID_VNPOST_WITHDRAW:
-          serviceImpl.vnpostWithdraw((com.quangtrungbank.grpc.generated.TransferRequest) request,
-              (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TransactionResponse>) responseObserver);
-          break;
-        case METHODID_VNPOST_TRANSFER:
-          serviceImpl.vnpostTransfer((com.quangtrungbank.grpc.generated.TransferRequest) request,
               (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TransactionResponse>) responseObserver);
           break;
         case METHODID_GET_TRANSACTION_HISTORY:
@@ -2540,14 +2094,6 @@ public final class BankServiceGrpc {
           serviceImpl.markAllNotificationsRead((com.quangtrungbank.grpc.generated.EmptyRequest) request,
               (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.SimpleResponse>) responseObserver);
           break;
-        case METHODID_CREATE_TICKET:
-          serviceImpl.createTicket((com.quangtrungbank.grpc.generated.CreateTicketRequest) request,
-              (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TicketResponse>) responseObserver);
-          break;
-        case METHODID_GET_TICKETS:
-          serviceImpl.getTickets((com.quangtrungbank.grpc.generated.EmptyRequest) request,
-              (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TicketListResponse>) responseObserver);
-          break;
         case METHODID_TELLER_CREATE_CUSTOMER:
           serviceImpl.tellerCreateCustomer((com.quangtrungbank.grpc.generated.TellerCreateCustomerRequest) request,
               (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.CustomerResponse>) responseObserver);
@@ -2555,14 +2101,6 @@ public final class BankServiceGrpc {
         case METHODID_TELLER_TOGGLE_ACCOUNT_STATUS:
           serviceImpl.tellerToggleAccountStatus((com.quangtrungbank.grpc.generated.TellerToggleAccountStatusRequest) request,
               (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.AccountResponse>) responseObserver);
-          break;
-        case METHODID_TELLER_RESOLVE_TICKET:
-          serviceImpl.tellerResolveTicket((com.quangtrungbank.grpc.generated.TellerResolveTicketRequest) request,
-              (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TicketResponse>) responseObserver);
-          break;
-        case METHODID_TELLER_GET_ALL_TICKETS:
-          serviceImpl.tellerGetAllTickets((com.quangtrungbank.grpc.generated.EmptyRequest) request,
-              (io.grpc.stub.StreamObserver<com.quangtrungbank.grpc.generated.TicketListResponse>) responseObserver);
           break;
         case METHODID_TELLER_UPDATE_CUSTOMER:
           serviceImpl.tellerUpdateCustomer((com.quangtrungbank.grpc.generated.TellerUpdateCustomerRequest) request,
@@ -2649,27 +2187,6 @@ public final class BankServiceGrpc {
               com.quangtrungbank.grpc.generated.AtmTransactionRequest,
               com.quangtrungbank.grpc.generated.TransactionResponse>(
                 service, METHODID_ATM_WITHDRAW)))
-        .addMethod(
-          getVnpostDepositMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              com.quangtrungbank.grpc.generated.AtmTransactionRequest,
-              com.quangtrungbank.grpc.generated.TransactionResponse>(
-                service, METHODID_VNPOST_DEPOSIT)))
-        .addMethod(
-          getVnpostWithdrawMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              com.quangtrungbank.grpc.generated.TransferRequest,
-              com.quangtrungbank.grpc.generated.TransactionResponse>(
-                service, METHODID_VNPOST_WITHDRAW)))
-        .addMethod(
-          getVnpostTransferMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              com.quangtrungbank.grpc.generated.TransferRequest,
-              com.quangtrungbank.grpc.generated.TransactionResponse>(
-                service, METHODID_VNPOST_TRANSFER)))
         .addMethod(
           getGetTransactionHistoryMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -2783,20 +2300,6 @@ public final class BankServiceGrpc {
               com.quangtrungbank.grpc.generated.SimpleResponse>(
                 service, METHODID_MARK_ALL_NOTIFICATIONS_READ)))
         .addMethod(
-          getCreateTicketMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              com.quangtrungbank.grpc.generated.CreateTicketRequest,
-              com.quangtrungbank.grpc.generated.TicketResponse>(
-                service, METHODID_CREATE_TICKET)))
-        .addMethod(
-          getGetTicketsMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              com.quangtrungbank.grpc.generated.EmptyRequest,
-              com.quangtrungbank.grpc.generated.TicketListResponse>(
-                service, METHODID_GET_TICKETS)))
-        .addMethod(
           getTellerCreateCustomerMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
@@ -2810,20 +2313,6 @@ public final class BankServiceGrpc {
               com.quangtrungbank.grpc.generated.TellerToggleAccountStatusRequest,
               com.quangtrungbank.grpc.generated.AccountResponse>(
                 service, METHODID_TELLER_TOGGLE_ACCOUNT_STATUS)))
-        .addMethod(
-          getTellerResolveTicketMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              com.quangtrungbank.grpc.generated.TellerResolveTicketRequest,
-              com.quangtrungbank.grpc.generated.TicketResponse>(
-                service, METHODID_TELLER_RESOLVE_TICKET)))
-        .addMethod(
-          getTellerGetAllTicketsMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              com.quangtrungbank.grpc.generated.EmptyRequest,
-              com.quangtrungbank.grpc.generated.TicketListResponse>(
-                service, METHODID_TELLER_GET_ALL_TICKETS)))
         .addMethod(
           getTellerUpdateCustomerMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -2888,9 +2377,6 @@ public final class BankServiceGrpc {
               .addMethod(getTransferMoneyMethod())
               .addMethod(getAtmDepositMethod())
               .addMethod(getAtmWithdrawMethod())
-              .addMethod(getVnpostDepositMethod())
-              .addMethod(getVnpostWithdrawMethod())
-              .addMethod(getVnpostTransferMethod())
               .addMethod(getGetTransactionHistoryMethod())
               .addMethod(getGetAccountStatementMethod())
               .addMethod(getCreateAtmCodeMethod())
@@ -2907,12 +2393,8 @@ public final class BankServiceGrpc {
               .addMethod(getGetNotificationsMethod())
               .addMethod(getMarkNotificationReadMethod())
               .addMethod(getMarkAllNotificationsReadMethod())
-              .addMethod(getCreateTicketMethod())
-              .addMethod(getGetTicketsMethod())
               .addMethod(getTellerCreateCustomerMethod())
               .addMethod(getTellerToggleAccountStatusMethod())
-              .addMethod(getTellerResolveTicketMethod())
-              .addMethod(getTellerGetAllTicketsMethod())
               .addMethod(getTellerUpdateCustomerMethod())
               .build();
         }

@@ -241,26 +241,6 @@ public final class BankServiceProto {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_quangtrungbank_grpc_MarkNotificationReadRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_quangtrungbank_grpc_CreateTicketRequest_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_quangtrungbank_grpc_CreateTicketRequest_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_quangtrungbank_grpc_TicketItem_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_quangtrungbank_grpc_TicketItem_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_quangtrungbank_grpc_TicketResponse_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_quangtrungbank_grpc_TicketResponse_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_quangtrungbank_grpc_TicketListResponse_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_quangtrungbank_grpc_TicketListResponse_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_quangtrungbank_grpc_CustomerItem_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -280,11 +260,6 @@ public final class BankServiceProto {
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_quangtrungbank_grpc_TellerToggleAccountStatusRequest_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_quangtrungbank_grpc_TellerResolveTicketRequest_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_quangtrungbank_grpc_TellerResolveTicketRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_quangtrungbank_grpc_TellerUpdateCustomerRequest_descriptor;
   static final 
@@ -441,133 +416,99 @@ public final class BankServiceProto {
       "ead_count\030\003 \001(\003\022@\n\rnotifications\030\004 \003(\0132)" +
       ".com.quangtrungbank.grpc.NotificationIte" +
       "m\"6\n\033MarkNotificationReadRequest\022\027\n\017noti" +
-      "fication_id\030\001 \001(\t\"K\n\023CreateTicketRequest" +
-      "\022\017\n\007subject\030\001 \001(\t\022\017\n\007content\030\002 \001(\t\022\022\n\nac" +
-      "count_no\030\003 \001(\t\"\305\001\n\nTicketItem\022\n\n\002id\030\001 \001(" +
-      "\t\022\023\n\013customer_id\030\002 \001(\t\022\025\n\rcustomer_name\030" +
-      "\003 \001(\t\022\022\n\naccount_no\030\004 \001(\t\022\017\n\007subject\030\005 \001" +
-      "(\t\022\017\n\007content\030\006 \001(\t\022\016\n\006status\030\007 \001(\t\022\020\n\010r" +
-      "esponse\030\010 \001(\t\022\022\n\ncreated_at\030\t \001(\t\022\023\n\013res" +
-      "olved_at\030\n \001(\t\"g\n\016TicketResponse\022\017\n\007succ" +
-      "ess\030\001 \001(\010\022\017\n\007message\030\002 \001(\t\0223\n\006ticket\030\003 \001" +
-      "(\0132#.com.quangtrungbank.grpc.TicketItem\"" +
-      "l\n\022TicketListResponse\022\017\n\007success\030\001 \001(\010\022\017" +
-      "\n\007message\030\002 \001(\t\0224\n\007tickets\030\003 \003(\0132#.com.q" +
-      "uangtrungbank.grpc.TicketItem\"\222\001\n\014Custom" +
-      "erItem\022\n\n\002id\030\001 \001(\t\022\017\n\007user_id\030\002 \001(\t\022\021\n\tf" +
-      "ull_name\030\003 \001(\t\022\017\n\007id_card\030\004 \001(\t\022\r\n\005phone" +
-      "\030\005 \001(\t\022\r\n\005email\030\006 \001(\t\022\017\n\007address\030\007 \001(\t\022\022" +
-      "\n\nkyc_status\030\010 \001(\t\"m\n\020CustomerResponse\022\017" +
-      "\n\007success\030\001 \001(\010\022\017\n\007message\030\002 \001(\t\0227\n\010cust" +
-      "omer\030\003 \001(\0132%.com.quangtrungbank.grpc.Cus" +
-      "tomerItem\"\211\001\n\033TellerCreateCustomerReques" +
-      "t\022\021\n\tfull_name\030\001 \001(\t\022\017\n\007id_card\030\002 \001(\t\022\r\n" +
-      "\005phone\030\003 \001(\t\022\r\n\005email\030\004 \001(\t\022\017\n\007address\030\005" +
-      " \001(\t\022\027\n\017initial_balance\030\006 \001(\001\"F\n TellerT" +
-      "oggleAccountStatusRequest\022\022\n\naccount_no\030" +
-      "\001 \001(\t\022\016\n\006status\030\002 \001(\t\"Q\n\032TellerResolveTi" +
-      "cketRequest\022\021\n\tticket_id\030\001 \001(\t\022\020\n\010respon" +
-      "se\030\002 \001(\t\022\016\n\006status\030\003 \001(\t\"t\n\033TellerUpdate" +
-      "CustomerRequest\022\023\n\013customer_id\030\001 \001(\t\022\021\n\t" +
-      "full_name\030\002 \001(\t\022\r\n\005phone\030\003 \001(\t\022\r\n\005email\030" +
-      "\004 \001(\t\022\017\n\007address\030\005 \001(\t2\321\035\n\013BankService\022V" +
-      "\n\005Login\022%.com.quangtrungbank.grpc.LoginR" +
-      "equest\032&.com.quangtrungbank.grpc.LoginRe" +
-      "sponse\022\\\n\nResetLocks\022%.com.quangtrungban" +
-      "k.grpc.EmptyRequest\032\'.com.quangtrungbank" +
-      ".grpc.SimpleResponse\022i\n\016ChangePassword\022." +
-      ".com.quangtrungbank.grpc.ChangePasswordR" +
-      "equest\032\'.com.quangtrungbank.grpc.SimpleR" +
-      "esponse\022e\n\rUpdateProfile\022-.com.quangtrun" +
-      "gbank.grpc.UpdateProfileRequest\032%.com.qu" +
-      "angtrungbank.grpc.UserResponse\022h\n\013GetAcc" +
-      "ounts\022+.com.quangtrungbank.grpc.GetAccou" +
-      "ntsRequest\032,.com.quangtrungbank.grpc.Acc" +
-      "ountListResponse\022n\n\rLookupAccount\022-.com." +
-      "quangtrungbank.grpc.LookupAccountRequest" +
-      "\032..com.quangtrungbank.grpc.LookupAccount" +
-      "Response\022d\n\rTransferMoney\022(.com.quangtru" +
-      "ngbank.grpc.TransferRequest\032).com.quangt" +
-      "rungbank.grpc.TransferResponse\022j\n\nAtmDep" +
-      "osit\022..com.quangtrungbank.grpc.AtmTransa" +
-      "ctionRequest\032,.com.quangtrungbank.grpc.T" +
-      "ransactionResponse\022k\n\013AtmWithdraw\022..com." +
-      "quangtrungbank.grpc.AtmTransactionReques" +
-      "t\032,.com.quangtrungbank.grpc.TransactionR" +
-      "esponse\022m\n\rVnpostDeposit\022..com.quangtrun" +
-      "gbank.grpc.AtmTransactionRequest\032,.com.q" +
-      "uangtrungbank.grpc.TransactionResponse\022h" +
-      "\n\016VnpostWithdraw\022(.com.quangtrungbank.gr" +
-      "pc.TransferRequest\032,.com.quangtrungbank." +
-      "grpc.TransactionResponse\022h\n\016VnpostTransf" +
-      "er\022(.com.quangtrungbank.grpc.TransferReq" +
-      "uest\032,.com.quangtrungbank.grpc.Transacti" +
-      "onResponse\022}\n\025GetTransactionHistory\0222.co" +
-      "m.quangtrungbank.grpc.TransactionHistory" +
-      "Request\0320.com.quangtrungbank.grpc.Transa" +
-      "ctionListResponse\022l\n\023GetAccountStatement" +
-      "\022).com.quangtrungbank.grpc.StatementRequ" +
-      "est\032*.com.quangtrungbank.grpc.StatementR" +
-      "esponse\022h\n\rCreateAtmCode\022-.com.quangtrun" +
-      "gbank.grpc.CreateAtmCodeRequest\032(.com.qu" +
-      "angtrungbank.grpc.AtmCodeResponse\022b\n\013Get" +
-      "AtmCodes\022%.com.quangtrungbank.grpc.Empty" +
-      "Request\032,.com.quangtrungbank.grpc.AtmCod" +
-      "eListResponse\022g\n\rCancelAtmCode\022-.com.qua" +
-      "ngtrungbank.grpc.CancelAtmCodeRequest\032\'." +
-      "com.quangtrungbank.grpc.SimpleResponse\022d" +
-      "\n\013OpenSavings\022+.com.quangtrungbank.grpc." +
-      "OpenSavingsRequest\032(.com.quangtrungbank." +
-      "grpc.SavingsResponse\022f\n\014CloseSavings\022,.c" +
-      "om.quangtrungbank.grpc.CloseSavingsReque" +
-      "st\032(.com.quangtrungbank.grpc.SavingsResp" +
-      "onse\022f\n\014TopUpSavings\022,.com.quangtrungban" +
-      "k.grpc.TopUpSavingsRequest\032(.com.quangtr" +
-      "ungbank.grpc.SavingsResponse\022q\n\020GetSavin" +
-      "gsDetail\022-.com.quangtrungbank.grpc.Savin" +
-      "gsDetailRequest\032..com.quangtrungbank.grp" +
-      "c.SavingsDetailResponse\022i\n\022GetSavingsAcc" +
-      "ounts\022%.com.quangtrungbank.grpc.EmptyReq" +
-      "uest\032,.com.quangtrungbank.grpc.SavingsLi" +
-      "stResponse\022s\n\027GetSavingsInterestRates\022%." +
-      "com.quangtrungbank.grpc.EmptyRequest\0321.c" +
-      "om.quangtrungbank.grpc.InterestRateListR" +
-      "esponse\022]\n\tApplyLoan\022).com.quangtrungban" +
-      "k.grpc.ApplyLoanRequest\032%.com.quangtrung" +
-      "bank.grpc.LoanResponse\022\\\n\010GetLoans\022%.com" +
-      ".quangtrungbank.grpc.EmptyRequest\032).com." +
-      "quangtrungbank.grpc.LoanListResponse\022s\n\020" +
-      "GetNotifications\022,.com.quangtrungbank.gr" +
-      "pc.NotificationRequest\0321.com.quangtrungb" +
-      "ank.grpc.NotificationListResponse\022u\n\024Mar" +
-      "kNotificationRead\0224.com.quangtrungbank.g" +
-      "rpc.MarkNotificationReadRequest\032\'.com.qu" +
-      "angtrungbank.grpc.SimpleResponse\022j\n\030Mark" +
-      "AllNotificationsRead\022%.com.quangtrungban" +
-      "k.grpc.EmptyRequest\032\'.com.quangtrungbank" +
-      ".grpc.SimpleResponse\022e\n\014CreateTicket\022,.c" +
-      "om.quangtrungbank.grpc.CreateTicketReque" +
-      "st\032\'.com.quangtrungbank.grpc.TicketRespo" +
-      "nse\022`\n\nGetTickets\022%.com.quangtrungbank.g" +
-      "rpc.EmptyRequest\032+.com.quangtrungbank.gr" +
-      "pc.TicketListResponse\022w\n\024TellerCreateCus" +
-      "tomer\0224.com.quangtrungbank.grpc.TellerCr" +
-      "eateCustomerRequest\032).com.quangtrungbank" +
-      ".grpc.CustomerResponse\022\200\001\n\031TellerToggleA" +
-      "ccountStatus\0229.com.quangtrungbank.grpc.T" +
-      "ellerToggleAccountStatusRequest\032(.com.qu" +
-      "angtrungbank.grpc.AccountResponse\022s\n\023Tel" +
-      "lerResolveTicket\0223.com.quangtrungbank.gr" +
-      "pc.TellerResolveTicketRequest\032\'.com.quan" +
-      "gtrungbank.grpc.TicketResponse\022i\n\023Teller" +
-      "GetAllTickets\022%.com.quangtrungbank.grpc." +
-      "EmptyRequest\032+.com.quangtrungbank.grpc.T" +
-      "icketListResponse\022w\n\024TellerUpdateCustome" +
-      "r\0224.com.quangtrungbank.grpc.TellerUpdate" +
-      "CustomerRequest\032).com.quangtrungbank.grp" +
-      "c.CustomerResponseB7\n!com.quangtrungbank" +
-      ".grpc.generatedB\020BankServiceProtoP\001b\006pro" +
-      "to3"
+      "fication_id\030\001 \001(\t\"\222\001\n\014CustomerItem\022\n\n\002id" +
+      "\030\001 \001(\t\022\017\n\007user_id\030\002 \001(\t\022\021\n\tfull_name\030\003 \001" +
+      "(\t\022\017\n\007id_card\030\004 \001(\t\022\r\n\005phone\030\005 \001(\t\022\r\n\005em" +
+      "ail\030\006 \001(\t\022\017\n\007address\030\007 \001(\t\022\022\n\nkyc_status" +
+      "\030\010 \001(\t\"m\n\020CustomerResponse\022\017\n\007success\030\001 " +
+      "\001(\010\022\017\n\007message\030\002 \001(\t\0227\n\010customer\030\003 \001(\0132%" +
+      ".com.quangtrungbank.grpc.CustomerItem\"\211\001" +
+      "\n\033TellerCreateCustomerRequest\022\021\n\tfull_na" +
+      "me\030\001 \001(\t\022\017\n\007id_card\030\002 \001(\t\022\r\n\005phone\030\003 \001(\t" +
+      "\022\r\n\005email\030\004 \001(\t\022\017\n\007address\030\005 \001(\t\022\027\n\017init" +
+      "ial_balance\030\006 \001(\001\"F\n TellerToggleAccount" +
+      "StatusRequest\022\022\n\naccount_no\030\001 \001(\t\022\016\n\006sta" +
+      "tus\030\002 \001(\t\"t\n\033TellerUpdateCustomerRequest" +
+      "\022\023\n\013customer_id\030\001 \001(\t\022\021\n\tfull_name\030\002 \001(\t" +
+      "\022\r\n\005phone\030\003 \001(\t\022\r\n\005email\030\004 \001(\t\022\017\n\007addres" +
+      "s\030\005 \001(\t2\345\027\n\013BankService\022V\n\005Login\022%.com.q" +
+      "uangtrungbank.grpc.LoginRequest\032&.com.qu" +
+      "angtrungbank.grpc.LoginResponse\022\\\n\nReset" +
+      "Locks\022%.com.quangtrungbank.grpc.EmptyReq" +
+      "uest\032\'.com.quangtrungbank.grpc.SimpleRes" +
+      "ponse\022i\n\016ChangePassword\022..com.quangtrung" +
+      "bank.grpc.ChangePasswordRequest\032\'.com.qu" +
+      "angtrungbank.grpc.SimpleResponse\022e\n\rUpda" +
+      "teProfile\022-.com.quangtrungbank.grpc.Upda" +
+      "teProfileRequest\032%.com.quangtrungbank.gr" +
+      "pc.UserResponse\022h\n\013GetAccounts\022+.com.qua" +
+      "ngtrungbank.grpc.GetAccountsRequest\032,.co" +
+      "m.quangtrungbank.grpc.AccountListRespons" +
+      "e\022n\n\rLookupAccount\022-.com.quangtrungbank." +
+      "grpc.LookupAccountRequest\032..com.quangtru" +
+      "ngbank.grpc.LookupAccountResponse\022d\n\rTra" +
+      "nsferMoney\022(.com.quangtrungbank.grpc.Tra" +
+      "nsferRequest\032).com.quangtrungbank.grpc.T" +
+      "ransferResponse\022j\n\nAtmDeposit\022..com.quan" +
+      "gtrungbank.grpc.AtmTransactionRequest\032,." +
+      "com.quangtrungbank.grpc.TransactionRespo" +
+      "nse\022k\n\013AtmWithdraw\022..com.quangtrungbank." +
+      "grpc.AtmTransactionRequest\032,.com.quangtr" +
+      "ungbank.grpc.TransactionResponse\022}\n\025GetT" +
+      "ransactionHistory\0222.com.quangtrungbank.g" +
+      "rpc.TransactionHistoryRequest\0320.com.quan" +
+      "gtrungbank.grpc.TransactionListResponse\022" +
+      "l\n\023GetAccountStatement\022).com.quangtrungb" +
+      "ank.grpc.StatementRequest\032*.com.quangtru" +
+      "ngbank.grpc.StatementResponse\022h\n\rCreateA" +
+      "tmCode\022-.com.quangtrungbank.grpc.CreateA" +
+      "tmCodeRequest\032(.com.quangtrungbank.grpc." +
+      "AtmCodeResponse\022b\n\013GetAtmCodes\022%.com.qua" +
+      "ngtrungbank.grpc.EmptyRequest\032,.com.quan" +
+      "gtrungbank.grpc.AtmCodeListResponse\022g\n\rC" +
+      "ancelAtmCode\022-.com.quangtrungbank.grpc.C" +
+      "ancelAtmCodeRequest\032\'.com.quangtrungbank" +
+      ".grpc.SimpleResponse\022d\n\013OpenSavings\022+.co" +
+      "m.quangtrungbank.grpc.OpenSavingsRequest" +
+      "\032(.com.quangtrungbank.grpc.SavingsRespon" +
+      "se\022f\n\014CloseSavings\022,.com.quangtrungbank." +
+      "grpc.CloseSavingsRequest\032(.com.quangtrun" +
+      "gbank.grpc.SavingsResponse\022f\n\014TopUpSavin" +
+      "gs\022,.com.quangtrungbank.grpc.TopUpSaving" +
+      "sRequest\032(.com.quangtrungbank.grpc.Savin" +
+      "gsResponse\022q\n\020GetSavingsDetail\022-.com.qua" +
+      "ngtrungbank.grpc.SavingsDetailRequest\032.." +
+      "com.quangtrungbank.grpc.SavingsDetailRes" +
+      "ponse\022i\n\022GetSavingsAccounts\022%.com.quangt" +
+      "rungbank.grpc.EmptyRequest\032,.com.quangtr" +
+      "ungbank.grpc.SavingsListResponse\022s\n\027GetS" +
+      "avingsInterestRates\022%.com.quangtrungbank" +
+      ".grpc.EmptyRequest\0321.com.quangtrungbank." +
+      "grpc.InterestRateListResponse\022]\n\tApplyLo" +
+      "an\022).com.quangtrungbank.grpc.ApplyLoanRe" +
+      "quest\032%.com.quangtrungbank.grpc.LoanResp" +
+      "onse\022\\\n\010GetLoans\022%.com.quangtrungbank.gr" +
+      "pc.EmptyRequest\032).com.quangtrungbank.grp" +
+      "c.LoanListResponse\022s\n\020GetNotifications\022," +
+      ".com.quangtrungbank.grpc.NotificationReq" +
+      "uest\0321.com.quangtrungbank.grpc.Notificat" +
+      "ionListResponse\022u\n\024MarkNotificationRead\022" +
+      "4.com.quangtrungbank.grpc.MarkNotificati" +
+      "onReadRequest\032\'.com.quangtrungbank.grpc." +
+      "SimpleResponse\022j\n\030MarkAllNotificationsRe" +
+      "ad\022%.com.quangtrungbank.grpc.EmptyReques" +
+      "t\032\'.com.quangtrungbank.grpc.SimpleRespon" +
+      "se\022w\n\024TellerCreateCustomer\0224.com.quangtr" +
+      "ungbank.grpc.TellerCreateCustomerRequest" +
+      "\032).com.quangtrungbank.grpc.CustomerRespo" +
+      "nse\022\200\001\n\031TellerToggleAccountStatus\0229.com." +
+      "quangtrungbank.grpc.TellerToggleAccountS" +
+      "tatusRequest\032(.com.quangtrungbank.grpc.A" +
+      "ccountResponse\022w\n\024TellerUpdateCustomer\0224" +
+      ".com.quangtrungbank.grpc.TellerUpdateCus" +
+      "tomerRequest\032).com.quangtrungbank.grpc.C" +
+      "ustomerResponseB7\n!com.quangtrungbank.gr" +
+      "pc.generatedB\020BankServiceProtoP\001b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -843,62 +784,32 @@ public final class BankServiceProto {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_quangtrungbank_grpc_MarkNotificationReadRequest_descriptor,
         new java.lang.String[] { "NotificationId", });
-    internal_static_com_quangtrungbank_grpc_CreateTicketRequest_descriptor =
-      getDescriptor().getMessageTypes().get(45);
-    internal_static_com_quangtrungbank_grpc_CreateTicketRequest_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_quangtrungbank_grpc_CreateTicketRequest_descriptor,
-        new java.lang.String[] { "Subject", "Content", "AccountNo", });
-    internal_static_com_quangtrungbank_grpc_TicketItem_descriptor =
-      getDescriptor().getMessageTypes().get(46);
-    internal_static_com_quangtrungbank_grpc_TicketItem_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_quangtrungbank_grpc_TicketItem_descriptor,
-        new java.lang.String[] { "Id", "CustomerId", "CustomerName", "AccountNo", "Subject", "Content", "Status", "Response", "CreatedAt", "ResolvedAt", });
-    internal_static_com_quangtrungbank_grpc_TicketResponse_descriptor =
-      getDescriptor().getMessageTypes().get(47);
-    internal_static_com_quangtrungbank_grpc_TicketResponse_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_quangtrungbank_grpc_TicketResponse_descriptor,
-        new java.lang.String[] { "Success", "Message", "Ticket", });
-    internal_static_com_quangtrungbank_grpc_TicketListResponse_descriptor =
-      getDescriptor().getMessageTypes().get(48);
-    internal_static_com_quangtrungbank_grpc_TicketListResponse_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_quangtrungbank_grpc_TicketListResponse_descriptor,
-        new java.lang.String[] { "Success", "Message", "Tickets", });
     internal_static_com_quangtrungbank_grpc_CustomerItem_descriptor =
-      getDescriptor().getMessageTypes().get(49);
+      getDescriptor().getMessageTypes().get(45);
     internal_static_com_quangtrungbank_grpc_CustomerItem_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_quangtrungbank_grpc_CustomerItem_descriptor,
         new java.lang.String[] { "Id", "UserId", "FullName", "IdCard", "Phone", "Email", "Address", "KycStatus", });
     internal_static_com_quangtrungbank_grpc_CustomerResponse_descriptor =
-      getDescriptor().getMessageTypes().get(50);
+      getDescriptor().getMessageTypes().get(46);
     internal_static_com_quangtrungbank_grpc_CustomerResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_quangtrungbank_grpc_CustomerResponse_descriptor,
         new java.lang.String[] { "Success", "Message", "Customer", });
     internal_static_com_quangtrungbank_grpc_TellerCreateCustomerRequest_descriptor =
-      getDescriptor().getMessageTypes().get(51);
+      getDescriptor().getMessageTypes().get(47);
     internal_static_com_quangtrungbank_grpc_TellerCreateCustomerRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_quangtrungbank_grpc_TellerCreateCustomerRequest_descriptor,
         new java.lang.String[] { "FullName", "IdCard", "Phone", "Email", "Address", "InitialBalance", });
     internal_static_com_quangtrungbank_grpc_TellerToggleAccountStatusRequest_descriptor =
-      getDescriptor().getMessageTypes().get(52);
+      getDescriptor().getMessageTypes().get(48);
     internal_static_com_quangtrungbank_grpc_TellerToggleAccountStatusRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_quangtrungbank_grpc_TellerToggleAccountStatusRequest_descriptor,
         new java.lang.String[] { "AccountNo", "Status", });
-    internal_static_com_quangtrungbank_grpc_TellerResolveTicketRequest_descriptor =
-      getDescriptor().getMessageTypes().get(53);
-    internal_static_com_quangtrungbank_grpc_TellerResolveTicketRequest_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_quangtrungbank_grpc_TellerResolveTicketRequest_descriptor,
-        new java.lang.String[] { "TicketId", "Response", "Status", });
     internal_static_com_quangtrungbank_grpc_TellerUpdateCustomerRequest_descriptor =
-      getDescriptor().getMessageTypes().get(54);
+      getDescriptor().getMessageTypes().get(49);
     internal_static_com_quangtrungbank_grpc_TellerUpdateCustomerRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_quangtrungbank_grpc_TellerUpdateCustomerRequest_descriptor,

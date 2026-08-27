@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS customers (
     id VARCHAR(50) PRIMARY KEY,
     user_id BIGINT UNIQUE,
     id_card VARCHAR(20) NOT NULL UNIQUE,
-    address VARCHAR(255),
+    address VARCHAR(255), -- Địa chỉ thường trú (Cố định)
+    contact_address VARCHAR(255), -- Địa chỉ liên hệ (Khách hàng có thể thay đổi)
     kyc_status VARCHAR(20) DEFAULT 'NOT_VERIFIED', -- NOT_VERIFIED, PENDING, VERIFIED, REJECTED
     id_card_front LONGTEXT NULL,
     id_card_back LONGTEXT NULL,
@@ -83,19 +84,7 @@ CREATE TABLE IF NOT EXISTS atm_codes (
     INDEX idx_atm_code_lookup (code, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS support_tickets (
-    id VARCHAR(50) PRIMARY KEY,
-    customer_id VARCHAR(50) NOT NULL,
-    customer_name VARCHAR(100) NOT NULL,
-    account_no VARCHAR(30),
-    subject VARCHAR(255) NOT NULL,
-    content TEXT NOT NULL,
-    status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, RESOLVED, REJECTED
-    assigned_to VARCHAR(50),
-    response TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 CREATE TABLE IF NOT EXISTS audit_logs (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

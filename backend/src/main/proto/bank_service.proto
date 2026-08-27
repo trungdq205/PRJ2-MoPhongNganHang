@@ -22,9 +22,6 @@ service BankService {
   rpc TransferMoney (TransferRequest) returns (TransferResponse);
   rpc AtmDeposit (AtmTransactionRequest) returns (TransactionResponse);
   rpc AtmWithdraw (AtmTransactionRequest) returns (TransactionResponse);
-  rpc VnpostDeposit (AtmTransactionRequest) returns (TransactionResponse);
-  rpc VnpostWithdraw (TransferRequest) returns (TransactionResponse);
-  rpc VnpostTransfer (TransferRequest) returns (TransactionResponse);
   rpc GetTransactionHistory (TransactionHistoryRequest) returns (TransactionListResponse);
   rpc GetAccountStatement (StatementRequest) returns (StatementResponse);
 
@@ -45,18 +42,14 @@ service BankService {
   rpc ApplyLoan (ApplyLoanRequest) returns (LoanResponse);
   rpc GetLoans (EmptyRequest) returns (LoanListResponse);
 
-  // === Notifications & Support Tickets ===
+  // === Notifications ===
   rpc GetNotifications (NotificationRequest) returns (NotificationListResponse);
   rpc MarkNotificationRead (MarkNotificationReadRequest) returns (SimpleResponse);
   rpc MarkAllNotificationsRead (EmptyRequest) returns (SimpleResponse);
-  rpc CreateTicket (CreateTicketRequest) returns (TicketResponse);
-  rpc GetTickets (EmptyRequest) returns (TicketListResponse);
 
   // === Teller Operations ===
   rpc TellerCreateCustomer (TellerCreateCustomerRequest) returns (CustomerResponse);
   rpc TellerToggleAccountStatus (TellerToggleAccountStatusRequest) returns (AccountResponse);
-  rpc TellerResolveTicket (TellerResolveTicketRequest) returns (TicketResponse);
-  rpc TellerGetAllTickets (EmptyRequest) returns (TicketListResponse);
   rpc TellerUpdateCustomer (TellerUpdateCustomerRequest) returns (CustomerResponse);
 }
 
@@ -420,37 +413,7 @@ message MarkNotificationReadRequest {
   string notification_id = 1;
 }
 
-// === Support Ticket Messages ===
-message CreateTicketRequest {
-  string subject = 1;
-  string content = 2;
-  string account_no = 3;
-}
 
-message TicketItem {
-  string id = 1;
-  string customer_id = 2;
-  string customer_name = 3;
-  string account_no = 4;
-  string subject = 5;
-  string content = 6;
-  string status = 7;
-  string response = 8;
-  string created_at = 9;
-  string resolved_at = 10;
-}
-
-message TicketResponse {
-  bool success = 1;
-  string message = 2;
-  TicketItem ticket = 3;
-}
-
-message TicketListResponse {
-  bool success = 1;
-  string message = 2;
-  repeated TicketItem tickets = 3;
-}
 
 // === Customer Messages ===
 
@@ -486,11 +449,7 @@ message TellerToggleAccountStatusRequest {
   string status = 2;
 }
 
-message TellerResolveTicketRequest {
-  string ticket_id = 1;
-  string response = 2;
-  string status = 3;
-}
+
 
 message TellerUpdateCustomerRequest {
   string customer_id = 1;

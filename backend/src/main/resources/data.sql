@@ -12,7 +12,7 @@ INSERT IGNORE INTO customers (id, user_id, id_card, address) VALUES
 ('CUST-1002', 2, '001098654321', '456 Đường Nguyễn Huệ, Quận 3, TP. HCM');
 
 INSERT IGNORE INTO tellers (id, user_id, staff_code, branch, permissions) VALUES
-('TELLER-001', 3, 'GDV001', 'Hội Sở QuangTrung Bank', 'PERM_CREATE_CUSTOMER,PERM_EDIT_CUSTOMER,PERM_MANAGE_ACCOUNT,PERM_HANDLE_TICKETS');
+('TELLER-001', 3, 'GDV001', 'Hội Sở QuangTrung Bank', 'PERM_CREATE_CUSTOMER,PERM_EDIT_CUSTOMER,PERM_MANAGE_ACCOUNT');
 
 INSERT IGNORE INTO accounts (id, account_no, customer_id, type, balance, currency, status, created_at) VALUES
 (1, '1000123456', 'CUST-1001', 'PAYMENT', 250000000.00, 'VND', 'ACTIVE', '2025-01-15 08:00:00'),
@@ -24,9 +24,6 @@ INSERT IGNORE INTO transactions (id, from_account, from_name, to_account, to_nam
 
 INSERT IGNORE INTO atm_codes (id, code, customer_id, account_no, type, amount, pin, status, created_at) VALUES
 ('ATMC-892104', '892104', 'CUST-1001', '1000123456', 'WITHDRAW', 1000000.00, '1234', 'PENDING', '2026-08-07 08:30:00');
-
-INSERT IGNORE INTO support_tickets (id, customer_id, customer_name, account_no, subject, content, status, assigned_to, response, created_at) VALUES
-('TCK-101', 'CUST-1001', 'Nguyễn Văn An', '1000123456', 'Yêu cầu nâng hạn mức chuyển tiền', 'Tôi muốn nâng hạn mức chuyển khoản từ 100M lên 500M/ngày', 'PENDING', 'GDV001', '', '2026-08-03 09:00:00');
 
 INSERT IGNORE INTO savings_interest_rates (id, term_months, label, annual_rate, min_amount, effective_from, is_active) VALUES
 (1, 0, 'Không kỳ hạn', 0.20, 100000.00, '2026-01-01', true),

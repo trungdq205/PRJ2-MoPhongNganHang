@@ -124,6 +124,16 @@ public class GrpcBankService {
         return result;
     }
 
+    public Map<String, Object> verifyPasswordRpc(Map<String, Object> req, User currentUser) {
+        String currentPassword = getString(req, "current_password", "currentPassword", "password");
+        ApiResponse<Boolean> res = customerService.verifyPassword(currentPassword, currentUser);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", res.isSuccess());
+        result.put("message", res.getMessage());
+        result.put("data", res.getData());
+        return result;
+    }
+
     public Map<String, Object> changePasswordRpc(Map<String, Object> req, User currentUser) {
         ChangePasswordRequest dto = new ChangePasswordRequest();
         dto.setCurrentPassword(getString(req, "current_password", "currentPassword"));
@@ -141,6 +151,7 @@ public class GrpcBankService {
     public Map<String, Object> updateProfileRpc(Map<String, Object> req, User currentUser) {
         UpdateProfileRequest dto = new UpdateProfileRequest();
         dto.setEmail(getString(req, "email"));
+        dto.setContactAddress(getString(req, "contactAddress", "contact_address"));
 
         ApiResponse<User> res = customerService.updateProfile(dto, currentUser);
         Map<String, Object> result = new HashMap<>();
@@ -151,6 +162,9 @@ public class GrpcBankService {
             result.put("email", res.getData().getEmail());
             result.put("role", res.getData().getRole());
             result.put("data", res.getData());
+        }
+        if (dto.getContactAddress() != null) {
+            result.put("contactAddress", dto.getContactAddress());
         }
         return result;
     }
@@ -269,31 +283,7 @@ public class GrpcBankService {
         return mapTransactionResponse(res);
     }
 
-    @Transactional
-    public Map<String, Object> vnpostWithdrawRpc(Map<String, Object> req, User currentUser) {
-        TransferRequest dto = new TransferRequest();
-        dto.setFromAccNo(getString(req, "from_account", "fromAccount", "fromAccNo"));
-        dto.setAmount(parseBigDecimal(req.get("amount")));
-        dto.setIdempotencyKey(getString(req, "idempotency_key", "idempotencyKey"));
 
-        User effectiveUser = resolveUserIfNull(currentUser, dto.getFromAccNo());
-        ApiResponse<Transaction> res = customerService.vnpostWithdraw(dto, effectiveUser, dto.getIdempotencyKey());
-        return mapTransactionResponse(res);
-    }
-
-    @Transactional
-    public Map<String, Object> vnpostTransferRpc(Map<String, Object> req, User currentUser) {
-        TransferRequest dto = new TransferRequest();
-        dto.setFromAccNo(getString(req, "from_account", "fromAccount", "fromAccNo"));
-        dto.setToAccNo(getString(req, "to_account", "toAccount", "toAccNo"));
-        dto.setAmount(parseBigDecimal(req.get("amount")));
-        dto.setContent(getString(req, "content", "note"));
-        dto.setIdempotencyKey(getString(req, "idempotency_key", "idempotencyKey"));
-
-        User effectiveUser = resolveUserIfNull(currentUser, dto.getFromAccNo());
-        ApiResponse<Transaction> res = customerService.vnpostTransfer(dto, effectiveUser, dto.getIdempotencyKey());
-        return mapTransactionResponse(res);
-    }
 
     private Map<String, Object> mapTransactionResponse(ApiResponse<Transaction> res) {
         Map<String, Object> result = new HashMap<>();
@@ -646,29 +636,7 @@ public class GrpcBankService {
         return result;
     }
 
-    public Map<String, Object> createTicketRpc(Map<String, Object> req, User currentUser) {
-        CreateTicketRequest dto = new CreateTicketRequest();
-        dto.setSubject(getString(req, "subject"));
-        dto.setContent(getString(req, "content"));
-        dto.setAccountNo(getString(req, "account_no", "accountNo"));
 
-        ApiResponse<SupportTicket> res = customerService.createTicket(dto, currentUser);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", res.isSuccess());
-        result.put("message", res.getMessage());
-        result.put("data", res.getData());
-        return result;
-    }
-
-    public Map<String, Object> getTicketsRpc(User currentUser) {
-        ApiResponse<List<SupportTicket>> res = customerService.getTickets(currentUser);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", res.isSuccess());
-        result.put("message", res.getMessage());
-        result.put("tickets", res.getData() != null ? res.getData() : List.of());
-        result.put("data", res.getData());
-        return result;
-    }
 
     // === Teller RPCs ===
     public Map<String, Object> tellerCreateCustomerRpc(Map<String, Object> req, User currentTeller) {
@@ -700,29 +668,7 @@ public class GrpcBankService {
         return result;
     }
 
-    public Map<String, Object> tellerResolveTicketRpc(Map<String, Object> req, User currentTeller) {
-        String ticketId = getString(req, "ticket_id", "ticketId");
-        ResolveTicketRequest dto = new ResolveTicketRequest();
-        dto.setResponse(getString(req, "response"));
-        dto.setStatus(getString(req, "status") != null ? getString(req, "status") : "RESOLVED");
 
-        ApiResponse<SupportTicket> res = tellerService.resolveTicket(ticketId, dto, currentTeller);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", res.isSuccess());
-        result.put("message", res.getMessage());
-        result.put("data", res.getData());
-        return result;
-    }
-
-    public Map<String, Object> tellerGetAllTicketsRpc(User currentTeller) {
-        ApiResponse<List<SupportTicket>> res = tellerService.getAllTickets(currentTeller);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", res.isSuccess());
-        result.put("message", res.getMessage());
-        result.put("tickets", res.getData() != null ? res.getData() : List.of());
-        result.put("data", res.getData());
-        return result;
-    }
 
     public Map<String, Object> tellerUpdateCustomerRpc(Map<String, Object> req, User currentTeller) {
         String customerId = getString(req, "customer_id", "customerId");

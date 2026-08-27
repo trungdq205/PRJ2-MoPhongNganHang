@@ -46,6 +46,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        ensureCustomerSchema();
         ensureNotificationSchema();
         // Tự động xóa tài khoản rác 8888123456 nếu còn tồn tại trong CSDL
         accountRepository.findByAccountNo("8888123456").ifPresent(acc -> {
@@ -183,6 +184,29 @@ public class DataInitializer implements CommandLineRunner {
             }
         } catch (Exception e) {
             System.err.println("[Schema] Không thể đồng bộ schema notifications: " + e.getMessage());
+        }
+    }
+
+    private void ensureCustomerSchema() {
+        try {
+            List<Map<String, Object>> columns = jdbcTemplate.queryForList(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers'"
+            );
+            Set<String> columnNames = new HashSet<>();
+            for (Map<String, Object> row : columns) {
+                Object value = row.get("COLUMN_NAME");
+                if (value != null) {
+                    columnNames.add(value.toString().toLowerCase());
+                }
+            }
+
+            if (!columnNames.contains("contact_address")) {
+                jdbcTemplate.execute("ALTER TABLE customers ADD COLUMN contact_address VARCHAR(255) NULL");
+                jdbcTemplate.execute("UPDATE customers SET contact_address = address WHERE contact_address IS NULL");
+                System.out.println("[Schema] Đã thêm cột contact_address và đồng bộ dữ liệu cho bảng customers.");
+            }
+        } catch (Exception e) {
+            System.err.println("[Schema] Không thể đồng bộ schema customers: " + e.getMessage());
         }
     }
 }
