@@ -244,43 +244,7 @@ public class BankGrpcServiceImpl extends BankServiceGrpc.BankServiceImplBase {
         }
     }
 
-    @Override
-    public void vnpostWithdraw(TransferRequest request, StreamObserver<TransactionResponse> responseObserver) {
-        try {
-            Map<String, Object> req = new HashMap<>();
-            req.put("from_account", request.getFromAccount());
-            req.put("amount", request.getAmount());
-            req.put("idempotency_key", request.getIdempotencyKey());
 
-            User currentUser = resolveUserFromAccount(request.getFromAccount());
-            Map<String, Object> res = grpcBankService.vnpostWithdrawRpc(req, currentUser);
-            responseObserver.onNext(buildTransactionResponse(res));
-            responseObserver.onCompleted();
-        } catch (Exception ex) {
-            responseObserver.onNext(TransactionResponse.newBuilder().setSuccess(false).setMessage(ex.getMessage()).build());
-            responseObserver.onCompleted();
-        }
-    }
-
-    @Override
-    public void vnpostTransfer(TransferRequest request, StreamObserver<TransactionResponse> responseObserver) {
-        try {
-            Map<String, Object> req = new HashMap<>();
-            req.put("from_account", request.getFromAccount());
-            req.put("to_account", request.getToAccount());
-            req.put("amount", request.getAmount());
-            req.put("content", request.getContent());
-            req.put("idempotency_key", request.getIdempotencyKey());
-
-            User currentUser = resolveUserFromAccount(request.getFromAccount());
-            Map<String, Object> res = grpcBankService.vnpostTransferRpc(req, currentUser);
-            responseObserver.onNext(buildTransactionResponse(res));
-            responseObserver.onCompleted();
-        } catch (Exception ex) {
-            responseObserver.onNext(TransactionResponse.newBuilder().setSuccess(false).setMessage(ex.getMessage()).build());
-            responseObserver.onCompleted();
-        }
-    }
 
     private TransactionResponse buildTransactionResponse(Map<String, Object> res) {
         return TransactionResponse.newBuilder()

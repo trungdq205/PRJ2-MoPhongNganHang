@@ -527,11 +527,11 @@ public class CustomerService {
                 } else if ("SAVINGS_SETTLEMENT".equals(t) || "CLOSE_SAVINGS".equals(t)) {
                     predicates.add(root.get("type").in(List.of("SAVINGS_SETTLEMENT", "CLOSE_SAVINGS", "WITHDRAW_SAVINGS", "SAVINGS_WITHDRAW")));
                 } else if ("DEPOSIT".equals(t)) {
-                    predicates.add(root.get("type").in(List.of("DEPOSIT", "ATM_DEPOSIT", "VNPOST_DEPOSIT")));
+                    predicates.add(root.get("type").in(List.of("DEPOSIT", "ATM_DEPOSIT")));
                 } else if ("WITHDRAW".equals(t)) {
-                    predicates.add(root.get("type").in(List.of("WITHDRAW", "ATM_WITHDRAW", "VNPOST_WITHDRAW", "CARD_ATM")));
+                    predicates.add(root.get("type").in(List.of("WITHDRAW", "ATM_WITHDRAW", "CARD_ATM")));
                 } else if ("TRANSFER".equals(t)) {
-                    predicates.add(root.get("type").in(List.of("TRANSFER", "TRANSFER_OUT", "VNPOST_TRANSFER", "CARD_POS")));
+                    predicates.add(root.get("type").in(List.of("TRANSFER", "TRANSFER_OUT", "CARD_POS")));
                 } else if ("TRANSFER_IN".equals(t) || "RECEIVE".equals(t)) {
                     predicates.add(root.get("type").in(List.of("TRANSFER_IN", "RECEIVE", "TRANSFER")));
                 } else if ("LOAN_DISBURSEMENT".equals(t) || "DISBURSEMENT".equals(t)) {
@@ -798,6 +798,14 @@ public class CustomerService {
             return ApiResponse.error("Bạn không có quyền thao tác trên tài khoản này");
         }
 
+        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.valueOf(10000)) < 0) {
+            return ApiResponse.error("Số tiền tối thiểu để tạo mã ATM là 10.000 VNĐ");
+        }
+
+        if (request.getAmount().remainder(BigDecimal.valueOf(10000)).compareTo(BigDecimal.ZERO) != 0) {
+            return ApiResponse.error("Số tiền giao dịch tại ATM phải là bội số của 10.000 VNĐ");
+        }
+
         if ("WITHDRAW".equals(request.getType())) {
             Optional<Account> accOpt = accountRepository.findByAccountNo(request.getAccountNo());
             if (accOpt.isEmpty()) return ApiResponse.error("Tài khoản không tồn tại");
@@ -835,12 +843,15 @@ public class CustomerService {
         if (myCustId == null) {
             return ApiResponse.error("Không tìm thấy thông tin khách hàng");
         }
-        List<AtmCode> codes = atmCodeRepository.findByCustomerIdOrderByCreatedAtDesc(myCustId);
+        List<AtmCode> codes = atmCodeRepository.findByCustomerIdOrderByCreatedAtDesc(myCustId)
+                .stream()
+                .filter(c -> !"CANCELLED".equals(c.getStatus()))
+                .toList();
         return ApiResponse.ok("Lấy danh sách mã ATM thành công", codes);
     }
 
     /**
-     * Hủy mã ATM chưa sử dụng.
+     * Hủy mã ATM chưa sử dụng (xóa mã).
      */
     @Transactional
     public ApiResponse<String> cancelAtmCode(String codeId, User currentUser) {
@@ -855,9 +866,9 @@ public class CustomerService {
             return ApiResponse.error("Chỉ có thể hủy mã đang ở trạng thái Chờ sử dụng");
         }
 
-        code.setStatus("CANCELLED");
-        atmCodeRepository.save(code);
-        return ApiResponse.ok("Đã hủy thành công mã ATM " + code.getCode(), code.getCode());
+        String digits = code.getCode();
+        atmCodeRepository.delete(code);
+        return ApiResponse.ok("Đã hủy và xóa thành công mã ATM " + digits, digits);
     }
 
 
