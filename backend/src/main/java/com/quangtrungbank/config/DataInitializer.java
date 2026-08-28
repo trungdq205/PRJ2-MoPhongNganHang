@@ -53,93 +53,107 @@ public class DataInitializer implements CommandLineRunner {
             accountRepository.delete(acc);
             System.out.println("[CleanUp] Đã xóa thành công tài khoản rác 8888123456 khỏi CSDL!");
         });
-        List<User> users = userRepository.findAll();
-        if (users.isEmpty()) {
+        // Khởi tạo và seed 3 khách hàng mẫu mặc định nếu chưa tồn tại trong CSDL
+        if (userRepository.findByUsername("customer1").isEmpty()) {
             User c1 = new User();
             c1.setUsername("customer1");
             c1.setPassword(passwordEncoder.encode("Abc@1234"));
             c1.setRole("CUSTOMER");
-            c1.setFullName("NGUYỄN VĂN AN");
-            c1.setEmail("customer1@quangtrungbank.vn");
+            c1.setFullName("Nguyễn Văn An");
+            c1.setEmail("an.nguyen@example.com");
             c1.setPhone("0901234567");
             userRepository.save(c1);
 
+            Customer cust1 = new Customer();
+            cust1.setId("CUST-1001");
+            cust1.setUser(c1);
+            cust1.setIdCard("001098123456");
+            cust1.setAddress("123 Đường Lê Lợi, Quận 1, TP. Hồ Chí Minh");
+            cust1.setContactAddress("123 Đường Lê Lợi, Quận 1, TP. Hồ Chí Minh");
+            customerRepository.save(cust1);
+
+            if (accountRepository.findByAccountNo("1000123456").isEmpty()) {
+                Account acc1 = new Account(null, "1000123456", "CUST-1001", "PAYMENT", BigDecimal.valueOf(250000000), "VND", "ACTIVE", java.time.LocalDateTime.now());
+                accountRepository.save(acc1);
+            }
+        }
+
+        if (userRepository.findByUsername("customer2").isEmpty()) {
             User c2 = new User();
             c2.setUsername("customer2");
             c2.setPassword(passwordEncoder.encode("Abc@1234"));
             c2.setRole("CUSTOMER");
-            c2.setFullName("TRẦN THỊ BÌNH");
-            c2.setEmail("customer2@quangtrungbank.vn");
-            c2.setPhone("0907654321");
+            c2.setFullName("Trần Thị Bình");
+            c2.setEmail("binh.tran@example.com");
+            c2.setPhone("0988765432");
             userRepository.save(c2);
 
+            Customer cust2 = new Customer();
+            cust2.setId("CUST-1002");
+            cust2.setUser(c2);
+            cust2.setIdCard("001098654321");
+            cust2.setAddress("456 Đường Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh");
+            cust2.setContactAddress("456 Đường Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh");
+            customerRepository.save(cust2);
+
+            if (accountRepository.findByAccountNo("1000987654").isEmpty()) {
+                Account acc2 = new Account(null, "1000987654", "CUST-1002", "PAYMENT", BigDecimal.valueOf(85000000), "VND", "ACTIVE", java.time.LocalDateTime.now());
+                accountRepository.save(acc2);
+            }
+        }
+
+        if (userRepository.findByUsername("customer3").isEmpty()) {
+            User c3 = new User();
+            c3.setUsername("customer3");
+            c3.setPassword(passwordEncoder.encode("Abc@1234"));
+            c3.setRole("CUSTOMER");
+            c3.setFullName("Lê Hoàng Nam");
+            c3.setEmail("nam.le@example.com");
+            c3.setPhone("0912345678");
+            userRepository.save(c3);
+
+            Customer cust3 = new Customer();
+            cust3.setId("CUST-1003");
+            cust3.setUser(c3);
+            cust3.setIdCard("001098456789");
+            cust3.setAddress("789 Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội");
+            cust3.setContactAddress("789 Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội");
+            customerRepository.save(cust3);
+
+            if (accountRepository.findByAccountNo("1000456789").isEmpty()) {
+                Account acc3 = new Account(null, "1000456789", "CUST-1003", "PAYMENT", BigDecimal.valueOf(15000000), "VND", "ACTIVE", java.time.LocalDateTime.now());
+                accountRepository.save(acc3);
+            }
+        }
+
+        if (userRepository.findByUsername("teller1").isEmpty()) {
             User t1 = new User();
             t1.setUsername("teller1");
             t1.setPassword(passwordEncoder.encode("Abc@1234"));
             t1.setRole("TELLER");
-            t1.setFullName("LÊ VĂN CƯỜNG");
-            t1.setEmail("teller1@quangtrungbank.vn");
-            t1.setPhone("0911223344");
+            t1.setFullName("Phạm Minh Đức");
+            t1.setEmail("duc.pm@quangtrungbank.com");
+            t1.setPhone("0933445566");
             userRepository.save(t1);
+        }
 
+        userRepository.findByUsername("admin").ifPresentOrElse(a -> {
+            a.setPassword(passwordEncoder.encode("Abc@1234"));
+            a.setPhone("0900000000");
+            a.setRole("ADMIN");
+            a.setFailedLoginAttempts(0);
+            a.setAccountLockedUntil(null);
+            userRepository.save(a);
+        }, () -> {
             User a1 = new User();
             a1.setUsername("admin");
             a1.setPassword(passwordEncoder.encode("Abc@1234"));
             a1.setRole("ADMIN");
-            a1.setFullName("QUẢN TRỊ VIỆN");
-            a1.setEmail("admin@quangtrungbank.vn");
-            a1.setPhone("0988888888");
+            a1.setFullName("Lê Quang Trưởng");
+            a1.setEmail("admin@quangtrungbank.com");
+            a1.setPhone("0900000000");
             userRepository.save(a1);
-
-            System.out.println("[Security] Đã khởi tạo 4 tài khoản mặc định (customer1, customer2, teller1, admin) vào CSDL!");
-            users = userRepository.findAll();
-        }
-
-        for (User user : users) {
-            String currentPassword = user.getPassword();
-            if (currentPassword == null || (!currentPassword.startsWith("$2a$") && !currentPassword.startsWith("$2b$") && !currentPassword.startsWith("$2y$"))) {
-                user.setPassword(passwordEncoder.encode(currentPassword != null ? currentPassword : "Abc@1234"));
-                user.setFailedLoginAttempts(0);
-                user.setAccountLockedUntil(null);
-                userRepository.save(user);
-                System.out.println("[Security] Đã mã hóa BCrypt cho tài khoản: " + user.getUsername());
-            }
-        }
-
-        // Khởi tạo Customer profile và Account cho tất cả User vai trò CUSTOMER
-        for (User user : users) {
-            if ("CUSTOMER".equalsIgnoreCase(user.getRole())) {
-                Customer cust = customerRepository.findByUserId(user.getId()).orElse(null);
-                if (cust == null) {
-                    String custId = "customer1".equalsIgnoreCase(user.getUsername()) ? "CUST-1001"
-                            : ("customer2".equalsIgnoreCase(user.getUsername()) ? "CUST-1002" : "CUST-" + (1000 + user.getId()));
-                    String idCard = "customer1".equalsIgnoreCase(user.getUsername()) ? "001098123456"
-                            : ("customer2".equalsIgnoreCase(user.getUsername()) ? "001098654321" : "001" + String.format("%09d", user.getId()));
-                    String address = "customer1".equalsIgnoreCase(user.getUsername()) ? "123 Đường Lê Lợi, Quận 1, TP. Hồ Chí Minh"
-                            : "456 Đường Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh";
-
-                    cust = new Customer(custId, user, idCard, address);
-                    cust.setKycStatus("VERIFIED");
-                    customerRepository.save(cust);
-                    System.out.println("[Customer] Đã khởi tạo hồ sơ Customer (" + custId + ") cho user: " + user.getUsername());
-                }
-
-                // Kiểm tra và khởi tạo tài khoản thanh toán mặc định
-                List<Account> accounts = accountRepository.findByCustomerId(cust.getId());
-                if (accounts.isEmpty()) {
-                    String accNo = "customer1".equalsIgnoreCase(user.getUsername()) ? "1000123456"
-                            : ("customer2".equalsIgnoreCase(user.getUsername()) ? "1000654321" : "1000" + (user.getPhone() != null && user.getPhone().length() >= 6 ? user.getPhone().substring(user.getPhone().length() - 6) : "123456"));
-                    BigDecimal initialBalance = "customer1".equalsIgnoreCase(user.getUsername()) ? BigDecimal.valueOf(250000000)
-                            : BigDecimal.valueOf(150000000);
-
-                    if (accountRepository.findByAccountNo(accNo).isEmpty()) {
-                        Account acc = new Account(null, accNo, cust.getId(), "PAYMENT", initialBalance, "VND", "ACTIVE", java.time.LocalDateTime.now());
-                        accountRepository.save(acc);
-                        System.out.println("[Account] Đã khởi tạo tài khoản " + accNo + " (Số dư: " + initialBalance + " VND) cho customer: " + cust.getId());
-                    }
-                }
-            }
-        }
+        });
 
         if (savingsInterestRateRepository.count() == 0) {
             savingsInterestRateRepository.save(new SavingsInterestRate(0, "Không kỳ hạn", BigDecimal.valueOf(0.20), BigDecimal.valueOf(100000)));
@@ -204,6 +218,15 @@ public class DataInitializer implements CommandLineRunner {
                 jdbcTemplate.execute("ALTER TABLE customers ADD COLUMN contact_address VARCHAR(255) NULL");
                 jdbcTemplate.execute("UPDATE customers SET contact_address = address WHERE contact_address IS NULL");
                 System.out.println("[Schema] Đã thêm cột contact_address và đồng bộ dữ liệu cho bảng customers.");
+            }
+
+            // Tự động xóa các cột KYC khỏi bảng customers trong CSDL MySQL
+            String[] kycCols = {"id_card_front", "id_card_back", "selfie_photo", "kyc_status", "kyc_verified_at"};
+            for (String col : kycCols) {
+                if (columnNames.contains(col)) {
+                    jdbcTemplate.execute("ALTER TABLE customers DROP COLUMN " + col);
+                    System.out.println("[Schema] Đã xóa cột KYC: " + col + " khỏi bảng customers trong CSDL!");
+                }
             }
         } catch (Exception e) {
             System.err.println("[Schema] Không thể đồng bộ schema customers: " + e.getMessage());

@@ -1607,6 +1607,25 @@ public class CustomerService {
         String notifMsg = "Hồ sơ đăng ký vay vốn [" + loan.getTitle() + "] số tiền " + formatMoney(request.getPrincipalAmount()) + " VNĐ (" + contractNo + ") đã được tiếp nhận và chuyển chuyên viên thẩm định.";
         pushBalanceNotification(myCustId, request.getAccountNo(), "Đăng ký vay vốn thành công", notifMsg, BigDecimal.ZERO, null, "INFO");
 
+        // Tạo thông báo đẩy cho Giao dịch viên trên toàn hệ thống
+        try {
+            Notification tellerNotif = new Notification(
+                generateNumericTxnId(),
+                "TELLER_ALL",
+                request.getAccountNo(),
+                "Hồ sơ vay vốn mới cần thẩm định",
+                String.format("Khách hàng %s gửi hồ sơ vay %s VNĐ (%s, HĐ: %s). Cần duyệt hồ sơ tại quầy.",
+                    customerName, formatMoney(request.getPrincipalAmount()), loan.getTitle(), contractNo),
+                request.getPrincipalAmount(),
+                BigDecimal.ZERO,
+                "LOAN",
+                "TELLER",
+                false,
+                LocalDateTime.now()
+            );
+            notificationRepository.save(tellerNotif);
+        } catch (Exception ignored) {}
+
         return ApiResponse.ok("Nộp hồ sơ vay vốn thành công! Hồ sơ đang được chuyên viên tín dụng thẩm định.", loan);
     }
 
@@ -1813,6 +1832,10 @@ public class CustomerService {
      * Lấy danh sách thông báo biến động số dư của khách hàng hiện tại.
      */
     public ApiResponse<List<Notification>> getNotifications(User currentUser) {
+        if (currentUser != null && ("TELLER".equals(currentUser.getRole()) || "ADMIN".equals(currentUser.getRole()))) {
+            List<Notification> list = notificationRepository.findByRecipientRoleOrderByCreatedAtDesc(currentUser.getRole());
+            return ApiResponse.ok("Lấy danh sách thông báo thành công", list);
+        }
         String customerId = getCustomerIdForUser(currentUser);
         if (customerId == null) {
             return ApiResponse.error("Không tìm thấy thông tin khách hàng");
@@ -1826,10 +1849,15 @@ public class CustomerService {
      */
     @Transactional
     public ApiResponse<String> markNotificationRead(String notificationId, User currentUser) {
-        String customerId = getCustomerIdForUser(currentUser);
         Optional<Notification> notifOpt = notificationRepository.findById(notificationId);
         if (notifOpt.isPresent()) {
             Notification n = notifOpt.get();
+            if (currentUser != null && ("TELLER".equals(currentUser.getRole()) || "ADMIN".equals(currentUser.getRole()))) {
+                n.setRead(true);
+                notificationRepository.save(n);
+                return ApiResponse.ok("Đã đánh dấu thông báo là đã đọc", notificationId);
+            }
+            String customerId = getCustomerIdForUser(currentUser);
             if (customerId != null && customerId.equals(n.getCustomerId())) {
                 n.setRead(true);
                 notificationRepository.save(n);
@@ -1844,6 +1872,12 @@ public class CustomerService {
      */
     @Transactional
     public ApiResponse<String> markAllNotificationsRead(User currentUser) {
+        if (currentUser != null && ("TELLER".equals(currentUser.getRole()) || "ADMIN".equals(currentUser.getRole()))) {
+            List<Notification> list = notificationRepository.findByRecipientRoleOrderByCreatedAtDesc(currentUser.getRole());
+            list.forEach(n -> n.setRead(true));
+            notificationRepository.saveAll(list);
+            return ApiResponse.ok("Đã đánh dấu tất cả thông báo là đã đọc", currentUser.getRole());
+        }
         String customerId = getCustomerIdForUser(currentUser);
         if (customerId == null) return ApiResponse.error("Không tìm thấy thông tin khách hàng");
 

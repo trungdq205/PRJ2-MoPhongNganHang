@@ -17,6 +17,10 @@ public class LoginResponse {
     private String fullName;
     private String email;
     private String phone;
+    private String customerId;
+    private String idCard;
+    private String address;
+    private String contactAddress;
 
     public LoginResponse() {
     }
@@ -29,6 +33,14 @@ public class LoginResponse {
         this.fullName = user.getFullName();
         this.email = user.getEmail();
         this.phone = user.getPhone();
+    }
+
+    public LoginResponse(String token, User user, String customerId, String idCard, String address, String contactAddress) {
+        this(token, user);
+        this.customerId = customerId;
+        this.idCard = idCard;
+        this.address = address;
+        this.contactAddress = contactAddress;
     }
 
     // ─── Getters & Setters ───
@@ -87,5 +99,37 @@ public class LoginResponse {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
+    }
+
+    public String getIdCard() {
+        return idCard;
+    }
+
+    public void setIdCard(String idCard) {
+        this.idCard = idCard;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getContactAddress() {
+        return contactAddress;
+    }
+
+    public void setContactAddress(String contactAddress) {
+        this.contactAddress = contactAddress;
     }
 }

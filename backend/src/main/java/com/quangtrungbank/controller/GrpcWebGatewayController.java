@@ -86,6 +86,7 @@ public class GrpcWebGatewayController {
         return switch (rpcMethod) {
             // === Auth ===
             case "Login", "login" -> grpcBankService.loginRpc(payload);
+            case "GetProfile", "getProfile" -> grpcBankService.getProfileRpc(currentUser);
             case "ResetLocks", "resetLocks" -> grpcBankService.resetLocksRpc();
             case "VerifyPassword", "verifyPassword" -> grpcBankService.verifyPasswordRpc(payload, currentUser);
             case "ChangePassword", "changePassword" -> grpcBankService.changePasswordRpc(payload, currentUser);
@@ -130,11 +131,18 @@ public class GrpcWebGatewayController {
 
             // === Teller Operations ===
             case "TellerCreateCustomer", "tellerCreateCustomer" -> grpcBankService.tellerCreateCustomerRpc(payload, currentUser);
+            case "TellerGetAllCustomers", "tellerGetAllCustomers" -> grpcBankService.tellerGetAllCustomersRpc();
             case "TellerToggleAccountStatus", "tellerToggleAccountStatus" -> grpcBankService.tellerToggleAccountStatusRpc(payload, currentUser);
             case "TellerUpdateCustomer", "tellerUpdateCustomer" -> grpcBankService.tellerUpdateCustomerRpc(payload, currentUser);
             case "TellerGetAllLoans", "tellerGetAllLoans" -> grpcBankService.tellerGetAllLoansRpc(currentUser);
             case "TellerApproveLoan", "tellerApproveLoan" -> grpcBankService.tellerApproveLoanRpc(payload, currentUser);
             case "TellerRejectLoan", "tellerRejectLoan" -> grpcBankService.tellerRejectLoanRpc(payload, currentUser);
+
+            // === Admin Dashboard & System Stats ===
+            case "GetAdminDashboardStats", "getAdminDashboardStats", "AdminGetDashboardStats" -> grpcBankService.getAdminDashboardStatsRpc(currentUser);
+            case "AdminDeleteTeller", "adminDeleteTeller", "DeleteTeller", "deleteTeller" -> grpcBankService.adminDeleteTellerRpc(payload, currentUser);
+            case "GetAuditLogs", "getAuditLogs" -> grpcBankService.getAuditLogsRpc(currentUser);
+            case "AddAuditLog", "addAuditLog" -> grpcBankService.addAuditLogRpc(payload, currentUser);
 
             default -> {
                 Map<String, Object> unknown = new HashMap<>();

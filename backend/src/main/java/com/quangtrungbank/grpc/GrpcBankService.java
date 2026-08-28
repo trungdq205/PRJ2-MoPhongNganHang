@@ -37,6 +37,9 @@ public class GrpcBankService {
     @Autowired
     private LoanRepository loanRepository;
 
+    @Autowired
+    private AuditLogRepository auditLogRepository;
+
     public User resolveUserIfNull(User currentUser, String accountNo) {
         if (currentUser != null) return currentUser;
         if (accountNo == null || accountNo.isBlank()) return null;
@@ -105,11 +108,53 @@ public class GrpcBankService {
             result.put("full_name", d.getFullName());
             result.put("email", d.getEmail());
             result.put("phone", d.getPhone());
-            if (d.getUserId() != null) {
-                customerRepository.findByUserId(d.getUserId()).ifPresent(c -> result.put("customer_id", c.getId()));
+            result.put("customer_id", d.getCustomerId());
+            result.put("id_card", d.getIdCard());
+            result.put("address", d.getAddress());
+            result.put("contact_address", d.getContactAddress());
+            if (d.getUserId() != null && d.getCustomerId() == null) {
+                customerRepository.findByUserId(d.getUserId()).ifPresent(c -> {
+                    result.put("customer_id", c.getId());
+                    result.put("id_card", c.getIdCard());
+                    result.put("address", c.getAddress());
+                    result.put("contact_address", c.getContactAddress() != null && !c.getContactAddress().isBlank() ? c.getContactAddress() : c.getAddress());
+                    d.setCustomerId(c.getId());
+                    d.setIdCard(c.getIdCard());
+                    d.setAddress(c.getAddress());
+                    d.setContactAddress(c.getContactAddress() != null && !c.getContactAddress().isBlank() ? c.getContactAddress() : c.getAddress());
+                });
             }
             result.put("data", d);
         }
+        return result;
+    }
+
+    public Map<String, Object> getProfileRpc(User currentUser) {
+        Map<String, Object> result = new HashMap<>();
+        if (currentUser == null) {
+            result.put("success", false);
+            result.put("message", "Chưa đăng nhập hoặc phiên làm việc không hợp lệ");
+            return result;
+        }
+        User user = userRepository.findById(currentUser.getId()).orElse(currentUser);
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", user.getId());
+        data.put("username", user.getUsername());
+        data.put("role", user.getRole());
+        data.put("fullName", user.getFullName());
+        data.put("email", user.getEmail());
+        data.put("phone", user.getPhone());
+
+        if ("CUSTOMER".equals(user.getRole())) {
+            customerRepository.findByUserId(user.getId()).ifPresent(c -> {
+                data.put("customerId", c.getId());
+                data.put("idCard", c.getIdCard());
+                data.put("address", c.getAddress());
+                data.put("contactAddress", c.getContactAddress() != null && !c.getContactAddress().isBlank() ? c.getContactAddress() : c.getAddress());
+            });
+        }
+        result.put("success", true);
+        result.put("data", data);
         return result;
     }
 
@@ -638,6 +683,26 @@ public class GrpcBankService {
 
 
 
+    public Map<String, Object> getAdminDashboardStatsRpc(User currentUser) {
+        ApiResponse<Map<String, Object>> res = tellerService.getAdminDashboardStats(currentUser);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", res.isSuccess());
+        result.put("message", res.getMessage());
+        if (res.getData() != null) {
+            result.putAll(res.getData());
+        }
+        return result;
+    }
+
+    public Map<String, Object> adminDeleteTellerRpc(Map<String, Object> req, User currentUser) {
+        String tellerId = getString(req, "teller_id", "tellerId", "id", "staff_code", "staffCode");
+        ApiResponse<Object> res = tellerService.deleteTeller(tellerId, currentUser);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", res.isSuccess());
+        result.put("message", res.getMessage());
+        return result;
+    }
+
     // === Teller RPCs ===
     public Map<String, Object> tellerCreateCustomerRpc(Map<String, Object> req, User currentTeller) {
         CreateCustomerRequest dto = new CreateCustomerRequest();
@@ -652,8 +717,60 @@ public class GrpcBankService {
         Map<String, Object> result = new HashMap<>();
         result.put("success", res.isSuccess());
         result.put("message", res.getMessage());
-        result.put("data", res.getData());
+        if (res.isSuccess() && res.getData() != null) {
+            Customer c = res.getData();
+            Map<String, Object> custMap = new HashMap<>();
+            custMap.put("id", c.getId());
+            custMap.put("fullName", c.getUser() != null ? c.getUser().getFullName() : "");
+            custMap.put("idCard", c.getIdCard());
+            custMap.put("phone", c.getUser() != null ? c.getUser().getPhone() : "");
+            custMap.put("email", c.getUser() != null ? c.getUser().getEmail() : "");
+            custMap.put("address", c.getAddress());
+
+            List<Account> accounts = accountRepository.findByCustomerId(c.getId());
+            List<Map<String, Object>> accList = accounts.stream().map(a -> {
+                Map<String, Object> m = new HashMap<>();
+                m.put("accountNo", a.getAccountNo());
+                m.put("balance", a.getBalance());
+                m.put("type", a.getType());
+                m.put("status", a.getStatus());
+                return m;
+            }).toList();
+            custMap.put("accounts", accList);
+            result.put("data", custMap);
+        }
         return result;
+    }
+
+    public Map<String, Object> tellerGetAllCustomersRpc() {
+        List<Customer> list = customerRepository.findAll();
+        List<Map<String, Object>> resultList = list.stream().map(c -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", c.getId());
+            m.put("fullName", c.getUser() != null ? c.getUser().getFullName() : "");
+            m.put("idCard", c.getIdCard());
+            m.put("phone", c.getUser() != null ? c.getUser().getPhone() : "");
+            m.put("email", c.getUser() != null ? c.getUser().getEmail() : "");
+            m.put("address", c.getAddress());
+
+            List<Account> accounts = accountRepository.findByCustomerId(c.getId());
+            List<Map<String, Object>> accList = accounts.stream().map(a -> {
+                Map<String, Object> am = new HashMap<>();
+                am.put("accountNo", a.getAccountNo());
+                am.put("balance", a.getBalance());
+                am.put("type", a.getType());
+                am.put("status", a.getStatus());
+                am.put("createdAt", a.getCreatedAt() != null ? a.getCreatedAt().toString() : "");
+                return am;
+            }).toList();
+            m.put("accounts", accList);
+            return m;
+        }).toList();
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("success", true);
+        res.put("data", resultList);
+        return res;
     }
 
     public Map<String, Object> tellerToggleAccountStatusRpc(Map<String, Object> req, User currentTeller) {
@@ -667,6 +784,7 @@ public class GrpcBankService {
         result.put("data", res.getData());
         return result;
     }
+
 
 
 
@@ -720,6 +838,42 @@ public class GrpcBankService {
         result.put("success", res.isSuccess());
         result.put("message", res.getMessage());
         result.put("data", res.getData());
+        return result;
+    }
+
+    // === Audit Logs RPCs ===
+    public Map<String, Object> getAuditLogsRpc(User currentUser) {
+        Map<String, Object> result = new HashMap<>();
+        List<AuditLog> list = auditLogRepository.findTop100ByOrderByTimestampDesc();
+        List<Map<String, Object>> logs = list.stream().map(l -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", l.getId());
+            m.put("user", l.getUser());
+            m.put("action", l.getAction());
+            m.put("timestamp", l.getTimestamp() != null ? l.getTimestamp().toString() : "");
+            return m;
+        }).toList();
+        result.put("success", true);
+        result.put("data", logs);
+        return result;
+    }
+
+    public Map<String, Object> addAuditLogRpc(Map<String, Object> req, User currentUser) {
+        String userStr = getString(req, "user", "username");
+        if ((userStr == null || userStr.isBlank()) && currentUser != null) {
+            userStr = currentUser.getUsername();
+        }
+        if (userStr == null || userStr.isBlank()) {
+            userStr = "system";
+        }
+        String action = getString(req, "action", "message", "content");
+        if (action == null || action.isBlank()) {
+            action = "Thao tác hệ thống";
+        }
+        AuditLog saved = auditLogRepository.save(new AuditLog(userStr, action));
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", saved);
         return result;
     }
 }

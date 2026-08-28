@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL, -- BCrypt hash (60 ký tự, tăng lên 255 để dự phòng)
     role VARCHAR(20) NOT NULL, -- CUSTOMER, TELLER, ADMIN
     full_name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE,
+    email VARCHAR(100),
     phone VARCHAR(20) UNIQUE,
     failed_login_attempts INT NOT NULL DEFAULT 0, -- Số lần nhập sai mật khẩu liên tiếp
     account_locked_until DATETIME NULL, -- Thời điểm mở khóa tài khoản (null = không khóa)
@@ -21,11 +21,6 @@ CREATE TABLE IF NOT EXISTS customers (
     id_card VARCHAR(20) NOT NULL UNIQUE,
     address VARCHAR(255), -- Địa chỉ thường trú (Cố định)
     contact_address VARCHAR(255), -- Địa chỉ liên hệ (Khách hàng có thể thay đổi)
-    kyc_status VARCHAR(20) DEFAULT 'NOT_VERIFIED', -- NOT_VERIFIED, PENDING, VERIFIED, REJECTED
-    id_card_front LONGTEXT NULL,
-    id_card_back LONGTEXT NULL,
-    selfie_photo LONGTEXT NULL,
-    kyc_verified_at DATETIME NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
