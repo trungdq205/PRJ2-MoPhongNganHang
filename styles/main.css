@@ -531,20 +531,24 @@ table.data-table tbody tr:hover {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(6px);
-  display: flex;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: none;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 50000 !important;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease;
 }
 
 .modal-overlay.active {
-  opacity: 1;
-  pointer-events: auto;
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  z-index: 50000 !important;
 }
 
 .modal-box {
@@ -557,10 +561,12 @@ table.data-table tbody tr:hover {
   box-shadow: var(--shadow-main);
   transform: translateY(20px);
   transition: transform 0.25s ease;
+  position: relative;
+  z-index: 50001;
 }
 
 .modal-overlay.active .modal-box {
-  transform: translateY(0);
+  transform: translateY(0) !important;
 }
 
 .modal-header {
@@ -572,7 +578,7 @@ table.data-table tbody tr:hover {
 
 .modal-title {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 700;
 }
 
@@ -595,7 +601,7 @@ table.data-table tbody tr:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: 999999 !important;
 }
 
 .login-card {
@@ -657,20 +663,14 @@ table.data-table tbody tr:hover {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  z-index: 300;
+  z-index: 999999;
 }
 
-/* Khung chứa Push Notification Card nổi góc trên màn hình */
+/* Khung chứa Push Notification Card nổi góc trên màn hình (Đã tắt hoàn toàn) */
 #push-notification-container {
-  position: fixed !important;
-  top: 24px !important;
-  right: 24px !important;
-  z-index: 999999 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 12px !important;
+  display: none !important;
+  visibility: hidden !important;
   pointer-events: none !important;
-  max-width: calc(100vw - 48px) !important;
 }
 
 .push-notification-card {
@@ -1463,9 +1463,27 @@ table.data-table tbody tr:hover {
 }
 
 @media print {
+  body * {
+    visibility: hidden;
+  }
+  #statement-print-area,
+  #statement-print-area *,
   #loan-contract-content,
   #loan-contract-content * {
     visibility: visible !important;
+  }
+  #statement-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+  #statement-print-area .table-responsive {
+    max-height: none !important;
+    overflow: visible !important;
   }
 }
 

@@ -77,23 +77,30 @@ export class AuthService {
    * @returns Promise<{ success, user, source }>
    */
   /**
-   * Đăng nhập async — thử LocalStore trước hoặc Backend, đảm bảo tài khoản mới tạo đăng nhập mượt mà.
+   * Đăng nhập async trực tiếp qua Backend REST API kết nối CSDL MySQL & BCrypt
    * @returns Promise<{ success, user, source }>
    */
   static async loginAsync(username, password, roleHint = 'CUSTOMER') {
-    // 1. ƯU TIÊN gọi Backend REST API trước để lấy JWT Token và xác thực cơ sở dữ liệu thật
     try {
       const apiResult = await BankApiService.login(username, password);
       if (apiResult && apiResult.success && apiResult.data) {
         const backendData = apiResult.data;
         const localCust = store.data.customers.find(c => c.username === backendData.username || c.phone === username);
+        const idCard = backendData.idCard || backendData.id_card || (apiResult.id_card) || (localCust ? localCust.idCard : '');
+        const address = backendData.address || (apiResult.address) || (localCust ? localCust.address : '');
+        const contactAddress = backendData.contactAddress || backendData.contact_address || (apiResult.contact_address) || address;
+        const customerId = backendData.customerId || backendData.customer_id || (apiResult.customer_id) || (localCust ? localCust.id : (backendData.role === 'CUSTOMER' ? `CUST-${1000 + backendData.userId}` : ''));
+
         const mappedUser = {
-          id: localCust ? localCust.id : (backendData.role === 'CUSTOMER' ? `CUST-${1000 + backendData.userId}` : String(backendData.userId)),
+          id: localCust ? localCust.id : (backendData.role === 'CUSTOMER' ? (customerId || `CUST-${1000 + backendData.userId}`) : String(backendData.userId)),
           username: backendData.username,
           role: backendData.role,
-          fullName: backendData.fullName,
+          fullName: backendData.fullName || backendData.full_name || '',
           email: backendData.email || '',
           phone: backendData.phone || '',
+          idCard: idCard,
+          address: address,
+          contactAddress: contactAddress,
           _backendId: backendData.userId,
           _source: 'backend',
           _loginTime: Date.now(),
@@ -101,11 +108,31 @@ export class AuthService {
         };
 
         if (backendData.role === 'CUSTOMER') {
-          mappedUser.customerId = localCust ? localCust.id : 'CUST-1001';
+          mappedUser.customerId = customerId || (localCust ? localCust.id : 'CUST-1001');
         }
 
         if (localCust) {
+          if (idCard) localCust.idCard = idCard;
+          if (address) localCust.address = address;
+          if (contactAddress) localCust.contactAddress = contactAddress;
           AuthService.resetFailedAttempts(localCust);
+        } else if (backendData.role === 'CUSTOMER') {
+          const newCust = {
+            id: mappedUser.customerId || mappedUser.id,
+            username: mappedUser.username,
+            fullName: mappedUser.fullName,
+            phone: mappedUser.phone,
+            email: mappedUser.email,
+            idCard: idCard,
+            address: address,
+            contactAddress: contactAddress,
+            accounts: [],
+            cards: [],
+            savings: [],
+            loans: []
+          };
+          if (!store.data.customers) store.data.customers = [];
+          store.data.customers.push(newCust);
         }
 
         store.data.currentUser = mappedUser;
@@ -114,84 +141,17 @@ export class AuthService {
 
         return { success: true, user: mappedUser, source: 'backend' };
       } else if (apiResult && !apiResult.success) {
-        // Backend phản hồi lỗi rõ ràng (ví dụ: sai mật khẩu, tài khoản bị khóa)
-        // Kiểm tra xem có phải tài khoản tạo local offline không
-        const localResult = AuthService.login(username, password, roleHint);
-        if (localResult.success) {
-          localResult.source = 'local';
-          return localResult;
-        }
-        return { success: false, message: apiResult.message || 'Đăng nhập không thành công' };
+        return { success: false, message: apiResult.message || 'Số điện thoại hoặc mật khẩu không chính xác' };
       }
     } catch (e) {
-      console.warn('[Auth] Backend không khả dụng hoặc lỗi kết nối, fallback sang LocalStore:', e);
+      console.error('[Auth] Lỗi kết nối máy chủ CSDL khi đăng nhập:', e);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (e.message || 'Không thể đăng nhập') };
     }
 
-    // 2. Fallback sang LocalStore khi backend offline
-    const localResult = AuthService.login(username, password, roleHint);
-    if (localResult.success) {
-      localResult.source = 'local';
-    }
-    return localResult;
+    return { success: false, message: 'Không thể kết nối đến máy chủ CSDL' };
   }
 
-  /**
-   * Đăng nhập bằng nhận diện khuôn mặt FaceID.
-   */
-  static async loginWithFaceAsync(username = '0901234567', faceData = null) {
-    try {
-      const apiResult = await BankApiService.loginWithFace(username, faceData);
-      if (apiResult && apiResult.success && (apiResult.data || apiResult.token || apiResult.username)) {
-        const backendData = apiResult.data || apiResult;
-        const localCust = store.data.customers.find(c => 
-          c.username === (backendData.username || username) || 
-          c.phone === username || 
-          c.phone === backendData.phone
-        );
-        const mappedUser = {
-          id: localCust ? localCust.id : `CUST-${1000 + (backendData.userId || 1)}`,
-          username: backendData.username || username,
-          role: backendData.role || 'CUSTOMER',
-          fullName: backendData.fullName || backendData.full_name || (localCust ? localCust.fullName : 'Khách hàng'),
-          email: backendData.email || (localCust ? localCust.email : ''),
-          phone: backendData.phone || (localCust ? localCust.phone : username),
-          _backendId: backendData.userId || 1,
-          _source: 'backend',
-          _loginTime: Date.now(),
-          _hasJwtToken: true
-        };
-        if (mappedUser.role === 'CUSTOMER') {
-          mappedUser.customerId = (localCust && localCust.id) ? localCust.id : (backendData.customer_id || 'CUST-1001');
-        }
-        store.data.currentUser = mappedUser;
-        store.addAuditLog(mappedUser.phone || mappedUser.username, 'Đăng nhập thành công bằng FaceID (Khuôn mặt sinh trắc học)');
-        store.saveData();
-        return { success: true, user: mappedUser, source: 'backend', message: apiResult.message || 'Xác thực FaceID thành công!' };
-      }
-    } catch (e) {
-      console.warn('[Auth] FaceID backend error, fallback local', e);
-    }
 
-    const query = (username || '').trim().toLowerCase();
-    const localCust = store.data.customers.find(c => 
-      (c.phone && c.phone.trim() === query) ||
-      (c.username && c.username.toLowerCase() === query) ||
-      (c.username === 'cust_' + query)
-    ) || store.data.customers[0];
-
-    if (localCust) {
-      const mappedUser = {
-        ...localCust,
-        _source: 'local',
-        _loginTime: Date.now()
-      };
-      store.data.currentUser = mappedUser;
-      store.addAuditLog(localCust.phone || localCust.username, 'Đăng nhập thành công bằng FaceID');
-      store.saveData();
-      return { success: true, user: mappedUser, source: 'local', message: 'Xác thực sinh trắc học FaceID thành công!' };
-    }
-    return { success: false, message: 'Khuôn mặt không trùng khớp với dữ liệu sinh trắc học đã đăng ký' };
-  }
 
   /**
    * Đăng nhập đồng bộ qua LocalStore (bằng Số Điện Thoại).

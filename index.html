@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap&subset=vietnamese" rel="stylesheet">
 
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/main.css?v=20260828-no-push-card">
   
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -36,9 +36,9 @@
       </div>
 
       <div class="role-tabs">
-        <button type="button" class="role-tab-btn active" data-role="CUSTOMER">Khách hàng</button>
-        <button type="button" class="role-tab-btn" data-role="TELLER">Giao dịch viên</button>
-        <button type="button" class="role-tab-btn" data-role="ADMIN">Quản trị viên</button>
+        <button type="button" class="role-tab-btn active" data-role="CUSTOMER" onclick="switchLoginRole('CUSTOMER')">Khách hàng</button>
+        <button type="button" class="role-tab-btn" data-role="TELLER" onclick="switchLoginRole('TELLER')">Giao dịch viên</button>
+        <button type="button" class="role-tab-btn" data-role="ADMIN" onclick="switchLoginRole('ADMIN')">Quản trị viên</button>
       </div>
 
       <form id="login-form">
@@ -52,21 +52,13 @@
         </div>
 
         <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px;">Đăng Nhập</button>
-        
-        <div style="margin-top: 10px; text-align: center;">
-          <span style="font-size: 0.78rem; color: var(--text-dim);">— HOẶC —</span>
-        </div>
-        <button type="button" class="btn btn-gold" id="btn-open-faceid-login" style="width: 100%; margin-top: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-          Đăng Nhập Bằng FaceID
-        </button>
       </form>
 
       <div style="margin-top: 20px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 0.75rem; color: var(--text-dim); line-height: 1.6;">
         <strong style="color: var(--accent-gold);">Danh bạ Số điện thoại tài khoản Demo (Mật khẩu: <code>Abc@1234</code>):</strong><br>
         • Khách hàng 1: <code>0901234567</code> | Khách hàng 2: <code>0988765432</code><br>
         • Giao dịch viên 1: <code>0933445566</code> | GDV 2: <code>0977889900</code> | GDV 3: <code>0911223344</code><br>
-        • Quản trị viên (Admin): <code>0900000000</code><br>
+        • Quản trị viên (Admin): <code>0988888888</code> (hoặc <code>admin</code>)<br>
         • <em>Khách hàng mở tại quầy: Đăng nhập bằng Số điện thoại và Mật khẩu mặc định <code>Abc@1234</code></em>
       </div>
     </div>
@@ -129,7 +121,7 @@
           <div id="notif-dropdown" class="hidden" style="position: absolute; top: 48px; right: 0; width: 380px; max-height: 460px; background: #0f172a; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000; overflow: hidden; display: flex; flex-direction: column;">
             <div style="padding: 14px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03);">
               <h4 style="margin: 0; font-size: 0.95rem; color: var(--accent-gold); display: flex; align-items: center; gap: 6px;">
-                🔔 Biến Động Số Dư Realtime
+                <span id="notif-dropdown-title">🔔 Biến Động Số Dư Realtime</span>
               </h4>
               <button type="button" id="btn-mark-all-read" style="background: none; border: none; color: var(--accent-cyan); font-size: 0.75rem; cursor: pointer; font-weight: 600;">Đọc tất cả</button>
             </div>
@@ -147,20 +139,7 @@
 
         <!-- 1. Customer Dashboard -->
         <section id="view-customer-dashboard" class="view-section">
-          <!-- eKYC Warning Banner for Unverified Customers -->
-          <div id="cust-ekyc-banner" class="hidden" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(239, 68, 68, 0.1)); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
-            <div style="display: flex; align-items: center; gap: 14px;">
-              <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(245, 158, 11, 0.2); display: flex; align-items: center; justify-content: center; color: var(--accent-gold); flex-shrink: 0;">
-                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-              </div>
-              <div>
-                <div style="font-weight: 700; font-size: 0.95rem; color: #f8fafc;">Tài khoản của bạn chưa thực hiện định danh eKYC</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Vui lòng hoàn tất định danh eKYC (Chân dung & CCCD) để nâng hạn mức giao dịch lên 500.000.000 VNĐ/ngày.</div>
-              </div>
-            </div>
-            <button type="button" class="btn btn-gold btn-sm" id="btn-banner-open-ekyc" style="white-space: nowrap; font-weight: 700;">Thực Hiện Định Danh Ngay</button>
-          </div>
-
+          
           <div class="stats-grid">
             <div class="stat-card">
               <div class="stat-header">
@@ -256,10 +235,7 @@
                     Quét QR Chuyển Tiền
                   </button>
                 </div>
-                <button class="btn btn-secondary" id="btn-service-vnpost">
-                  <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                  Rút/Chuyển Tiền Mặt tại VNPOST
-                </button>
+
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                   <button class="btn btn-gold" id="btn-service-create-atm-code">
                     Tạo Mã Rút/Nạp ATM
@@ -344,14 +320,21 @@
         <section id="view-customer-history" class="view-section hidden">
           <div class="panel">
             <div class="panel-header" style="flex-direction: column; align-items: stretch; gap: 16px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 class="panel-title" style="display: flex; align-items: center; gap: 8px; color: var(--accent-gold);">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <h3 class="panel-title" style="display: flex; align-items: center; gap: 8px; color: var(--accent-gold); margin: 0;">
                   <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
                   Nhật Ký & Lịch Sử Giao Dịch Chi Tiết
                 </h3>
-                <div style="font-size: 0.8rem; color: var(--text-dim);" id="hist-total-summary">Tổng số: 0 giao dịch</div>
+                
+                <!-- Button In Sao Kê Điện Tử -->
+                <div>
+                  <button type="button" class="btn btn-primary" id="btn-open-modal-statement" style="height: 38px; font-weight: 600; padding: 0 16px; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    In Sao Kê Điện Tử
+                  </button>
+                </div>
               </div>
 
               <!-- Filter Bar Container -->
@@ -372,12 +355,18 @@
                 </div>
 
                 <div>
-                  <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Loại giao dịch</label>
+                  <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Phân loại giao dịch</label>
                   <select id="filter-hist-type" class="form-control" style="font-size: 0.82rem;">
-                    <option value="ALL">Tất cả loại GD</option>
-                    <option value="TRANSFER">Chuyển tiền (TRANSFER)</option>
-                    <option value="DEPOSIT">Nạp tiền (DEPOSIT)</option>
-                    <option value="WITHDRAW">Rút tiền (WITHDRAW)</option>
+                    <option value="ALL">Tất cả phân loại</option>
+                    <option value="DEPOSIT">Gửi tiền</option>
+                    <option value="WITHDRAW">Rút tiền</option>
+                    <option value="TRANSFER">Chuyển khoản</option>
+                    <option value="TRANSFER_IN">Nhận tiền</option>
+                    <option value="INTEREST">Ghi có tiền lãi</option>
+                    <option value="LOAN_DISBURSEMENT">Giải ngân</option>
+                    <option value="LOAN_REPAYMENT">Trả nợ vay</option>
+                    <option value="SAVINGS_DEPOSIT">Gửi tiết kiệm</option>
+                    <option value="SAVINGS_SETTLEMENT">Tất toán tiết kiệm</option>
                   </select>
                 </div>
 
@@ -486,25 +475,22 @@
                   </div>
                 </div>
 
-                <div class="form-group">
-                  <label for="profile-email">Địa chỉ Email Liên Hệ <span style="color: var(--accent-emerald); font-size: 0.75rem;">(Có thể thay đổi)</span></label>
-                  <input type="email" id="profile-email" class="form-control" required placeholder="name@example.com">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                  <div class="form-group">
+                    <label for="profile-email">Địa chỉ Email Liên Hệ <span style="color: var(--accent-emerald); font-size: 0.75rem;">(Có thể thay đổi)</span></label>
+                    <input type="email" id="profile-email" class="form-control" required placeholder="name@example.com">
+                  </div>
+                  <div class="form-group">
+                    <label for="profile-contact-address">Địa Chỉ Liên Hệ <span style="color: var(--accent-emerald); font-size: 0.75rem;">(Có thể thay đổi)</span></label>
+                    <input type="text" id="profile-contact-address" class="form-control" required placeholder="Nhập địa chỉ liên hệ/gửi thư...">
+                  </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">Cập Nhật Email Liên Hệ</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">Cập Nhật Thông Tin Liên Hệ</button>
               </form>
             </div>
 
-            <!-- Panel eKYC Status -->
-            <div class="panel" style="border-top: 3px solid var(--accent-emerald);">
-              <div class="panel-header" style="display: flex; align-items: center; justify-content: space-between;">
-                <h3 class="panel-title">Định Danh Sinh Trắc Học & CCCD</h3>
-                <span id="profile-ekyc-badge" class="user-role-badge badge-customer">✓ Đã Định Danh Tại Quầy</span>
-              </div>
-              <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;" id="profile-ekyc-desc">
-                Hồ sơ của bạn đã được Giao dịch viên cấp thẻ Căn cước công dân gắn chip ảo và thu thập sinh trắc học khuôn mặt trực tiếp tại quầy giao dịch. Hạn mức giao dịch trực tuyến tối đa: <strong>500.000.000 VNĐ/ngày</strong>.
-              </div>
-            </div>
+
 
             <!-- Panel 2: Secure Password Change -->
             <div class="panel" style="border-top: 3px solid var(--accent-cyan);">
@@ -537,172 +523,9 @@
           </div>
         </section>
 
-        <!-- 5b. Customer eKYC View Section -->
-        <section id="view-customer-ekyc" class="view-section hidden">
-          <div class="panel" style="max-width: 800px; margin: 0 auto; border-top: 3px solid var(--accent-cyan);">
-            <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px;">
-              <h3 class="panel-title" style="display: flex; align-items: center; gap: 10px; font-size: 1.25rem;">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h-3a3 3 0 00-3 3v.25M9 15h3a3 3 0 003-3V12M9 6h6a3 3 0 013 3v6a3 3 0 01-3 3H9a3 3 0 01-3-3V9a3 3 0 013-3z"/>
-                </svg>
-                Xác Thực Định Danh Điện Tử eKYC (Chân dung & CCCD)
-              </h3>
-            </div>
 
-            <!-- Step Indicator Bar -->
-            <div style="display: flex; justify-content: space-between; position: relative; margin-bottom: 32px; padding: 0 20px;">
-              <div style="position: absolute; top: 14px; left: 50px; right: 50px; height: 2px; background: rgba(255,255,255,0.1); z-index: 1;"></div>
-              <div id="view-ekyc-line-progress" style="position: absolute; top: 14px; left: 50px; width: 0%; height: 2px; background: var(--accent-cyan); z-index: 2; transition: width 0.3s ease;"></div>
 
-              <div class="view-ekyc-step-node active" data-step="1" style="z-index: 3; text-align: center;">
-                <div class="step-num-box" style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-cyan); color: #0b0f19; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px;">1</div>
-                <span style="font-size: 0.8rem; color: var(--text-muted);">Mặt trước CCCD</span>
-              </div>
-              <div class="view-ekyc-step-node" data-step="2" style="z-index: 3; text-align: center;">
-                <div class="step-num-box" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.1); color: var(--text-muted); font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px;">2</div>
-                <span style="font-size: 0.8rem; color: var(--text-muted);">Mặt sau CCCD</span>
-              </div>
-              <div class="view-ekyc-step-node" data-step="3" style="z-index: 3; text-align: center;">
-                <div class="step-num-box" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.1); color: var(--text-muted); font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px;">3</div>
-                <span style="font-size: 0.8rem; color: var(--text-muted);">Selfie Liveness</span>
-              </div>
-              <div class="view-ekyc-step-node" data-step="4" style="z-index: 3; text-align: center;">
-                <div class="step-num-box" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.1); color: var(--text-muted); font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px;">4</div>
-                <span style="font-size: 0.8rem; color: var(--text-muted);">Kết quả So khớp</span>
-              </div>
-            </div>
 
-            <!-- Step Panels -->
-            <div id="view-ekyc-step-panels">
-              <!-- STEP 1: Mặt trước CCCD -->
-              <div class="view-ekyc-panel" id="view-ekyc-panel-step-1">
-                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px;">Vui lòng tải lên tệp ảnh hoặc bấm chụp ảnh mẫu mặt trước của Căn cước công dân gắn chip.</p>
-
-                <div style="border: 2px dashed var(--border-highlight); border-radius: 12px; padding: 32px; text-align: center; background: rgba(0,242,254,0.02); position: relative;">
-                  <img id="view-ekyc-preview-front" style="max-height: 200px; margin: 0 auto 16px; display: none; border-radius: 8px; border: 1px solid var(--border-color);" />
-                  <div id="view-ekyc-placeholder-front">
-                    <svg width="56" height="56" fill="none" stroke="var(--accent-cyan)" viewBox="0 0 24 24" style="margin: 0 auto 12px; display: block;">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                    </svg>
-                    <div style="font-size: 1rem; font-weight: 600;">Mặt trước CCCD gắn chip</div>
-                    <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">Kéo thả ảnh hoặc chọn nút bên dưới</div>
-                  </div>
-                  <input type="file" id="view-input-ekyc-file-front" accept="image/*" style="display: none;" />
-                  <div style="display: flex; gap: 16px; justify-content: center; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" id="view-btn-upload-front">Tải Ảnh Lên</button>
-                    <button type="button" class="btn btn-primary" id="view-btn-cam-front">Chụp Mẫu CCCD Mặt Trước</button>
-                  </div>
-                </div>
-                <button type="button" class="btn btn-primary" id="view-btn-ekyc-next-1" style="width: 100%; margin-top: 24px; font-weight: 700;">Tiếp Theo: Mặt Sau CCCD &rarr;</button>
-              </div>
-
-              <!-- STEP 2: Mặt sau CCCD -->
-              <div class="view-ekyc-panel hidden" id="view-ekyc-panel-step-2">
-                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px;">Vui lòng tải lên hoặc chụp mặt sau của CCCD gắn chip (rõ đặc điểm nhân dạng & dấu vân tay).</p>
-
-                <div style="border: 2px dashed var(--border-highlight); border-radius: 12px; padding: 32px; text-align: center; background: rgba(0,242,254,0.02); position: relative;">
-                  <img id="view-ekyc-preview-back" style="max-height: 200px; margin: 0 auto 16px; display: none; border-radius: 8px; border: 1px solid var(--border-color);" />
-                  <div id="view-ekyc-placeholder-back">
-                    <svg width="56" height="56" fill="none" stroke="var(--accent-cyan)" viewBox="0 0 24 24" style="margin: 0 auto 12px; display: block;">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457-.312-2.841-.873-4.084"/>
-                    </svg>
-                    <div style="font-size: 1rem; font-weight: 600;">Mặt sau CCCD gắn chip</div>
-                    <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">Kéo thả ảnh hoặc chọn nút bên dưới</div>
-                  </div>
-                  <input type="file" id="view-input-ekyc-file-back" accept="image/*" style="display: none;" />
-                  <div style="display: flex; gap: 16px; justify-content: center; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" id="view-btn-upload-back">Tải Ảnh Lên</button>
-                    <button type="button" class="btn btn-primary" id="view-btn-cam-back">Chụp Mẫu Mặt Sau</button>
-                  </div>
-                </div>
-                <div style="display: flex; gap: 16px; margin-top: 24px;">
-                  <button type="button" class="btn btn-secondary" id="view-btn-ekyc-back-2" style="flex: 1;">&larr; Quay Lại</button>
-                  <button type="button" class="btn btn-primary" id="view-btn-ekyc-next-2" style="flex: 2; font-weight: 700;">Tiếp Theo: Quét Khuôn Mặt Liveness &rarr;</button>
-                </div>
-              </div>
-
-              <!-- STEP 3: Quét Selfie & Liveness Check -->
-              <div class="view-ekyc-panel hidden" id="view-ekyc-panel-step-3">
-                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">Đưa khuôn mặt vào khung định vị Oval, giữ thẳng đầu hoặc bật webcam để hệ thống thực hiện Liveness Check.</p>
-
-                <div style="position: relative; width: 100%; height: 300px; background: #000; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-                  <video id="view-ekyc-webcam-video" style="width: 100%; height: 100%; object-fit: cover;" autoplay playsinline muted></video>
-                  <canvas id="view-ekyc-snapshot-canvas" style="display: none;"></canvas>
-                  <img id="view-ekyc-preview-selfie" style="width: 100%; height: 100%; object-fit: cover; display: none;" />
-                  
-                  <div style="position: absolute; width: 160px; height: 210px; border: 3px dashed var(--accent-cyan); border-radius: 50%; box-shadow: 0 0 0 9999px rgba(0,0,0,0.4); pointer-events: none; display: flex; align-items: center; justify-content: center;">
-                    <span id="view-ekyc-liveness-hint" style="font-size: 0.75rem; color: #fff; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 12px; position: absolute; bottom: 12px; white-space: nowrap;">Giữ thẳng khuôn mặt</span>
-                  </div>
-                </div>
-
-                <div style="display: flex; gap: 16px; justify-content: center; margin-top: 20px;">
-                  <button type="button" class="btn btn-primary" id="view-btn-ekyc-capture-selfie" style="font-weight: 700;">Chụp Ảnh Chân Dung & So Khớp AI</button>
-                </div>
-
-                <div style="display: flex; gap: 16px; margin-top: 24px;">
-                  <button type="button" class="btn btn-secondary" id="view-btn-ekyc-back-3" style="flex: 1;">&larr; Quay Lại</button>
-                  <button type="button" class="btn btn-primary" id="view-btn-ekyc-next-3" style="flex: 2; font-weight: 700;" disabled>Xác Nhận Kế Thừa Dữ Liệu &rarr;</button>
-                </div>
-              </div>
-
-              <!-- STEP 4: Kết quả So khớp & Trích xuất OCR -->
-              <div class="view-ekyc-panel hidden" id="view-ekyc-panel-step-4">
-                <div style="background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(0,242,254,0.05)); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
-                  <div style="font-size: 2.8rem; color: var(--accent-emerald); font-weight: 800; margin-bottom: 4px;" id="view-ekyc-match-percentage">98.5%</div>
-                  <div style="font-size: 1rem; font-weight: 700; color: var(--accent-emerald);">ĐỘ TƯƠNG ĐỒNG KHUÔN MẶT ĐẠT YÊU CẦU!</div>
-                  <div style="font-size: 0.84rem; color: var(--text-muted); margin-top: 6px;">Khuôn mặt chụp thực tế trùng khớp với ảnh trên CCCD chính chủ.</div>
-                </div>
-
-                <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;">
-                  <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Họ và tên trích xuất OCR:</span><strong id="view-ekyc-ocr-name" style="color: var(--accent-cyan);">...</strong></div>
-                  <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Số CCCD gắn chip:</span><span id="view-ekyc-ocr-idcard" style="font-weight: 600;">...</span></div>
-                  <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Trạng thái Liveness Check:</span><span style="color: var(--accent-emerald); font-weight: 600;">PASSED (Người thật)</span></div>
-                </div>
-
-                <div style="display: flex; gap: 16px;">
-                  <button type="button" class="btn btn-secondary" id="view-btn-ekyc-back-4" style="flex: 1;">&larr; Quay Lại</button>
-                  <button type="button" class="btn btn-success" id="view-btn-ekyc-submit-final" style="flex: 2; font-weight: 700; font-size: 1rem;">Hoàn Tất Định Danh eKYC</button>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </section>
-
-        <!-- 6. Customer Support Tickets -->
-        <section id="view-customer-support" class="view-section hidden">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-            <div class="panel">
-              <div class="panel-header">
-                <h3 class="panel-title">Gửi Yêu Cầu Hỗ Trợ / Khiếu Nại</h3>
-              </div>
-              <form id="form-cust-ticket">
-                <div class="form-group">
-                  <label for="ticket-subject">Tiêu đề yêu cầu</label>
-                  <input type="text" id="ticket-subject" class="form-control" placeholder="Ví dụ: Kiểm tra hạn mức giao dịch" required>
-                </div>
-                <div class="form-group">
-                  <label for="ticket-account">Tài khoản liên quan</label>
-                  <select id="ticket-account" class="form-control"></select>
-                </div>
-                <div class="form-group">
-                  <label for="ticket-content">Nội dung chi tiết</label>
-                  <textarea id="ticket-content" class="form-control" rows="5" placeholder="Mô tả thắc mắc hoặc sự cố bạn gặp phải..." required></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Gửi Yêu Cầu</button>
-              </form>
-            </div>
-
-            <div class="panel">
-              <div class="panel-header">
-                <h3 class="panel-title">Danh Sách Yêu Cầu Đã Gửi</h3>
-              </div>
-              <div id="cust-tickets-list">
-                <!-- Rendered dynamically -->
-              </div>
-            </div>
-          </div>
-        </section>
 
         <!-- 6b. Customer Online Savings -->
         <section id="view-customer-savings" class="view-section hidden">
@@ -716,7 +539,7 @@
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 6px; vertical-align: middle;">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
-                + Mở Tài Khoản Tiết Kiệm Mới
+                Mở Tài Khoản Tiết Kiệm Mới
               </button>
             </div>
           </div>
@@ -798,7 +621,7 @@
                 <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                 Quản Trị Tín Dụng & Hồ Sơ Vay Vốn
               </h2>
-              <p style="font-size: 0.85rem; color: var(--text-muted);">Giải pháp tài trợ vốn cá nhân & kinh doanh linh hoạt — Lãi suất ưu đãi từ 7.5%/năm, giải ngân tức thì</p>
+              <p style="font-size: 0.85rem; color: var(--text-muted);">Giải pháp tài trợ vốn cá nhân & kinh doanh linh hoạt — Lãi suất ưu đãi hấp dẫn, duyệt hồ sơ nhanh chóng</p>
             </div>
             <div style="display: flex; gap: 10px;">
               <button class="btn btn-primary" id="btn-open-modal-apply-loan" style="display: inline-flex; align-items: center; gap: 6px;">
@@ -866,17 +689,17 @@
               </div>
             </div>
 
-            <!-- Right Column: Loan Packages & Benefits Guide -->
+            <!-- Right Column: Loan Packages Guide -->
             <div style="display: flex; flex-direction: column; gap: 20px;">
               <!-- Loan Packages Card Guide -->
               <div class="panel" style="border-top: 3px solid var(--accent-gold);">
                 <div class="panel-header">
                   <h3 class="panel-title" style="font-size: 0.95rem; color: var(--accent-gold); display: flex; align-items: center; gap: 8px;">
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    Gói Tín Dụng Ưu Đãi
+                    Gói Sản Phẩm Tín Dụng
                   </h3>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.82rem;">
+                <div id="cust-loan-packages-guide-list" style="display: flex; flex-direction: column; gap: 12px; font-size: 0.82rem;">
                   <div style="padding: 12px; background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.15); border-radius: 8px;">
                     <div style="font-weight: 700; color: var(--accent-cyan); display: flex; justify-content: space-between;">
                       <span>🏠 Vay Bất Động Sản</span>
@@ -895,7 +718,7 @@
 
                   <div style="padding: 12px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 8px;">
                     <div style="font-weight: 700; color: var(--accent-emerald); display: flex; justify-content: space-between;">
-                      <span>💼 Vay Tiêu Dùng Tín Chấp</span>
+                      <span>💼 Vay Tiêu Dùng</span>
                       <span>Từ 10.5%/năm</span>
                     </div>
                     <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">Không cần thế chấp tài sản, giải ngân tức thì sau thẩm định.</div>
@@ -916,7 +739,7 @@
                 <h4 style="font-size: 0.88rem; color: var(--accent-cyan); margin-bottom: 8px; font-weight: 700;">📌 Lưu ý quy trình vay vốn</h4>
                 <ul style="margin: 0; padding-left: 18px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.6;">
                   <li>Hồ sơ nộp trực tuyến sẽ được Giao dịch viên xử lý và giải ngân vào tài khoản thanh toán.</li>
-                  <li>Tra cứu chi tiết Hợp đồng tín dụng điện tử (HĐ) và Bảng lịch trả nợ từng kỳ (Lịch) ngay trên danh sách.</li>
+                  <li>Tra cứu chi tiết Hợp đồng tín dụng điện tử (HĐ) trực tiếp ngay trên danh sách.</li>
                   <li>Khách hàng có thể thanh toán định kỳ hoặc tất toán hợp đồng bất kỳ lúc nào.</li>
                 </ul>
               </div>
@@ -925,105 +748,6 @@
         </section>
 
 
-
-        <!-- 6e. Customer Spend Analytics & Statements -->
-        <section id="view-customer-analytics" class="view-section hidden">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
-            <div>
-              <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--accent-purple); display: flex; align-items: center; gap: 8px;">
-                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
-                Thống Kê Chi Tiêu & Phân Tích Danh Mục
-              </h2>
-              <p style="font-size: 0.85rem; color: var(--text-muted);">Phân loại giao dịch tự động, quản lý cơ cấu dòng tiền và xuất sao kê</p>
-            </div>
-            
-            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-              <select id="analytics-select-acc" class="form-control" style="width: auto; min-width: 180px;"></select>
-              <select id="analytics-period-select" class="form-control" style="width: auto; min-width: 150px;">
-                <option value="this-month">Tháng Này</option>
-                <option value="last-month">Tháng Trước</option>
-                <option value="3-months">3 Tháng Qua</option>
-                <option value="all">Tất Cả Thời Gian</option>
-              </select>
-              <button class="btn btn-primary" id="btn-open-modal-statement">In Sao Kê Điện Tử</button>
-            </div>
-          </div>
-
-          <!-- 4 KPI Stats Cards -->
-          <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Tổng Thu Nhập (+)</span>
-                <div class="stat-icon text-emerald"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/></svg></div>
-              </div>
-              <div class="stat-value text-emerald" id="analytics-total-in">0 VNĐ</div>
-              <div class="stat-subtitle">Tiền nạp & Chuyển tới</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Tổng Chi Tiêu (-)</span>
-                <div class="stat-icon text-danger"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"/></svg></div>
-              </div>
-              <div class="stat-value text-danger" id="analytics-total-out">0 VNĐ</div>
-              <div class="stat-subtitle">Chuyển đi, ATM & Hóa đơn</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Thặng Dư Ròng (=)</span>
-                <div class="stat-icon text-cyan"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div>
-              </div>
-              <div class="stat-value text-cyan" id="analytics-net-change">0 VNĐ</div>
-              <div class="stat-subtitle">Thu nhập trừ Chi tiêu</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Danh Mục Chi Nhất</span>
-                <div class="stat-icon text-gold"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg></div>
-              </div>
-              <div class="stat-value text-gold" id="analytics-top-category" style="font-size: 1.1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">-</div>
-              <div class="stat-subtitle" id="analytics-top-category-sub">Chưa có dữ liệu</div>
-            </div>
-          </div>
-
-          <!-- Dual Charts Grid -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
-            <div class="panel">
-              <canvas id="chart-spend-analytics" height="240"></canvas>
-            </div>
-            <div class="panel">
-              <canvas id="chart-spend-bar" height="240"></canvas>
-            </div>
-          </div>
-
-          <!-- Detailed Category Breakdown Table -->
-          <div class="panel">
-            <div class="panel-header">
-              <h3 class="panel-title" style="display: flex; align-items: center; gap: 8px;">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                Chi Tiết Tỷ Trọng Chi Tiêu Theo Danh Mục
-              </h3>
-            </div>
-            <div class="table-responsive" style="margin-top: 16px;">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Danh Mục</th>
-                    <th style="width: 35%;">Tỷ Trọng (%)</th>
-                    <th style="text-align: right;">Tổng Chi Tiêu (VNĐ)</th>
-                    <th style="text-align: center;">Số Giao Dịch</th>
-                    <th style="text-align: right;">Trung Bình / GD</th>
-                  </tr>
-                </thead>
-                <tbody id="analytics-category-tbody">
-                  <!-- Dynamic rows -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
 
         <!-- ==================== GIAO DỊCH VIÊN VIEWS ==================== -->
 
@@ -1050,11 +774,11 @@
 
             <div class="stat-card">
               <div class="stat-header">
-                <span class="stat-title">Khiếu Nại Đang Chờ Xử Lý</span>
-                <div class="stat-icon text-danger"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
+                <span class="stat-title">Hồ Sơ Vay Chờ Phê Duyệt</span>
+                <div class="stat-icon text-gold"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
               </div>
-              <div class="stat-value text-danger" id="teller-pending-tickets">0</div>
-              <div class="stat-subtitle">Cần phản hồi cho khách hàng</div>
+              <div class="stat-value text-gold" id="teller-pending-loans-dash">0</div>
+              <div class="stat-subtitle">Cần thẩm định & phê duyệt</div>
             </div>
           </div>
 
@@ -1069,9 +793,6 @@
               <button class="btn btn-secondary" id="btn-nav-teller-accounts">
                 Tra Cứu & Quản Lý Tài Khoản
               </button>
-              <button class="btn btn-secondary" id="btn-nav-teller-tickets">
-                Xử Lý Yêu Cầu Hỗ Trợ KH
-              </button>
               <button class="btn btn-gold" id="btn-nav-teller-loans">
                 Thẩm Định & Duyệt Khoản Vay
               </button>
@@ -1079,130 +800,83 @@
           </div>
         </section>
 
-        <!-- 8. Teller - Create New Customer (Biometrics Enrolled) -->
+        <!-- 8. Teller - Create New Customer -->
         <section id="view-teller-new-customer" class="view-section hidden">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
             <div>
-              <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--accent-cyan);">Thêm Mới Hồ Sơ Khách Hàng & Thu Thập Sinh Trắc Học</h2>
-              <p style="font-size: 0.85rem; color: var(--text-muted);">Nhập thông tin nhân thân và quét dữ liệu khuôn mặt ban đầu cho khách hàng</p>
+              <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--accent-cyan);">Thêm Mới Hồ Sơ Khách Hàng</h2>
+              <p style="font-size: 0.85rem; color: var(--text-muted);">Nhập thông tin nhân thân và mở tài khoản ban đầu cho khách hàng tại quầy</p>
             </div>
             <span class="user-role-badge badge-teller">Nghiệp Vụ Mở Tài Khoản Tại Quầy</span>
           </div>
 
-          <form id="form-teller-create-cust">
-            <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 24px;">
-              
-              <!-- Left Column: Customer Information -->
-              <div class="panel" style="display: flex; flex-direction: column; gap: 16px;">
-                <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 8px;">
-                  <h3 class="panel-title" style="font-size: 1.05rem; color: var(--accent-gold); display: flex; align-items: center; gap: 8px;">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    1. Thông Tin Khách Hàng
-                  </h3>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-                  <div class="form-group">
-                    <label for="new-cust-fullname">Họ và tên khách hàng *</label>
-                    <input type="text" id="new-cust-fullname" class="form-control" placeholder="Ví dụ: Hoàng Minh Trí" required>
-                  </div>
-                  <div class="form-group">
-                    <label for="new-cust-idcard">Số CCCD / CMND *</label>
-                    <input type="text" id="new-cust-idcard" class="form-control" placeholder="001099887766" required>
-                  </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-                  <div class="form-group">
-                    <label for="new-cust-phone">Số điện thoại *</label>
-                    <input type="text" id="new-cust-phone" class="form-control" placeholder="0911223344" required>
-                  </div>
-                  <div class="form-group">
-                    <label for="new-cust-email">Địa chỉ Email</label>
-                    <input type="email" id="new-cust-email" class="form-control" placeholder="tri.hoang@gmail.com">
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label for="new-cust-address">Địa chỉ thường trú</label>
-                  <input type="text" id="new-cust-address" class="form-control" placeholder="Quận Ba Đình, Hà Nội" value="Quận Ba Đình, Hà Nội">
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-                  <div class="form-group">
-                    <label for="new-cust-deposit">Số tiền nạp ban đầu (VND)</label>
-                    <input type="text" id="new-cust-deposit" class="form-control" placeholder="500.000" value="500.000">
-                  </div>
-                  <div class="form-group">
-                    <label for="new-cust-password">Mật khẩu khởi tạo đăng nhập *</label>
-                    <input type="text" id="new-cust-password" class="form-control" value="Abc@1234" required style="font-weight: 700; color: var(--accent-cyan);">
-                  </div>
-                </div>
-
-                <div style="background: rgba(0,242,254,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; margin-top: 8px;">
-                  <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent-cyan); margin-bottom: 6px;">
-                    <i class="fas fa-shield-alt"></i> Hướng Dẫn Đăng Nhập Khách Hàng
-                  </div>
-                  <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
-                    Khách hàng có thể đăng nhập bằng <strong>Số Điện Thoại</strong> và mật khẩu khởi tạo (mặc định <code>Abc@1234</code>). Hệ thống sẽ tự động bật đối chiếu khuôn mặt Face ID theo dữ liệu quét tại quầy.
-                  </div>
-                </div>
-
+          <form id="form-teller-create-cust" style="max-width: 800px; margin: 0 auto;">
+            <div class="panel" style="display: flex; flex-direction: column; gap: 16px;">
+              <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 8px;">
+                <h3 class="panel-title" style="font-size: 1.05rem; color: var(--accent-gold); display: flex; align-items: center; gap: 8px;">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  Thông Tin Khách Hàng
+                </h3>
               </div>
 
-              <!-- Right Column: Live Face Biometric Capture -->
-              <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                  <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
-                    <h3 class="panel-title" style="font-size: 1.05rem; color: var(--accent-emerald); display: flex; align-items: center; gap: 8px;">
-                      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                      2. Quét Khuôn Mặt Sinh Trắc Học Ban Đầu
-                    </h3>
-                  </div>
+              <!-- Banner Cảnh Báo Lỗi Trùng Thông Tin / Thất Bại -->
+              <div id="teller-create-cust-error-alert" style="display: none; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--accent-danger); background: rgba(239, 68, 68, 0.15); color: #fca5a5; font-size: 0.9rem; line-height: 1.5;"></div>
 
-                  <p style="font-size: 0.83rem; color: var(--text-muted); margin-bottom: 14px;">
-                    Bắt buộc thu thập dữ liệu khuôn mặt thực tế của khách hàng tại quầy để mã hóa Vector sinh trắc học và phục vụ đối chiếu bắt buộc khi đăng nhập.
-                  </p>
-
-                  <!-- Camera Frame -->
-                  <div style="position: relative; width: 100%; height: 260px; border-radius: 12px; overflow: hidden; background: #0b0f19; border: 2px solid var(--accent-emerald); display: flex; align-items: center; justify-content: center; margin-bottom: 14px;">
-                    <video id="teller-webcam-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-                    <canvas id="teller-landmarks-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
-
-                    <!-- Oval Frame Overlay -->
-                    <div id="teller-oval-overlay" style="position: absolute; width: 150px; height: 195px; border: 3px dashed var(--accent-emerald); border-radius: 50%; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); pointer-events: none; display: flex; align-items: center; justify-content: center;">
-                      <span style="font-size: 0.7rem; color: #fff; background: rgba(0,0,0,0.7); padding: 2px 8px; border-radius: 10px; position: absolute; bottom: 8px; white-space: nowrap;">Định vị khuôn mặt</span>
-                    </div>
-
-                    <canvas id="teller-snapshot-canvas" style="display: none;"></canvas>
-                    <img id="teller-preview-face" src="" style="display: none; width: 100%; height: 100%; object-fit: cover;">
-                  </div>
-
-                  <!-- Face Action Buttons -->
-                  <div style="display: flex; gap: 8px; margin-bottom: 14px;">
-                    <button type="button" class="btn btn-secondary btn-sm" id="btn-teller-start-cam" style="flex: 1;">
-                      📷 Mở Camera
-                    </button>
-                    <button type="button" class="btn btn-primary btn-sm" id="btn-teller-capture-face" style="flex: 1.5; font-weight: 700;">
-                      📸 Quét & Chụp Khuôn Mặt
-                    </button>
-                  </div>
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-teller-sample-face" style="width: 100%; border-color: var(--accent-purple); color: var(--accent-purple);">
-                    👤 Dùng Ảnh Mẫu Sinh Trắc Học AI Chuẩn
-                  </button>
-
-                  <!-- Status Badge -->
-                  <div id="teller-face-status-badge" style="margin-top: 14px; padding: 10px 14px; border-radius: 8px; font-size: 0.8rem; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Chưa thu thập dữ liệu khuôn mặt (Bắt buộc quét mặt để lưu hồ sơ).</span>
-                  </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                  <label for="new-cust-fullname">Họ và tên khách hàng *</label>
+                  <input type="text" id="new-cust-fullname" class="form-control" placeholder="Ví dụ: Hoàng Minh Trí" required>
+                  <div id="err-new-cust-fullname" style="display: none; color: var(--accent-danger); font-size: 0.8rem; margin-top: 4px; font-weight: 600;"></div>
                 </div>
-
-                <div style="margin-top: 20px;">
-                  <button type="submit" class="btn btn-success" id="btn-teller-submit-new-cust" style="width: 100%; padding: 14px; font-weight: 700; font-size: 1rem; box-shadow: 0 4px 16px rgba(16,185,129,0.3);">
-                    ✓ Lưu Hồ Sơ & Phát Hành Tài Khoản
-                  </button>
+                <div class="form-group">
+                  <label for="new-cust-idcard">Số CCCD / CMND *</label>
+                  <input type="text" id="new-cust-idcard" class="form-control" placeholder="001099887766" required>
+                  <div id="err-new-cust-idcard" style="display: none; color: var(--accent-danger); font-size: 0.8rem; margin-top: 4px; font-weight: 600;"></div>
                 </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                  <label for="new-cust-phone">Số điện thoại *</label>
+                  <input type="text" id="new-cust-phone" class="form-control" placeholder="0911223344" required>
+                  <div id="err-new-cust-phone" style="display: none; color: var(--accent-danger); font-size: 0.8rem; margin-top: 4px; font-weight: 600;"></div>
+                </div>
+                <div class="form-group">
+                  <label for="new-cust-email">Địa chỉ Email</label>
+                  <input type="email" id="new-cust-email" class="form-control" placeholder="tri.hoang@gmail.com">
+                  <div id="err-new-cust-email" style="display: none; color: var(--accent-danger); font-size: 0.8rem; margin-top: 4px; font-weight: 600;"></div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="new-cust-address">Địa chỉ thường trú</label>
+                <input type="text" id="new-cust-address" class="form-control" placeholder="Quận Ba Đình, Hà Nội" value="Quận Ba Đình, Hà Nội">
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                  <label for="new-cust-deposit">Số tiền nạp ban đầu (VND)</label>
+                  <input type="text" id="new-cust-deposit" class="form-control" placeholder="500.000" value="500.000">
+                </div>
+                <div class="form-group">
+                  <label for="new-cust-password">Mật khẩu khởi tạo đăng nhập *</label>
+                  <input type="text" id="new-cust-password" class="form-control" value="Abc@1234" required style="font-weight: 700; color: var(--accent-cyan);">
+                </div>
+              </div>
+
+              <div style="background: rgba(0,242,254,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; margin-top: 4px;">
+                <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent-cyan); margin-bottom: 6px;">
+                  <i class="fas fa-shield-alt"></i> Hướng Dẫn Đăng Nhập Khách Hàng
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
+                  Khách hàng có thể đăng nhập bằng <strong>Số Điện Thoại</strong> và mật khẩu khởi tạo (mặc định <code>Abc@1234</code>).
+                </div>
+              </div>
+
+              <div style="margin-top: 10px;">
+                <button type="submit" class="btn btn-success" id="btn-teller-submit-new-cust" style="width: 100%; padding: 14px; font-weight: 700; font-size: 1rem; box-shadow: 0 4px 16px rgba(16,185,129,0.3);">
+                  ✓ Lưu Hồ Sơ & Phát Hành Tài Khoản
+                </button>
               </div>
 
             </div>
@@ -1226,7 +900,6 @@
                     <th>Số điện thoại</th>
                     <th>Email</th>
                     <th>Số lượng TK</th>
-                    <th>Trạng Thái eKYC</th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
@@ -1241,7 +914,7 @@
         <!-- 10. Teller - Accounts Management -->
         <section id="view-teller-accounts" class="view-section hidden">
           <div class="panel">
-            <div class="panel-header">
+            <div class="panel-header" style="flex-wrap: wrap; gap: 12px;">
               <h3 class="panel-title">Quản Lý & Chỉnh Sửa Tài Khoản Ngân Hàng</h3>
               <input type="text" id="search-teller-acc" class="form-control" placeholder="Tìm theo số tài khoản..." style="width: 300px;">
             </div>
@@ -1266,32 +939,7 @@
           </div>
         </section>
 
-        <!-- 11. Teller - Customer Tickets -->
-        <section id="view-teller-tickets" class="view-section hidden">
-          <div class="panel">
-            <div class="panel-header">
-              <h3 class="panel-title">Xử Lý Hỗ Trợ & Khiếu Nại Của Khách Hàng</h3>
-            </div>
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Mã Đơn</th>
-                    <th>Khách Hàng</th>
-                    <th>Số TK</th>
-                    <th>Tiêu Đề</th>
-                    <th>Thời Gian Gửi</th>
-                    <th>Trạng Thái</th>
-                    <th>Xử Lý</th>
-                  </tr>
-                </thead>
-                <tbody id="teller-tickets-tbody">
-                  <!-- Rendered dynamically -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
+
 
         <!-- 11b. Teller Loan Underwriting & Approval -->
         <section id="view-teller-loans" class="view-section hidden">
@@ -1390,7 +1038,6 @@
                 <div class="stat-icon text-emerald"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></div>
               </div>
               <div class="stat-value text-emerald" id="admin-total-cust">0</div>
-              <div class="stat-subtitle">Đã xác minh KYC</div>
             </div>
 
             <div class="stat-card">
@@ -1415,18 +1062,18 @@
         </section>
 
         <!-- 13. Admin - Manage Tellers -->
-        <!-- 13. Admin - Manage Tellers (Quản Lý Giao Dịch Viên & Phân Quyền) -->
+        <!-- 13. Admin - Manage Tellers (Quản Lý Giao Dịch Viên) -->
         <section id="view-admin-tellers" class="view-section hidden">
           <div style="margin-bottom: 20px;">
             <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 8px;">
               <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
               Quản Lý Giao Dịch Viên
             </h2>
-            <p style="font-size: 0.85rem; color: var(--text-muted);">Quản lý danh sách tài khoản giao dịch viên và thiết lập phân quyền nghiệp vụ chi tiết cho từng cán bộ</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Quản lý danh sách tài khoản cán bộ giao dịch viên ngân hàng</p>
           </div>
 
           <!-- Summary KPI Badges -->
-          <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 20px;">
+          <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 20px;">
             <div class="stat-card">
               <div class="stat-header">
                 <span class="stat-title">Tổng Số GDV</span>
@@ -1453,21 +1100,12 @@
               <div class="stat-value text-gold" id="admin-staff-locked">0</div>
               <div class="stat-subtitle">Đang tạm dừng</div>
             </div>
-
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Tổng Quyền Nghiệp Vụ</span>
-                <div class="stat-icon text-purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg></div>
-              </div>
-              <div class="stat-value text-purple" id="admin-staff-total-perms">12</div>
-              <div class="stat-subtitle">Thao tác hệ thống</div>
-            </div>
           </div>
 
           <div class="panel">
             <div class="panel-header" style="flex-wrap: wrap; gap: 12px;">
               <h3 class="panel-title">Danh Sách Giao Dịch Viên</h3>
-              <button class="btn btn-primary" id="btn-open-modal-add-teller" style="font-weight: 700;">+ Thêm Giao Dịch Viên</button>
+              <button type="button" class="btn btn-primary" id="btn-open-modal-add-teller" onclick="window.openAddEditTellerModal()" style="font-weight: 700;">+ Thêm Giao Dịch Viên</button>
             </div>
 
             <!-- Teller Filter Bar -->
@@ -1494,7 +1132,6 @@
                     <th>Mã GDV / Tài Khoản</th>
                     <th>Họ và Tên</th>
                     <th>Chi Nhánh</th>
-                    <th>Số Quyền Được Cấp</th>
                     <th>Trạng Thái</th>
                     <th style="text-align: right;">Thao Tác</th>
                   </tr>
@@ -1535,72 +1172,70 @@
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                 <div class="form-group">
                   <label for="cfg-fee-internal">Phí Chuyển Tiền Nội Bộ (VNĐ)</label>
-                  <input type="number" id="cfg-fee-internal" class="form-control" value="0" required>
+                  <input type="text" id="cfg-fee-internal" class="form-control" value="0" required>
                 </div>
                 <div class="form-group">
                   <label for="cfg-fee-interbank">Phí Chuyển Tiền Liên Ngân Hàng 24/7 (VNĐ)</label>
-                  <input type="number" id="cfg-fee-interbank" class="form-control" value="2200" required>
+                  <input type="text" id="cfg-fee-interbank" class="form-control" value="2200" required>
                 </div>
                 <div class="form-group">
                   <label for="cfg-fee-atm-internal">Phí Rút Tiền ATM Nội Mạng (VNĐ)</label>
-                  <input type="number" id="cfg-fee-atm-internal" class="form-control" value="0" required>
+                  <input type="text" id="cfg-fee-atm-internal" class="form-control" value="0" required>
                 </div>
                 <div class="form-group">
                   <label for="cfg-fee-atm-external">Phí Rút Tiền ATM Ngoại Mạng (VNĐ)</label>
-                  <input type="number" id="cfg-fee-atm-external" class="form-control" value="3300" required>
+                  <input type="text" id="cfg-fee-atm-external" class="form-control" value="3300" required>
                 </div>
                 <div class="form-group">
                   <label for="cfg-fee-card-issue">Phí Phát Hành & Quản Lý Thẻ (VNĐ/Năm)</label>
-                  <input type="number" id="cfg-fee-card-issue" class="form-control" value="50000" required>
+                  <input type="text" id="cfg-fee-card-issue" class="form-control" value="50000" required>
                 </div>
                 <div class="form-group">
                   <label for="cfg-fee-monthly-acc">Phí Duy Trì Tài Khoản Hàng Tháng (VNĐ)</label>
-                  <input type="number" id="cfg-fee-monthly-acc" class="form-control" value="0" required>
+                  <input type="text" id="cfg-fee-monthly-acc" class="form-control" value="0" required>
                 </div>
               </div>
-              <div class="form-group" style="margin-top: 8px;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                  <input type="checkbox" id="cfg-fee-free-ekyc" checked>
-                  <span>Miễn 100% phí chuyển khoản cho khách hàng đã xác thực eKYC VIP</span>
-                </label>
+              <div style="margin-top: 20px; text-align: right;">
+                <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-weight: 600;">Lưu Cấu Hình Biểu Phí</button>
               </div>
-              <button type="submit" class="btn btn-gold" style="font-weight: 700; padding: 10px 24px;">Lưu Biểu Phí Dịch Vụ</button>
             </form>
           </div>
 
           <!-- TAB 2: HẠN MỨC GIAO DỊCH -->
           <div id="cfg-tab-limits" class="cfg-tab-content panel hidden">
             <div class="panel-header">
-              <h3 class="panel-title">Quản Lý Hạn Mức Giao Dịch Trực Tuyến</h3>
+              <h3 class="panel-title">Cấu Hình Hạn Mức Giao Dịch & Bảo Mật</h3>
             </div>
             <form id="form-cfg-limits" style="margin-top: 16px;">
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                 <div class="form-group">
-                  <label for="cfg-limit-per-unverified">Hạn mức/Lần (Chưa xác thực eKYC) (VNĐ)</label>
-                  <input type="number" id="cfg-limit-per-unverified" class="form-control" value="10000000" required>
+                  <label for="cfg-limit-per-unverified">Hạn mức/Lần (Tiêu chuẩn) (VNĐ)</label>
+                  <input type="text" id="cfg-limit-per-unverified" class="form-control" value="10000000" required>
                 </div>
                 <div class="form-group">
-                  <label for="cfg-limit-daily-unverified">Hạn mức/Ngày (Chưa xác thực eKYC) (VNĐ)</label>
-                  <input type="number" id="cfg-limit-daily-unverified" class="form-control" value="20000000" required>
+                  <label for="cfg-limit-daily-unverified">Hạn mức/Ngày (Tiêu chuẩn) (VNĐ)</label>
+                  <input type="text" id="cfg-limit-daily-unverified" class="form-control" value="20000000" required>
                 </div>
                 <div class="form-group">
-                  <label for="cfg-limit-per-verified">Hạn mức/Lần (Đã xác thực eKYC VIP) (VNĐ)</label>
-                  <input type="number" id="cfg-limit-per-verified" class="form-control" value="100000000" required>
+                  <label for="cfg-limit-per-verified">Hạn mức/Lần (Hạng VIP) (VNĐ)</label>
+                  <input type="text" id="cfg-limit-per-verified" class="form-control" value="100000000" required>
                 </div>
                 <div class="form-group">
-                  <label for="cfg-limit-daily-verified">Hạn mức/Ngày (Đã xác thực eKYC VIP) (VNĐ)</label>
-                  <input type="number" id="cfg-limit-daily-verified" class="form-control" value="500000000" required>
+                  <label for="cfg-limit-daily-verified">Hạn mức/Ngày (Hạng VIP) (VNĐ)</label>
+                  <input type="text" id="cfg-limit-daily-verified" class="form-control" value="500000000" required>
                 </div>
                 <div class="form-group">
                   <label for="cfg-limit-soft-otp">Ngưỡng bắt buộc xác thực Soft OTP (VNĐ)</label>
-                  <input type="number" id="cfg-limit-soft-otp" class="form-control" value="10000000" required>
+                  <input type="text" id="cfg-limit-soft-otp" class="form-control" value="10000000" required>
                 </div>
                 <div class="form-group">
                   <label for="cfg-limit-max-savings">Hạn mức gửi tiết kiệm tối đa/lần (VNĐ)</label>
-                  <input type="number" id="cfg-limit-max-savings" class="form-control" value="1000000000" required>
+                  <input type="text" id="cfg-limit-max-savings" class="form-control" value="1000000000" required>
                 </div>
               </div>
-              <button type="submit" class="btn btn-gold" style="font-weight: 700; padding: 10px 24px;">Lưu Hạn Mức Giao Dịch</button>
+              <div style="margin-top: 20px; text-align: right;">
+                <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-weight: 600;">Lưu Cấu Hình Hạn Mức</button>
+              </div>
             </form>
           </div>
 
@@ -1610,46 +1245,170 @@
               <h3 class="panel-title">Biểu Lãi Suất Tiền Gửi & Cho Vay</h3>
             </div>
             <form id="form-cfg-rates" style="margin-top: 16px;">
-              <h4 style="font-size: 0.95rem; color: var(--accent-cyan); margin-bottom: 12px;">Biểu Lãi Suất Tiết Kiệm Trực Tuyến (%/Năm)</h4>
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
+              <h4 style="font-size: 0.95rem; color: var(--accent-cyan); margin-bottom: 12px;">Biểu Lãi Suất Tiền Gửi Tiết Kiệm Trực Tuyến (%/Năm)</h4>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px;">
                 <div class="form-group">
                   <label for="cfg-rate-kkh">Không Kỳ Hạn (KKH)</label>
-                  <input type="number" id="cfg-rate-kkh" class="form-control" step="0.1" value="0.2" required>
+                  <input type="number" id="cfg-rate-kkh" class="form-control" step="0.05" value="0.20" required>
                 </div>
                 <div class="form-group">
                   <label for="cfg-rate-1m">Kỳ Hạn 1 Tháng</label>
-                  <input type="number" id="cfg-rate-1m" class="form-control" step="0.1" value="3.5" required>
+                  <input type="number" id="cfg-rate-1m" class="form-control" step="0.05" value="4.50" required>
                 </div>
                 <div class="form-group">
                   <label for="cfg-rate-3m">Kỳ Hạn 3 Tháng</label>
-                  <input type="number" id="cfg-rate-3m" class="form-control" step="0.1" value="4.2" required>
+                  <input type="number" id="cfg-rate-3m" class="form-control" step="0.05" value="5.20" required>
                 </div>
                 <div class="form-group">
                   <label for="cfg-rate-6m">Kỳ Hạn 6 Tháng</label>
-                  <input type="number" id="cfg-rate-6m" class="form-control" step="0.1" value="5.5" required>
+                  <input type="number" id="cfg-rate-6m" class="form-control" step="0.05" value="6.50" required>
                 </div>
                 <div class="form-group">
                   <label for="cfg-rate-12m">Kỳ Hạn 12 Tháng</label>
-                  <input type="number" id="cfg-rate-12m" class="form-control" step="0.1" value="6.8" required>
+                  <input type="number" id="cfg-rate-12m" class="form-control" step="0.05" value="7.20" required>
                 </div>
                 <div class="form-group">
                   <label for="cfg-rate-24m">Kỳ Hạn 24 Tháng</label>
-                  <input type="number" id="cfg-rate-24m" class="form-control" step="0.1" value="7.2" required>
+                  <input type="number" id="cfg-rate-24m" class="form-control" step="0.05" value="7.80" required>
+                </div>
+                <div class="form-group">
+                  <label for="cfg-rate-36m">Kỳ Hạn 36 Tháng</label>
+                  <input type="number" id="cfg-rate-36m" class="form-control" step="0.05" value="8.00" required>
+                </div>
+                <div class="form-group">
+                  <label for="cfg-rate-early">Lãi Rút Trước Hạn</label>
+                  <input type="number" id="cfg-rate-early" class="form-control" step="0.05" value="0.20" required>
                 </div>
               </div>
 
-              <h4 style="font-size: 0.95rem; color: var(--accent-gold); margin-bottom: 12px;">Lãi Suất Cho Vay & Rút Trước Hạn (%/Năm)</h4>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                <div class="form-group">
-                  <label for="cfg-rate-early">Lãi Suất Rút Tiết Kiệm Trước Hạn</label>
-                  <input type="number" id="cfg-rate-early" class="form-control" step="0.1" value="0.1" required>
-                </div>
-                <div class="form-group">
-                  <label for="cfg-rate-lending">Lãi Suất Cho Vay Cơ Sở (Base Lending Rate)</label>
-                  <input type="number" id="cfg-rate-lending" class="form-control" step="0.1" value="9.5" required>
+              <h4 style="font-size: 0.95rem; color: var(--accent-gold); margin-top: 24px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                Biểu Lãi Suất Phân Mức Gói Vay Vốn & Tín Dụng (%/Năm)
+              </h4>
+
+              <!-- 1. Vay Tiêu Dùng -->
+              <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+                <div style="font-weight: 700; color: var(--accent-emerald); font-size: 0.88rem; margin-bottom: 10px;">💼 Vay Tiêu Dùng (CONSUMER)</div>
+                <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-consumer-6m" style="font-size: 0.78rem;">6 Tháng</label>
+                    <input type="number" id="cfg-rate-consumer-6m" class="form-control" step="0.05" value="8.90" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-consumer-12m" style="font-size: 0.78rem;">12 Tháng</label>
+                    <input type="number" id="cfg-rate-consumer-12m" class="form-control" step="0.05" value="9.50" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-consumer-24m" style="font-size: 0.78rem;">24 Tháng</label>
+                    <input type="number" id="cfg-rate-consumer-24m" class="form-control" step="0.05" value="10.50" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-consumer-36m" style="font-size: 0.78rem;">36 Tháng</label>
+                    <input type="number" id="cfg-rate-consumer-36m" class="form-control" step="0.05" value="11.50" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-consumer-48m" style="font-size: 0.78rem;">48 Tháng</label>
+                    <input type="number" id="cfg-rate-consumer-48m" class="form-control" step="0.05" value="12.00" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-consumer-60m" style="font-size: 0.78rem;">60 Tháng</label>
+                    <input type="number" id="cfg-rate-consumer-60m" class="form-control" step="0.05" value="12.50" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
                 </div>
               </div>
-              <button type="submit" class="btn btn-gold" style="font-weight: 700; padding: 10px 24px;">Lưu Biểu Lãi Suất</button>
+
+              <!-- 2. Vay Mua Ô Tô Trả Góp -->
+              <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+                <div style="font-weight: 700; color: var(--accent-gold); font-size: 0.88rem; margin-bottom: 10px;">🚗 Vay Mua Ô Tô Trả Góp (CAR)</div>
+                <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-car-12m" style="font-size: 0.78rem;">12 Tháng</label>
+                    <input type="number" id="cfg-rate-car-12m" class="form-control" step="0.05" value="7.80" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-car-24m" style="font-size: 0.78rem;">24 Tháng</label>
+                    <input type="number" id="cfg-rate-car-24m" class="form-control" step="0.05" value="8.20" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-car-36m" style="font-size: 0.78rem;">36 Tháng</label>
+                    <input type="number" id="cfg-rate-car-36m" class="form-control" step="0.05" value="8.50" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-car-48m" style="font-size: 0.78rem;">48 Tháng</label>
+                    <input type="number" id="cfg-rate-car-48m" class="form-control" step="0.05" value="8.90" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-car-60m" style="font-size: 0.78rem;">60 Tháng</label>
+                    <input type="number" id="cfg-rate-car-60m" class="form-control" step="0.05" value="9.20" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-car-84m" style="font-size: 0.78rem;">84 Tháng</label>
+                    <input type="number" id="cfg-rate-car-84m" class="form-control" step="0.05" value="9.80" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Vay Mua Nhà / Bất Động Sản -->
+              <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+                <div style="font-weight: 700; color: var(--accent-cyan); font-size: 0.88rem; margin-bottom: 10px;">🏠 Vay Mua Nhà / Bất Động Sản (MORTGAGE)</div>
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-mortgage-36m" style="font-size: 0.78rem;">36 Tháng (3 Năm)</label>
+                    <input type="number" id="cfg-rate-mortgage-36m" class="form-control" step="0.05" value="6.80" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-mortgage-60m" style="font-size: 0.78rem;">60 Tháng (5 Năm)</label>
+                    <input type="number" id="cfg-rate-mortgage-60m" class="form-control" step="0.05" value="7.50" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-mortgage-120m" style="font-size: 0.78rem;">120 Tháng (10 Năm)</label>
+                    <input type="number" id="cfg-rate-mortgage-120m" class="form-control" step="0.05" value="8.20" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-mortgage-180m" style="font-size: 0.78rem;">180 Tháng (15 Năm)</label>
+                    <input type="number" id="cfg-rate-mortgage-180m" class="form-control" step="0.05" value="8.60" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-mortgage-240m" style="font-size: 0.78rem;">240 Tháng (20 Năm)</label>
+                    <input type="number" id="cfg-rate-mortgage-240m" class="form-control" step="0.05" value="8.90" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. Vay Sản Xuất Kinh Doanh -->
+              <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+                <div style="font-weight: 700; color: var(--accent-purple); font-size: 0.88rem; margin-bottom: 10px;">📈 Vay Sản Xuất Kinh Doanh (BUSINESS)</div>
+                <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-business-6m" style="font-size: 0.78rem;">6 Tháng</label>
+                    <input type="number" id="cfg-rate-business-6m" class="form-control" step="0.05" value="6.80" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-business-12m" style="font-size: 0.78rem;">12 Tháng</label>
+                    <input type="number" id="cfg-rate-business-12m" class="form-control" step="0.05" value="7.50" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-business-24m" style="font-size: 0.78rem;">24 Tháng</label>
+                    <input type="number" id="cfg-rate-business-24m" class="form-control" step="0.05" value="7.80" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-business-36m" style="font-size: 0.78rem;">36 Tháng</label>
+                    <input type="number" id="cfg-rate-business-36m" class="form-control" step="0.05" value="8.00" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-business-60m" style="font-size: 0.78rem;">60 Tháng</label>
+                    <input type="number" id="cfg-rate-business-60m" class="form-control" step="0.05" value="8.40" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfg-rate-business-120m" style="font-size: 0.78rem;">120 Tháng</label>
+                    <input type="number" id="cfg-rate-business-120m" class="form-control" step="0.05" value="8.80" required style="padding: 6px 10px; font-size: 0.85rem;">
+                  </div>
+                </div>
+              </div>
+
+              <div style="text-align: right; margin-top: 20px;">
+                <button type="submit" class="btn btn-gold" style="font-weight: 700; padding: 10px 24px;">Lưu Cấu Hình Biểu Lãi Suất</button>
+              </div>
             </form>
           </div>
 
@@ -1757,8 +1516,8 @@
       <form id="form-modal-edit-cust">
         <input type="hidden" id="modal-edit-cust-id">
         <div class="form-group">
-          <label>Họ và Tên</label>
-          <input type="text" id="modal-edit-cust-fullname" class="form-control" required>
+          <label>Họ và Tên <span style="color: var(--text-dim); font-size: 0.75rem;">(Cố định theo CCCD)</span></label>
+          <input type="text" id="modal-edit-cust-fullname" class="form-control" readonly disabled style="background: rgba(255, 255, 255, 0.05); color: var(--text-dim); cursor: not-allowed; opacity: 0.75;">
         </div>
         <div class="form-group">
           <label>Số Điện Thoại</label>
@@ -1777,66 +1536,9 @@
     </div>
   </div>
 
-  <!-- Modal 2: Create Teller (Admin View) -->
-  <div class="modal-overlay" id="modal-add-teller">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3 class="modal-title">Thêm Giao Dịch Viên Mới</h3>
-        <button class="btn-close">&times;</button>
-      </div>
-      <form id="form-modal-add-teller">
-        <div class="form-group">
-          <label>Mã Nhân Viên (Ví dụ: GDV003)</label>
-          <input type="text" id="modal-teller-code" class="form-control" placeholder="GDV003" required>
-        </div>
-        <div class="form-group">
-          <label>Họ và Tên</label>
-          <input type="text" id="modal-teller-fullname" class="form-control" required>
-        </div>
-        <div class="form-group">
-          <label>Chi Nhánh</label>
-          <input type="text" id="modal-teller-branch" class="form-control" placeholder="Chi nhánh Cầu Giấy" required>
-        </div>
-        <div class="form-group">
-          <label>Số Điện Thoại</label>
-          <input type="text" id="modal-teller-phone" class="form-control" required>
-        </div>
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" id="modal-teller-email" class="form-control">
-        </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px;">Tạo Tài Khoản GDV</button>
-      </form>
-    </div>
-  </div>
 
-  <!-- Modal 3: Respond to Ticket (Teller View) -->
-  <div class="modal-overlay" id="modal-resolve-ticket">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3 class="modal-title">Xử Lý Đơn Hỗ Trợ Khách Hàng</h3>
-        <button class="btn-close">&times;</button>
-      </div>
-      <form id="form-modal-resolve-ticket">
-        <input type="hidden" id="modal-ticket-id">
-        <div class="form-group">
-          <label>Khách Hàng</label>
-          <input type="text" id="modal-ticket-cust-info" class="form-control" disabled>
-        </div>
-        <div class="form-group">
-          <label>Nội Dung Yêu Cầu</label>
-          <textarea id="modal-ticket-content-text" class="form-control" rows="3" disabled></textarea>
-        </div>
-        <div class="form-group">
-          <label>Nội dung Phản hồi / Kết quả xử lý</label>
-          <textarea id="modal-ticket-response-input" class="form-control" rows="4" placeholder="Nhập câu trả lời cho khách hàng..." required></textarea>
-        </div>
-        <div style="display: flex; gap: 12px; margin-top: 16px;">
-          <button type="submit" class="btn btn-success" style="flex: 1;">Phê Duyệt / Hoàn Thành</button>
-        </div>
-      </form>
-    </div>
-  </div>
+
+
 
   <!-- Modal 4: Money Transfer (Chuyển tiền) -->
   <div class="modal-overlay" id="modal-transfer">
@@ -1847,7 +1549,10 @@
       </div>
       <form id="form-modal-transfer">
         <div class="form-group">
-          <label for="transfer-modal-from">Tài khoản chuyển</label>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label for="transfer-modal-from" style="margin-bottom: 0;">Tài khoản chuyển</label>
+            <span id="transfer-modal-avail-balance" style="font-size: 0.82rem; color: var(--accent-cyan); font-weight: 600; font-family: var(--font-mono);">Số dư: --- VNĐ</span>
+          </div>
           <select id="transfer-modal-from" class="form-control" required></select>
         </div>
         <div class="form-group">
@@ -1868,14 +1573,36 @@
           </div>
         </div>
         <div class="form-group">
-          <label for="transfer-modal-amount">Số tiền (VND)</label>
-          <input type="text" id="transfer-modal-amount" class="form-control" placeholder="Ví dụ: 500.000" required>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label for="transfer-modal-amount" style="margin-bottom: 0;">Số tiền (VND)</label>
+            <span id="transfer-modal-remaining-balance" style="font-size: 0.8rem; font-family: var(--font-mono);"></span>
+          </div>
+          <input type="text" id="transfer-modal-amount" class="form-control" placeholder="Ví dụ: 500.000" required autocomplete="off">
+          
+          <!-- Hộp cảnh báo số dư thời gian thực -->
+          <div id="transfer-modal-balance-alert" class="hidden" style="margin-top: 8px; padding: 10px 12px; background: rgba(239, 68, 68, 0.12); border: 1px solid var(--accent-danger); border-radius: 8px; font-size: 0.82rem; color: #f87171;">
+            <div style="display: flex; align-items: flex-start; gap: 8px;">
+              <span style="font-size: 1.1rem; line-height: 1;">⚠️</span>
+              <div>
+                <strong id="transfer-modal-balance-alert-title">Số dư khả dụng không đủ!</strong>
+                <div id="transfer-modal-balance-alert-detail" style="font-size: 0.78rem; margin-top: 2px; color: #fca5a5;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gợi ý chọn nhanh số tiền -->
+          <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;" id="transfer-modal-quick-chips">
+            <button type="button" class="btn btn-outline quick-amount-chip" data-val="100000" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.03); color: var(--text-muted); cursor: pointer;">100.000đ</button>
+            <button type="button" class="btn btn-outline quick-amount-chip" data-val="500000" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.03); color: var(--text-muted); cursor: pointer;">500.000đ</button>
+            <button type="button" class="btn btn-outline quick-amount-chip" data-val="1000000" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.03); color: var(--text-muted); cursor: pointer;">1.000.000đ</button>
+            <button type="button" class="btn btn-outline quick-amount-chip" data-val="5000000" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.03); color: var(--text-muted); cursor: pointer;">5.000.000đ</button>
+          </div>
         </div>
         <div class="form-group">
           <label for="transfer-modal-content">Nội dung chuyển tiền</label>
           <input type="text" id="transfer-modal-content" class="form-control" placeholder="Chuyen tien QuangTrung Bank" value="Chuyen tien QuangTrung Bank">
         </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Xác Nhận Chuyển Tiền</button>
+        <button type="submit" id="btn-submit-transfer-modal" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Xác Nhận Chuyển Tiền</button>
       </form>
     </div>
   </div>
@@ -2021,85 +1748,6 @@
     </div>
   </div>
 
-  <!-- Modal 6: VNPOST Cash Services (Rút/Chuyển tiền mặt tại VNPOST) -->
-  <div class="modal-overlay" id="modal-vnpost">
-    <div class="modal-box" style="max-width: 580px;">
-      <div class="modal-header">
-        <h3 class="modal-title">Dịch Vụ Tiền Mặt VNPOST</h3>
-        <button class="btn-close">&times;</button>
-      </div>
-      
-      <!-- VNPOST Service Tabs -->
-      <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
-        <button type="button" class="btn btn-sm btn-primary vnpost-tab-btn active" data-tab="tab-vnpost-withdraw">Rút Tiền Mặt tại VNPOST</button>
-        <button type="button" class="btn btn-sm btn-secondary vnpost-tab-btn" data-tab="tab-vnpost-transfer">Chuyển Tiền Mặt VNPOST</button>
-      </div>
-
-      <!-- Tab 1: Rút tiền mặt tại VNPOST -->
-      <div id="tab-vnpost-withdraw" class="vnpost-tab-content">
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
-          Tạo mã rút tiền mặt bí mật để nhận tiền tại hơn 13.000 bưu cục VNPOST trên toàn quốc mà không cần mang thẻ ATM.
-        </p>
-        <form id="form-vnpost-withdraw">
-          <div class="form-group">
-            <label for="vnpost-w-acc">Tài khoản trích tiền</label>
-            <select id="vnpost-w-acc" class="form-control" required></select>
-          </div>
-          <div class="form-group">
-            <label for="vnpost-w-amount">Số tiền rút mặt (VND)</label>
-            <input type="text" id="vnpost-w-amount" class="form-control" placeholder="Ví dụ: 1.000.000" required>
-          </div>
-          <button type="submit" class="btn btn-primary" style="width: 100%;">Tạo Mã Rút Tiền VNPOST</button>
-        </form>
-      </div>
-
-      <!-- Tab 2: Chuyển tiền mặt qua VNPOST -->
-      <div id="tab-vnpost-transfer" class="vnpost-tab-content hidden">
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
-          Chuyển tiền mặt từ tài khoản cho người nhận không có thẻ/ngân hàng. Người nhận mang CCCD ra điểm bưu cục VNPOST để nhận tiền.
-        </p>
-        <form id="form-vnpost-transfer">
-          <div class="form-group">
-            <label for="vnpost-t-acc">Tài khoản trích tiền</label>
-            <select id="vnpost-t-acc" class="form-control" required></select>
-          </div>
-          <div class="form-group">
-            <label for="vnpost-t-amount">Số tiền chuyển (VND)</label>
-            <input type="text" id="vnpost-t-amount" class="form-control" placeholder="Ví dụ: 2.000.000" required>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <div class="form-group">
-              <label for="vnpost-t-rec-name">Họ và tên người nhận</label>
-              <input type="text" id="vnpost-t-rec-name" class="form-control" placeholder="Nguyễn Văn A" required>
-            </div>
-            <div class="form-group">
-              <label for="vnpost-t-rec-id">Số CCCD người nhận</label>
-              <input type="text" id="vnpost-t-rec-id" class="form-control" placeholder="001099XXXXXX" required>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="vnpost-t-rec-phone">Số điện thoại người nhận</label>
-            <input type="text" id="vnpost-t-rec-phone" class="form-control" placeholder="0988776655" required>
-          </div>
-          <button type="submit" class="btn btn-primary" style="width: 100%;">Xác Nhận Chuyển Tiền Mặt VNPOST</button>
-        </form>
-      </div>
-
-      <!-- VNPOST Result Box -->
-      <div id="vnpost-result-box" class="hidden" style="margin-top: 20px; padding: 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-emerald); border-radius: 12px; text-align: center;">
-        <div style="font-size: 0.9rem; font-weight: 700; color: var(--accent-emerald); margin-bottom: 8px;">TẠO LỆNH THÀNH CÔNG</div>
-        <div style="font-size: 0.8rem; color: var(--text-muted);" id="vnpost-result-title">Mã giao dịch rút tiền:</div>
-        <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-cyan); letter-spacing: 2px; margin: 8px 0;" id="vnpost-result-code">VNPOST-W-123456</div>
-        <div style="font-size: 0.75rem; color: var(--text-dim);" id="vnpost-result-desc">Mang mã này cùng CCCD ra bưu cục VNPOST gần nhất để hoàn tất.</div>
-      </div>
-
-    </div>
-  </div>
-
-      </div>
-    </div>
-  </div>
-
   <!-- Modal 8: Create ATM Code (Tạo Mã Rút/Nạp Tiền ATM Không Thẻ) -->
   <div class="modal-overlay" id="modal-create-atm-code">
     <div class="modal-box" style="max-width: 500px;">
@@ -2122,10 +1770,19 @@
         <div class="form-group">
           <label for="create-atm-amount">Số tiền giao dịch (VNĐ)</label>
           <input type="text" id="create-atm-amount" class="form-control" placeholder="Ví dụ: 1.000.000" required>
-        </div>
-        <div class="form-group">
-          <label for="create-atm-pin">Mã PIN bí mật khi ra ATM (Mặc định: 1234)</label>
-          <input type="password" id="create-atm-pin" class="form-control" value="1234" maxlength="6" required>
+          <div id="create-atm-amount-hint" style="font-size: 0.78rem; color: var(--accent-gold); margin-top: 6px; display: flex; align-items: center; gap: 5px;">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink: 0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span id="create-atm-amount-hint-text">Lưu ý: Số tiền tối thiểu là 10.000 VNĐ và phải là bội số của 10.000 VNĐ.</span>
+          </div>
+          <!-- Quick Amount Buttons -->
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
+            <button type="button" class="btn btn-sm btn-secondary btn-quick-atm-amt" data-val="100000" style="font-size: 0.75rem; padding: 4px 8px;">100.000đ</button>
+            <button type="button" class="btn btn-sm btn-secondary btn-quick-atm-amt" data-val="200000" style="font-size: 0.75rem; padding: 4px 8px;">200.000đ</button>
+            <button type="button" class="btn btn-sm btn-secondary btn-quick-atm-amt" data-val="500000" style="font-size: 0.75rem; padding: 4px 8px;">500.000đ</button>
+            <button type="button" class="btn btn-sm btn-secondary btn-quick-atm-amt" data-val="1000000" style="font-size: 0.75rem; padding: 4px 8px;">1.000.000đ</button>
+            <button type="button" class="btn btn-sm btn-secondary btn-quick-atm-amt" data-val="2000000" style="font-size: 0.75rem; padding: 4px 8px;">2.000.000đ</button>
+            <button type="button" class="btn btn-sm btn-secondary btn-quick-atm-amt" data-val="5000000" style="font-size: 0.75rem; padding: 4px 8px;">5.000.000đ</button>
+          </div>
         </div>
 
         <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">
@@ -2137,7 +1794,7 @@
       <div id="atm-created-result-box" class="hidden" style="margin-top: 20px; padding: 16px; background: rgba(0, 242, 254, 0.1); border: 1px solid var(--accent-cyan); border-radius: 12px; text-align: center;">
         <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 4px;">MÃ XÁC THỰC ATM CỦA BẠN</div>
         <div style="font-size: 2.2rem; font-weight: 800; color: var(--accent-gold); letter-spacing: 6px; font-family: var(--font-mono); margin: 8px 0;" id="created-atm-code-display">892104</div>
-        <div style="font-size: 0.8rem; color: var(--text-muted);" id="created-atm-code-desc">Mang mã này cùng PIN 1234 ra bất kỳ máy ATM nào để thực hiện giao dịch!</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);" id="created-atm-code-desc">Mang mã này ra bất kỳ máy ATM nào để thực hiện giao dịch!</div>
         <div style="margin-top: 12px; display: flex; gap: 8px;">
           <button type="button" class="btn btn-secondary" id="btn-copy-atm-code" style="width: 100%;">Sao Chép Mã ATM</button>
         </div>
@@ -2154,7 +1811,7 @@
       </div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
-          Quản lý các mã giao dịch ATM chưa sử dụng, đã hoàn thành hoặc đã hủy.
+          Quản lý các mã giao dịch ATM chưa sử dụng hoặc đã hoàn thành.
         </p>
         <button class="btn btn-primary btn-sm" id="btn-open-create-code-modal">+ Tạo Mã Mới</button>
       </div>
@@ -2180,20 +1837,83 @@
     </div>
   </div>
 
-  <!-- Modal 10: Transaction OTP Verification (Xác Thực OTP Giao Dịch) -->
-  <div class="modal-overlay" id="modal-otp-verification">
-    <div class="modal-box" style="max-width: 480px; text-align: center;">
+  <!-- Modal: ATM Transaction Guide (Hướng Dẫn Giao Dịch ATM Không Thẻ) -->
+  <div class="modal-overlay" id="modal-atm-guide" style="z-index: 100020 !important;">
+    <div class="modal-box" style="max-width: 520px; z-index: 100021 !important;">
       <div class="modal-header">
-        <h3 class="modal-title">Xác Thực Giao Dịch (OTP 2FA)</h3>
-        <button class="btn-close" id="btn-close-otp">&times;</button>
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-cyan);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span id="atm-guide-modal-title">Hướng Dẫn Giao Dịch Tại Máy ATM</span>
+        </h3>
+        <button class="btn-close" id="btn-close-atm-guide">&times;</button>
       </div>
       <div style="padding: 16px 0;">
+        <div id="atm-guide-summary-box" style="padding: 12px 16px; background: rgba(0, 242, 254, 0.08); border: 1px solid var(--accent-cyan); border-radius: 10px; margin-bottom: 16px;">
+          <div style="font-size: 0.85rem; color: var(--text-muted);">Giao dịch: <strong id="atm-guide-type-text" class="text-cyan" style="font-size: 0.95rem;">Rút Tiền Mặt Không Thẻ</strong></div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Số tiền: <strong id="atm-guide-amount-text" style="color: var(--accent-gold); font-size: 0.95rem;">10.000 VNĐ</strong></div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" id="atm-guide-code-container">
+            Mã ATM: <strong id="atm-guide-code-text" style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent-gold); letter-spacing: 2px;">••••••</strong>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 242, 254, 0.15); color: var(--accent-cyan); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;">1</div>
+            <div style="font-size: 0.85rem; line-height: 1.5;">
+              <strong>Đến cây ATM QuangTrung Bank:</strong><br>
+              <span style="color: var(--text-muted);">Di chuyển đến bất kỳ máy ATM nào của QuangTrung Bank trên toàn quốc.</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 242, 254, 0.15); color: var(--accent-cyan); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;">2</div>
+            <div style="font-size: 0.85rem; line-height: 1.5;">
+              <strong>Chọn "Giao dịch không dùng thẻ":</strong><br>
+              <span style="color: var(--text-muted);">Bấm phím chức năng hoặc chạm vào màn hình cảm ứng tại máy ATM.</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 242, 254, 0.15); color: var(--accent-cyan); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;">3</div>
+            <div style="font-size: 0.85rem; line-height: 1.5;">
+              <strong>Chọn nghiệp vụ & Nhập mã ATM:</strong><br>
+              <span style="color: var(--text-muted);">Chọn Rút/Nạp tiền và nhập chính xác <strong>mã ATM 6 chữ số</strong> được cấp.</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 242, 254, 0.15); color: var(--accent-cyan); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;">4</div>
+            <div style="font-size: 0.85rem; line-height: 1.5;">
+              <strong>Hoàn tất giao dịch:</strong><br>
+              <span style="color: var(--text-muted);">Máy ATM sẽ kiểm tra và thực hiện nhả tiền mặt hoặc nhận tiền nạp tự động.</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary" id="btn-atm-guide-got-it" style="width: 100%; margin-top: 20px;">
+          Đã Hiểu Hướng Dẫn
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Modal 10: Transaction OTP Verification (Xác Thực OTP Giao Dịch) -->
+  <!-- Modal: Transaction Multi-Factor Verification (Xác Thực 2FA: Mã PIN & OTP SMS) -->
+  <div class="modal-overlay" id="modal-otp-verification" style="z-index: 100050 !important;">
+    <div class="modal-box" style="max-width: 500px; text-align: center; z-index: 100051 !important;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px; justify-content: center; width: 100%;">
+          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-gold);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          <span id="otp-modal-title">Xác Thực Giao Dịch (Mã PIN & OTP 2FA)</span>
+        </h3>
+        <button class="btn-close" id="btn-close-otp">&times;</button>
+      </div>
+      <div style="padding: 14px 0;">
         <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
-          Để hoàn tất giao dịch tài chính, vui lòng nhập mã xác thực OTP 6 chữ số.
+          Để hoàn tất giao dịch tài chính, vui lòng nhập mã PIN bảo mật và mã xác thực OTP 6 chữ số.
         </div>
 
         <!-- Simulated SMS Notification Box -->
-        <div id="otp-simulated-sms-box" style="padding: 12px; background: rgba(16, 185, 129, 0.12); border: 1px solid var(--accent-emerald); border-radius: 10px; margin-bottom: 16px; text-align: left; font-size: 0.8rem; color: var(--text-main);">
+        <div id="otp-simulated-sms-box" style="padding: 12px; background: rgba(16, 185, 129, 0.12); border: 1px solid var(--accent-emerald); border-radius: 10px; margin-bottom: 14px; text-align: left; font-size: 0.8rem; color: var(--text-main);">
           <div style="font-weight: 700; color: var(--accent-emerald); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
             <span>SMS Thông Báo Ngân Hàng (Mô phỏng)</span>
           </div>
@@ -2202,33 +1922,47 @@
         </div>
 
         <!-- OTP Summary Details -->
-        <div id="otp-transaction-summary" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; margin-bottom: 16px; text-align: left; font-size: 0.85rem;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span style="color: var(--text-muted);">Tài khoản nguồn:</span>
-            <strong id="otp-summary-from">...</strong>
+        <div id="otp-transaction-summary" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; margin-bottom: 14px; text-align: left; font-size: 0.85rem;">
+          <div id="otp-summary-action-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: var(--text-muted);">Nghiệp vụ:</span>
+            <strong id="otp-summary-action" style="color: var(--accent-gold);">Chuyển tiền</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span style="color: var(--text-muted);">Tài khoản nhận:</span>
-            <strong id="otp-summary-to">...</strong>
+          <div id="otp-summary-from-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: var(--text-muted);">Tài khoản trích tiền:</span>
+            <strong id="otp-summary-from" style="font-family: var(--font-mono);">-</strong>
           </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="color: var(--text-muted);">Số tiền chuyển:</span>
-            <strong id="otp-summary-amount" style="color: var(--accent-cyan);">0 VNĐ</strong>
+          <div id="otp-summary-to-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: var(--text-muted);">Người nhận / Đối ứng:</span>
+            <strong id="otp-summary-to" style="font-family: var(--font-mono);">-</strong>
+          </div>
+          <div id="otp-summary-amount-row" style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Số tiền:</span>
+            <strong id="otp-summary-amount" style="color: var(--accent-cyan); font-size: 0.95rem;">-</strong>
           </div>
         </div>
 
         <form id="form-otp-verify">
-          <div class="form-group">
-            <label for="otp-input-code" style="font-weight: 600;">Nhập mã OTP 6 chữ số</label>
-            <input type="text" id="otp-input-code" class="form-control" placeholder="123456" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 8px; font-family: var(--font-mono);" required autocomplete="off">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; text-align: left;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="otp-input-pin" style="font-weight: 600; font-size: 0.82rem; display: block; margin-bottom: 4px;">1. Mã PIN giao dịch (6 số)</label>
+              <input type="password" id="otp-input-pin" class="form-control" placeholder="••••••" maxlength="6" pattern="[0-9]*" inputmode="numeric" style="text-align: center; font-size: 1.3rem; letter-spacing: 6px; font-family: var(--font-mono); height: 44px;" required autocomplete="off">
+              <span style="font-size: 0.7rem; color: var(--text-dim);">PIN mặc định: <strong style="color: var(--accent-gold);">123456</strong></span>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="otp-input-code" style="font-weight: 600; font-size: 0.82rem; display: block; margin-bottom: 4px;">2. Mã xác thực OTP SMS</label>
+              <input type="text" id="otp-input-code" class="form-control" placeholder="123456" maxlength="6" pattern="[0-9]*" inputmode="numeric" style="text-align: center; font-size: 1.3rem; letter-spacing: 6px; font-family: var(--font-mono); height: 44px;" required autocomplete="off">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
+                <span style="font-size: 0.7rem; color: var(--text-dim);"><strong id="otp-countdown-timer" style="color: var(--accent-gold);">60s</strong></span>
+                <button type="button" class="btn btn-link btn-sm" id="btn-resend-otp" style="font-size: 0.72rem; padding: 0; color: var(--accent-cyan); text-decoration: none;">Gửi lại OTP</button>
+              </div>
+            </div>
           </div>
 
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 0.8rem;">
-            <span style="color: var(--text-muted);">Thời gian còn lại: <strong id="otp-countdown-timer" style="color: var(--accent-gold);">60s</strong></span>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-resend-otp">Gửi lại OTP</button>
+          <div style="display: flex; gap: 10px; margin-top: 14px;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-otp" style="flex: 1;">Hủy Bỏ</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-otp" style="flex: 2; font-weight: 700;">Xác Nhận Thanh Toán</button>
           </div>
-
-          <button type="submit" class="btn btn-primary" style="width: 100%;">Xác Nhận Thanh Toán</button>
         </form>
       </div>
     </div>
@@ -2274,9 +2008,9 @@
 
   <!-- Modal 13: Open Savings Deposit (Mở Tài Khoản Tiết Kiệm) -->
   <div class="modal-overlay" id="modal-open-savings">
-    <div class="modal-box" style="max-width: 560px;">
-      <div class="modal-header">
-        <h3 class="modal-title" style="color: var(--accent-gold); display: flex; align-items: center; gap: 8px;">
+    <div class="modal-box" style="max-width: 540px; max-height: 88vh; overflow-y: auto; padding: 22px 24px;">
+      <div class="modal-header" style="margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+        <h3 class="modal-title" style="color: var(--accent-gold); font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
           <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
@@ -2284,41 +2018,41 @@
         </h3>
         <button class="btn-close">&times;</button>
       </div>
-      <form id="form-modal-open-savings">
-        <div class="form-group">
-          <label for="savings-modal-source">Tài khoản trích tiền gửi <span style="color: var(--accent-danger);">*</span></label>
-          <select id="savings-modal-source" class="form-control" required></select>
+      <form id="form-modal-open-savings" style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="savings-modal-source" style="font-size: 0.84rem;">Tài khoản trích tiền gửi <span style="color: var(--accent-danger);">*</span></label>
+          <select id="savings-modal-source" class="form-control" required style="padding: 9px 12px; font-size: 0.88rem;"></select>
         </div>
 
-        <div class="form-group">
-          <label style="font-weight: 600;">Loại hình tiết kiệm <span style="color: var(--accent-danger);">*</span></label>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label style="font-weight: 600; font-size: 0.84rem;">Loại hình tiết kiệm <span style="color: var(--accent-danger);">*</span></label>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px;">
-            <label style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
+            <label style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
               <input type="radio" name="savings-modal-type" value="TERM" checked id="sav-type-term">
               <div>
-                <div style="font-weight: 600; font-size: 0.88rem; color: var(--accent-gold);">Có Kỳ Hạn</div>
+                <div style="font-weight: 600; font-size: 0.85rem; color: var(--accent-gold);">Có Kỳ Hạn</div>
                 <div style="font-size: 0.72rem; color: var(--text-dim);">Lãi suất cao (4.5% - 8.0%)</div>
               </div>
             </label>
-            <label style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
+            <label style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
               <input type="radio" name="savings-modal-type" value="DEMAND" id="sav-type-demand">
               <div>
-                <div style="font-weight: 600; font-size: 0.88rem; color: var(--accent-cyan);">Không Kỳ Hạn</div>
+                <div style="font-weight: 600; font-size: 0.85rem; color: var(--accent-cyan);">Không Kỳ Hạn</div>
                 <div style="font-size: 0.72rem; color: var(--text-dim);">Rút / nạp linh hoạt (0.2%)</div>
               </div>
             </label>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="savings-modal-amount">Số tiền gửi tiết kiệm (VNĐ) <span style="color: var(--accent-danger);">*</span></label>
-          <input type="text" id="savings-modal-amount" class="form-control" placeholder="Tối thiểu 1.000.000 VNĐ" required>
-          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;" id="sav-amount-hint">Tối thiểu: 1.000.000 VNĐ cho tài khoản có kỳ hạn</div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="savings-modal-amount" style="font-size: 0.84rem;">Số tiền gửi tiết kiệm (VNĐ) <span style="color: var(--accent-danger);">*</span></label>
+          <input type="text" id="savings-modal-amount" class="form-control" placeholder="Tối thiểu 1.000.000 VNĐ" required style="padding: 9px 12px; font-size: 0.92rem;">
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;" id="sav-amount-hint">Tối thiểu: 1.000.000 VNĐ cho tài khoản có kỳ hạn</div>
         </div>
 
-        <div class="form-group" id="sav-term-group">
-          <label for="savings-modal-term">Kỳ hạn gửi & Lãi suất áp dụng <span style="color: var(--accent-danger);">*</span></label>
-          <select id="savings-modal-term" class="form-control" required>
+        <div class="form-group" id="sav-term-group" style="margin-bottom: 0;">
+          <label for="savings-modal-term" style="font-size: 0.84rem;">Kỳ hạn gửi & Lãi suất áp dụng <span style="color: var(--accent-danger);">*</span></label>
+          <select id="savings-modal-term" class="form-control" required style="padding: 9px 12px; font-size: 0.88rem;">
             <option value="1">1 Tháng (4.50%/năm)</option>
             <option value="3">3 Tháng (5.20%/năm)</option>
             <option value="6" selected>6 Tháng (6.50%/năm) - Phổ biến</option>
@@ -2328,40 +2062,43 @@
           </select>
         </div>
 
-        <div class="form-group" id="sav-renew-group">
-          <label for="savings-modal-renew">Phương thức xử lý khi đến ngày đáo hạn</label>
-          <select id="savings-modal-renew" class="form-control">
+        <div class="form-group" id="sav-renew-group" style="margin-bottom: 0;">
+          <label for="savings-modal-renew" style="font-size: 0.84rem;">Phương thức xử lý khi đến ngày đáo hạn</label>
+          <select id="savings-modal-renew" class="form-control" style="padding: 9px 12px; font-size: 0.85rem;">
             <option value="AUTO_ROLLOVER_ALL">Tự động nhập gốc + lãi gia hạn kỳ hạn mới (Lãi kép)</option>
             <option value="ROLLOVER_PRINCIPAL">Gia hạn tiền gốc, tiền lãi tự động chuyển về TK Thanh toán</option>
             <option value="PAY_TO_PAYMENT_ACC">Tất toán toàn bộ gốc & lãi về TK Thanh toán</option>
           </select>
         </div>
 
-        <div id="savings-calc-preview" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(16, 185, 129, 0.08)); border: 1px solid var(--accent-gold); border-radius: 10px; padding: 14px; font-size: 0.85rem; margin-bottom: 16px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+        <div id="savings-calc-preview" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 10px; padding: 12px 14px; font-size: 0.82rem; line-height: 1.6; margin-top: 2px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
             <span style="color: var(--text-muted);">Lãi suất áp dụng:</span>
-            <strong id="sav-preview-rate" style="color: var(--accent-gold); font-size: 0.95rem;">6.50%/năm</strong>
+            <strong id="sav-preview-rate" style="color: var(--accent-gold); font-size: 0.92rem;">6.50%/năm</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
             <span style="color: var(--text-muted);">Ngày đáo hạn dự kiến:</span>
             <strong id="sav-preview-maturity" style="color: var(--accent-cyan); font-family: var(--font-mono);">--/--/----</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 6px; margin-top: 6px;">
-            <span style="color: var(--text-main); font-weight: 600;">Tiền lãi dự kiến khi đáo hạn:</span>
-            <strong id="sav-preview-interest" style="color: var(--accent-emerald); font-size: 1.05rem;">0 VNĐ</strong>
+          <div style="display: flex; justify-content: space-between; border-top: 1px dashed rgba(255,255,255,0.12); padding-top: 5px; margin-top: 5px;">
+            <span style="color: #fff; font-weight: 600;">Tiền lãi dự kiến khi đáo hạn:</span>
+            <strong id="sav-preview-interest" style="color: var(--accent-emerald); font-size: 0.98rem; font-family: var(--font-mono);">0 VNĐ</strong>
           </div>
         </div>
 
-        <button type="submit" class="btn btn-gold" style="width: 100%; font-weight: 700; padding: 12px;">Xác Nhận Mở Tài Khoản Tiết Kiệm Ngay</button>
+        <div style="display: flex; gap: 10px; margin-top: 4px;">
+          <button type="button" class="btn btn-secondary btn-close" style="flex: 1; padding: 10px; font-size: 0.88rem;">Hủy Bỏ</button>
+          <button type="submit" class="btn btn-gold" style="flex: 2; font-weight: 700; padding: 10px; font-size: 0.88rem;">Xác Nhận Mở Tiết Kiệm</button>
+        </div>
       </form>
     </div>
   </div>
 
   <!-- Modal 13b: Close / Partial Withdraw Savings (Tất Toán / Rút Một Phần) -->
   <div class="modal-overlay" id="modal-close-savings">
-    <div class="modal-box" style="max-width: 520px;">
-      <div class="modal-header">
-        <h3 class="modal-title" style="color: var(--accent-gold);">Tất Toán Tài Khoản Tiết Kiệm</h3>
+    <div class="modal-box" style="max-width: 520px; max-height: 88vh; overflow-y: auto; padding: 22px 24px;">
+      <div class="modal-header" style="margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+        <h3 class="modal-title" style="color: var(--accent-gold); font-size: 1.15rem;">Tất Toán Tài Khoản Tiết Kiệm</h3>
         <button class="btn-close">&times;</button>
       </div>
       <form id="form-modal-close-savings">
@@ -2392,20 +2129,20 @@
 
         <!-- Action Selection -->
         <div class="form-group">
-          <label style="font-weight: 600;">Hình thức thực hiện</label>
+          <label style="font-weight: 600;">Hình thức tất toán / rút tiền</label>
           <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
             <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
               <input type="radio" name="close-sav-action" value="FULL" checked id="close-action-full">
-              <div>
+              <div style="flex: 1;">
                 <div style="font-weight: 600; font-size: 0.88rem; color: var(--accent-gold);">Tất toán toàn bộ tài khoản</div>
-                <div style="font-size: 0.72rem; color: var(--text-dim);" id="close-action-full-desc">Chuyển toàn bộ tiền gốc và lãi về TK Thanh toán</div>
+                <div style="font-size: 0.72rem; color: var(--text-dim);" id="close-action-full-desc">Chuyển toàn bộ tiền gốc và lãi về TK Thanh toán & đóng sổ</div>
               </div>
             </label>
             <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;" id="close-action-partial-wrapper">
               <input type="radio" name="close-sav-action" value="PARTIAL" id="close-action-partial">
-              <div>
-                <div style="font-weight: 600; font-size: 0.88rem; color: var(--accent-cyan);">Rút một phần tiền tiết kiệm</div>
-                <div style="font-size: 0.72rem; color: var(--text-dim);">Rút một phần, số dư còn lại vẫn tiếp tục sinh lời</div>
+              <div style="flex: 1;">
+                <div style="font-weight: 600; font-size: 0.88rem; color: var(--accent-cyan);">Rút một phần tiền tiết kiệm (Tất toán một phần)</div>
+                <div style="font-size: 0.72rem; color: var(--text-dim);">Rút một phần gốc, phần gốc còn lại vẫn tiếp tục duy trì kỳ hạn & sinh lời</div>
               </div>
             </label>
           </div>
@@ -2414,11 +2151,23 @@
         <div class="form-group hidden" id="close-partial-amount-group">
           <label for="close-partial-amount">Số tiền muốn rút (VNĐ) <span style="color: var(--accent-danger);">*</span></label>
           <input type="text" id="close-partial-amount" class="form-control" placeholder="Nhập số tiền cần rút (Ví dụ: 1.000.000)">
-          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;" id="close-partial-hint">Số dư tối thiểu còn lại phải >= 1.000.000 VNĐ</div>
+          
+          <div style="display: flex; gap: 6px; margin-top: 6px;">
+            <button type="button" class="btn btn-outline btn-sm btn-quick-withdraw-pct" data-pct="0.25" style="flex: 1; padding: 3px 6px; font-size: 0.72rem;">25%</button>
+            <button type="button" class="btn btn-outline btn-sm btn-quick-withdraw-pct" data-pct="0.5" style="flex: 1; padding: 3px 6px; font-size: 0.72rem;">50%</button>
+            <button type="button" class="btn btn-outline btn-sm btn-quick-withdraw-pct" data-pct="0.75" style="flex: 1; padding: 3px 6px; font-size: 0.72rem;">75%</button>
+            <button type="button" class="btn btn-outline btn-sm btn-quick-withdraw-max" style="flex: 1; padding: 3px 6px; font-size: 0.72rem; color: var(--accent-gold); border-color: rgba(245, 158, 11, 0.4);">Tối đa</button>
+          </div>
+
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 6px;" id="close-partial-hint">Số dư tối thiểu còn lại phải >= 1.000.000 VNĐ</div>
         </div>
 
         <!-- Calculated Payout Box -->
         <div id="close-calc-preview-box" style="padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 0.85rem; line-height: 1.6; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-emerald);">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);" id="close-preview-amount-label">Tiền gốc tất toán:</span>
+            <strong id="close-preview-principal" style="color: var(--text-main);">-</strong>
+          </div>
           <div style="display: flex; justify-content: space-between;">
             <span style="color: var(--text-muted);">Lãi suất áp dụng:</span>
             <strong id="close-preview-rate" style="color: var(--accent-gold);">-</strong>
@@ -2428,11 +2177,18 @@
             <strong id="close-preview-interest" style="color: var(--accent-emerald);">0 VNĐ</strong>
           </div>
           <div style="display: flex; justify-content: space-between; border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 6px; margin-top: 6px;">
-            <span style="font-weight: 600; color: var(--text-main);">Tổng số tiền nhận về:</span>
+            <span style="font-weight: 600; color: var(--text-main);">Tổng tiền chuyển về TK:</span>
             <strong id="close-preview-total" style="color: var(--accent-cyan); font-size: 1.1rem;">0 VNĐ</strong>
+          </div>
+          <div id="close-remaining-preview-box" style="display: none; justify-content: space-between; border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 6px; margin-top: 6px;">
+            <span style="color: var(--text-muted);">Gốc còn lại trong sổ:</span>
+            <strong id="close-preview-remaining" style="color: var(--accent-gold); font-size: 0.95rem;">-</strong>
           </div>
           <div id="close-early-warning" style="font-size: 0.75rem; color: var(--accent-warning); margin-top: 6px; display: none;">
             ⚠️ <strong>Lưu ý:</strong> Tất toán trước hạn sẽ áp dụng Lãi suất Không kỳ hạn (0.20%/năm) thay vì lãi suất niêm yết theo quy định của Ngân hàng Nhà nước.
+          </div>
+          <div id="close-partial-info" style="font-size: 0.75rem; color: var(--accent-cyan); margin-top: 6px; display: none;">
+            ℹ️ <strong>Thông tư 04/2022/TT-NHNN:</strong> Phần tiền rút chịu lãi suất KKH theo ngày thực gửi. Phần gốc còn lại tiếp tục giữ nguyên kỳ hạn và lãi suất niêm yết ban đầu.
           </div>
         </div>
 
@@ -2443,9 +2199,9 @@
 
   <!-- Modal 13c: Top-up Demand Savings (Nộp Thêm Tiền Vào Tài Khoản KKH) -->
   <div class="modal-overlay" id="modal-topup-savings">
-    <div class="modal-box" style="max-width: 480px;">
-      <div class="modal-header">
-        <h3 class="modal-title" style="color: var(--accent-cyan);">Nộp Thêm Tiền Vào Tài Khoản Tiết Kiệm</h3>
+    <div class="modal-box" style="max-width: 480px; max-height: 88vh; overflow-y: auto; padding: 22px 24px;">
+      <div class="modal-header" style="margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+        <h3 class="modal-title" style="color: var(--accent-cyan); font-size: 1.15rem;">Nộp Thêm Tiền Vào Tài Khoản Tiết Kiệm</h3>
         <button class="btn-close">&times;</button>
       </div>
       <form id="form-modal-topup-savings">
@@ -2516,13 +2272,7 @@
       <form id="form-modal-apply-loan" style="padding-top: 8px;">
         <div class="form-group">
           <label for="loan-modal-type">Gói sản phẩm tín dụng <span style="color: var(--accent-danger);">*</span></label>
-          <select id="loan-modal-type" class="form-control" required>
-            <option value="MORTGAGE">🏠 Vay Mua Nhà / Bất Động Sản (Lãi suất ưu đãi 7.5%/năm - Tối đa 20 năm)</option>
-            <option value="CAR">🚗 Vay Mua Ô Tô Trả Góp (Lãi suất ưu đãi 8.5%/năm - Tối đa 7 năm)</option>
-            <option value="CONSUMER" selected>💼 Vay Tiêu Dùng Tín Chấp (Lãi suất 10.5%/năm - Tối đa 5 năm)</option>
-            <option value="BUSINESS">📈 Vay Sản Xuất Kinh Doanh (Lãi suất 8.0%/năm - Tối đa 10 năm)</option>
-            <option value="OVERDRAFT">💳 Cấp Hạn Mức Thấu Chi Tài Khoản (Lãi suất 11.0%/năm - Tối đa 12 tháng)</option>
-          </select>
+          <select id="loan-modal-type" class="form-control" required></select>
         </div>
 
         <div class="form-group">
@@ -2535,21 +2285,23 @@
           <input type="text" id="loan-modal-title" class="form-control" placeholder="Ví dụ: Vay mua xe VinFast VF8 phục vụ đi lại" required>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px;">
+        <div style="display: grid; grid-template-columns: 1.1fr 1fr; gap: 12px;">
           <div class="form-group">
             <label for="loan-modal-amount">Số tiền đề nghị vay (VNĐ) <span style="color: var(--accent-danger);">*</span></label>
             <input type="text" id="loan-modal-amount" class="form-control" placeholder="Từ 10.000.000 VNĐ" required value="100.000.000">
           </div>
           <div class="form-group">
-            <label for="loan-modal-term">Thời hạn vay (Tháng) <span style="color: var(--accent-danger);">*</span></label>
-            <input type="number" id="loan-modal-term" class="form-control" placeholder="12" value="24" min="1" max="240" required>
+            <label for="loan-modal-term">Kỳ hạn vay đề nghị <span style="color: var(--accent-danger);">*</span></label>
+            <select id="loan-modal-term" class="form-control" required>
+              <!-- Populated dynamically based on loan type -->
+            </select>
           </div>
         </div>
 
         <div class="form-group">
           <label for="loan-modal-method">Phương thức trả nợ</label>
           <select id="loan-modal-method" class="form-control">
-            <option value="REDUCING_BALANCE">Dư nợ giảm dần (Gốc chia đều hàng tháng, lãi tính trên nợ thực tế)</option>
+            <option value="REDUCING_BALANCE">Dư nợ giảm dần (Gốc chia đều hàng tháng, lãi tính trên dư nợ thực tế)</option>
             <option value="ANNUITY">Trả góp đều định kỳ (Tổng số tiền Gốc + Lãi cố định mỗi tháng)</option>
           </select>
         </div>
@@ -2575,12 +2327,32 @@
           <input type="text" id="loan-modal-collateral" class="form-control" placeholder="Ví dụ: Cà vẹt xe ô tô, Sổ đỏ BĐS, hoặc để trống nếu Tín chấp">
         </div>
 
-        <!-- Live Estimation Preview -->
-        <div id="loan-modal-dti-preview" style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 0.82rem; line-height: 1.5;">
-          <div style="font-weight: 700; color: var(--accent-cyan); margin-bottom: 4px;">📊 Ước tính nghĩa vụ trả nợ:</div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="color: var(--text-muted);">Số tiền trả tháng đầu tiên (ước tính):</span>
-            <strong id="loan-modal-preview-first" style="color: var(--accent-gold); font-family: var(--font-mono);">0 VNĐ</strong>
+        <!-- Live Estimation Preview Box -->
+        <div id="loan-modal-dti-preview" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(0, 242, 254, 0.3); border-radius: 10px; padding: 14px; margin-bottom: 16px; font-size: 0.84rem; line-height: 1.6;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.15); padding-bottom: 8px; margin-bottom: 10px;">
+            <div style="font-weight: 700; color: var(--accent-cyan); display: flex; align-items: center; gap: 6px;">
+              <span>📊</span> Bảng Ước Tính Lịch Trả Nợ & Nghĩa Vụ Tài Chính:
+            </div>
+            <div style="font-family: var(--font-mono); color: var(--accent-emerald); font-weight: 700;" id="loan-modal-preview-rate">Lãi suất: 10.50%/năm</div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 0.82rem;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Tiền gốc tháng đầu:</span>
+              <strong id="loan-modal-preview-principal" style="font-family: var(--font-mono); color: #fff;">0 VNĐ</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Tiền lãi tháng đầu:</span>
+              <strong id="loan-modal-preview-interest" style="font-family: var(--font-mono); color: var(--accent-gold);">0 VNĐ</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Tổng trả tháng đầu:</span>
+              <strong id="loan-modal-preview-first" style="font-family: var(--font-mono); color: var(--accent-cyan); font-size: 0.95rem;">0 VNĐ</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Tổng lãi toàn kỳ vay:</span>
+              <strong id="loan-modal-preview-total-interest" style="font-family: var(--font-mono); color: var(--accent-emerald);">0 VNĐ</strong>
+            </div>
           </div>
         </div>
 
@@ -2765,6 +2537,25 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal 14f: Pay / Settle Loan (Giao Diện Thanh Toán Kỳ Nợ & Tất Toán Khoản Vay) -->
+  <div class="modal-overlay" id="modal-pay-loan">
+    <div class="modal-box" style="max-width: 640px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header" style="border-bottom: 2px solid var(--accent-gold); padding-bottom: 12px;">
+        <div>
+          <div style="font-size: 0.72rem; color: var(--accent-gold); text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">QUANGTRUNG BANK CREDIT SYSTEM</div>
+          <h3 class="modal-title" id="pay-loan-modal-title" style="color: var(--accent-gold); font-size: 1.2rem; display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+            <!-- Dynamic Title -->
+          </h3>
+        </div>
+        <button class="btn-close">&times;</button>
+      </div>
+
+      <div id="pay-loan-modal-body" style="padding: 16px 0;">
+        <!-- Injected dynamically -->
+      </div>
     </div>
   </div>
 
@@ -2957,7 +2748,7 @@
 
   <!-- Modal 16: Electronic Bank Statement (In Sao Kê Điện Tử) -->
   <div class="modal-overlay" id="modal-statement">
-    <div class="modal-box" style="max-width: 840px;">
+    <div class="modal-box" style="max-width: 880px; max-height: 90vh; overflow-y: auto; padding: 24px;">
       <div class="modal-header">
         <h3 class="modal-title" style="color: var(--accent-cyan); display: flex; align-items: center; gap: 8px;">
           <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2997,9 +2788,8 @@
               <div style="font-weight: 800; font-size: 1.3rem; color: #0369a1; letter-spacing: 1px;">QUANGTRUNG BANK</div>
               <div style="font-size: 0.8rem; color: #64748b;">NGÂN HÀNG THƯƠNG MẠI CỔ PHẦN QUANGTRUNG</div>
             </div>
-            <div style="text-align: right;">
+            <div style="text-align: right; display: flex; align-items: center;">
               <div style="font-weight: 700; font-size: 1.1rem; color: #0f172a;">SAO KÊ TÀI KHOẢN ĐIỆN TỬ</div>
-              <div style="font-size: 0.75rem; color: #64748b;" id="stmt-ref-no">Mã tra cứu: ESTM-991204</div>
             </div>
           </div>
 
@@ -3032,14 +2822,14 @@
             </div>
           </div>
 
-          <div class="table-responsive" style="margin-bottom: 20px;">
+          <div class="table-responsive" style="margin-bottom: 20px; max-height: 380px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
             <table class="data-table" style="color: #0f172a; width: 100%; border-collapse: collapse; font-size: 0.82rem;">
-              <thead>
+              <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 2;">
                 <tr style="background: #f1f5f9; color: #334155; text-align: left;">
-                  <th style="padding: 8px 10px; border: 1px solid #e2e8f0; white-space: nowrap; color: #334155;">Thời gian</th>
-                  <th style="padding: 8px 10px; border: 1px solid #e2e8f0; white-space: nowrap; color: #334155;">Mã GD</th>
-                  <th style="padding: 8px 10px; border: 1px solid #e2e8f0; color: #334155;">Nội dung giao dịch</th>
-                  <th style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; white-space: nowrap; color: #334155;">Số tiền (VNĐ)</th>
+                  <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; white-space: nowrap; color: #334155;">Thời gian</th>
+                  <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; white-space: nowrap; color: #334155;">Mã GD</th>
+                  <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; color: #334155;">Nội dung giao dịch</th>
+                  <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: right; white-space: nowrap; color: #334155;">Số tiền (VNĐ)</th>
                 </tr>
               </thead>
               <tbody id="stmt-table-body">
@@ -3067,212 +2857,8 @@
         </div>
       </div>
     </div>
-  <!-- Modal 17: Electronic KYC Verification Wizard (Định Danh eKYC) -->
-  <div class="modal-overlay" id="modal-ekyc">
-    <div class="modal-box" style="max-width: 680px;">
-      <div class="modal-header">
-        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h-3a3 3 0 00-3 3v.25M9 15h3a3 3 0 003-3V12M9 6h6a3 3 0 013 3v6a3 3 0 01-3 3H9a3 3 0 01-3-3V9a3 3 0 013-3z"/>
-          </svg>
-          Định Danh Điện Tử eKYC (Xác Thực Chân Dung & CCCD)
-        </h3>
-        <button class="btn-close">&times;</button>
-      </div>
-
-      <!-- Step Indicator Bar -->
-      <div style="display: flex; justify-content: space-between; position: relative; margin-bottom: 24px; padding: 0 10px;">
-        <div style="position: absolute; top: 14px; left: 40px; right: 40px; height: 2px; background: rgba(255,255,255,0.1); z-index: 1;"></div>
-        <div id="ekyc-line-progress" style="position: absolute; top: 14px; left: 40px; width: 0%; height: 2px; background: var(--accent-cyan); z-index: 2; transition: width 0.3s ease;"></div>
-
-        <div class="ekyc-step-node active" data-step="1" style="z-index: 3; text-align: center;">
-          <div class="step-num-box" style="width: 30px; height: 30px; border-radius: 50%; background: var(--accent-cyan); color: #0b0f19; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 4px;">1</div>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">Mặt trước CCCD</span>
-        </div>
-        <div class="ekyc-step-node" data-step="2" style="z-index: 3; text-align: center;">
-          <div class="step-num-box" style="width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.1); color: var(--text-muted); font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 4px;">2</div>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">Mặt sau CCCD</span>
-        </div>
-        <div class="ekyc-step-node" data-step="3" style="z-index: 3; text-align: center;">
-          <div class="step-num-box" style="width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.1); color: var(--text-muted); font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 4px;">3</div>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">Selfie Liveness</span>
-        </div>
-        <div class="ekyc-step-node" data-step="4" style="z-index: 3; text-align: center;">
-          <div class="step-num-box" style="width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.1); color: var(--text-muted); font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 4px;">4</div>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">Kết quả So khớp</span>
-        </div>
-      </div>
-
-      <!-- Step Content Panels -->
-      <div id="ekyc-step-panels">
-
-        <!-- STEP 1: Mặt trước CCCD -->
-        <div class="ekyc-panel" id="ekyc-panel-step-1">
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Vui lòng tải lên tệp ảnh hoặc bật camera để chụp mặt trước của Căn cước công dân gắn chip.</p>
-
-          <div style="border: 2px dashed var(--border-highlight); border-radius: 12px; padding: 24px; text-align: center; background: rgba(0,242,254,0.02); position: relative;" id="ekyc-drop-front">
-            <img id="ekyc-preview-front" style="max-height: 180px; margin: 0 auto 12px; display: none; border-radius: 8px; border: 1px solid var(--border-color);" />
-            <div id="ekyc-placeholder-front">
-              <svg width="48" height="48" fill="none" stroke="var(--accent-cyan)" viewBox="0 0 24 24" style="margin-bottom: 8px; display: block; margin: 0 auto;">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-              </svg>
-              <div style="font-size: 0.9rem; font-weight: 600;">Mặt trước CCCD gắn chip</div>
-              <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Kéo thả ảnh hoặc chọn nút bên dưới</div>
-            </div>
-            <input type="file" id="input-ekyc-file-front" accept="image/*" style="display: none;" />
-            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-upload-front">Tải Ảnh Lên</button>
-              <button type="button" class="btn btn-primary btn-sm" id="btn-cam-front">Chụp Mẫu CCCD</button>
-            </div>
-          </div>
-          <button type="button" class="btn btn-primary" id="btn-ekyc-next-1" style="width: 100%; margin-top: 20px;">Tiếp Theo: Mặt Sau CCCD &rarr;</button>
-        </div>
-
-        <!-- STEP 2: Mặt sau CCCD -->
-        <div class="ekyc-panel hidden" id="ekyc-panel-step-2">
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Vui lòng tải lên hoặc chụp mặt sau của CCCD gắn chip (rõ đặc điểm nhân dạng & dấu vân tay).</p>
-
-          <div style="border: 2px dashed var(--border-highlight); border-radius: 12px; padding: 24px; text-align: center; background: rgba(0,242,254,0.02); position: relative;" id="ekyc-drop-back">
-            <img id="ekyc-preview-back" style="max-height: 180px; margin: 0 auto 12px; display: none; border-radius: 8px; border: 1px solid var(--border-color);" />
-            <div id="ekyc-placeholder-back">
-              <svg width="48" height="48" fill="none" stroke="var(--accent-cyan)" viewBox="0 0 24 24" style="margin-bottom: 8px; display: block; margin: 0 auto;">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457-.312-2.841-.873-4.084"/>
-              </svg>
-              <div style="font-size: 0.9rem; font-weight: 600;">Mặt sau CCCD gắn chip</div>
-              <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Kéo thả ảnh hoặc chọn nút bên dưới</div>
-            </div>
-            <input type="file" id="input-ekyc-file-back" accept="image/*" style="display: none;" />
-            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-upload-back">Tải Ảnh Lên</button>
-              <button type="button" class="btn btn-primary btn-sm" id="btn-cam-back">Chụp Mẫu Mặt Sau</button>
-            </div>
-          </div>
-          <div style="display: flex; gap: 12px; margin-top: 20px;">
-            <button type="button" class="btn btn-secondary" id="btn-ekyc-back-2" style="flex: 1;">&larr; Quay Lại</button>
-            <button type="button" class="btn btn-primary" id="btn-ekyc-next-2" style="flex: 2;">Tiếp Theo: Quét Khuôn Mặt Liveness &rarr;</button>
-          </div>
-        </div>
-
-        <!-- STEP 3: Quét Selfie & Liveness Check -->
-        <div class="ekyc-panel hidden" id="ekyc-panel-step-3">
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Đưa khuôn mặt vào khung định vị Oval, chớp mắt nhẹ hoặc giữ thẳng đầu để hệ thống thực hiện Liveness Check.</p>
-
-          <div style="position: relative; width: 100%; height: 260px; background: #000; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-            <video id="ekyc-webcam-video" style="width: 100%; height: 100%; object-fit: cover;" autoplay playsinline muted></video>
-            <canvas id="ekyc-snapshot-canvas" style="display: none;"></canvas>
-            <img id="ekyc-preview-selfie" style="width: 100%; height: 100%; object-fit: cover; display: none;" />
-            
-            <!-- Oval Frame Overlay -->
-            <div style="position: absolute; width: 150px; height: 190px; border: 3px dashed var(--accent-cyan); border-radius: 50%; box-shadow: 0 0 0 9999px rgba(0,0,0,0.4); pointer-events: none; display: flex; align-items: center; justify-content: center;">
-              <span id="ekyc-liveness-hint" style="font-size: 0.7rem; color: #fff; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 10px; position: absolute; bottom: 10px; white-space: nowrap;">Giữ thẳng khuôn mặt</span>
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
-            <button type="button" class="btn btn-primary btn-sm" id="btn-ekyc-capture-selfie">Chụp Ảnh Chân Dung & So Khớp AI</button>
-          </div>
-
-          <div style="display: flex; gap: 12px; margin-top: 20px;">
-            <button type="button" class="btn btn-secondary" id="btn-ekyc-back-3" style="flex: 1;">&larr; Quay Lại</button>
-            <button type="button" class="btn btn-primary" id="btn-ekyc-next-3" style="flex: 2;" disabled>Xác Nhận Kế Thừa Dữ Liệu &rarr;</button>
-          </div>
-        </div>
-
-        <!-- STEP 4: Kết quả So khớp & Trích xuất OCR -->
-        <div class="ekyc-panel hidden" id="ekyc-panel-step-4">
-          <div style="background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(0,242,254,0.05)); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
-            <div style="font-size: 2.5rem; color: var(--accent-emerald); font-weight: 800; margin-bottom: 4px;" id="ekyc-match-percentage">98.5%</div>
-            <div style="font-size: 0.9rem; font-weight: 700; color: var(--accent-emerald);">ĐỘ TƯƠNG ĐỒNG KHUÔN MẶT ĐẠT YÊU CẦU!</div>
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Khuôn mặt chụp thực tế trùng khớp với ảnh trên CCCD chính chủ.</div>
-          </div>
-
-          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
-            <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Họ và tên trích xuất OCR:</span><strong id="ekyc-ocr-name" style="color: var(--accent-cyan);">...</strong></div>
-            <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Số CCCD gắn chip:</span><span id="ekyc-ocr-idcard" style="font-weight: 600;">...</span></div>
-            <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Trạng thái Liveness Check:</span><span style="color: var(--accent-emerald); font-weight: 600;">PASSED (Người thật)</span></div>
-          </div>
-
-          <div style="display: flex; gap: 12px;">
-            <button type="button" class="btn btn-secondary" id="btn-ekyc-back-4" style="flex: 1;">&larr; Quay Lại</button>
-            <button type="button" class="btn btn-success" id="btn-ekyc-submit-final" style="flex: 2; font-weight: 700;">Hoàn Tất Định Danh eKYC</button>
-          </div>
-        </div>
-
-      </div>
-    </div>
   </div>
 
-  <!-- Modal Xác Thực Sinh Trắc Học Khuôn Mặt Khi Đăng Nhập (Face ID Login) -->
-  <div id="modal-login-face-auth" class="modal-overlay">
-    <div class="modal-box" style="max-width: 480px; text-align: center; border: 1px solid var(--accent-cyan);">
-      <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
-        <h3 class="modal-title" style="color: var(--accent-cyan); display: flex; align-items: center; justify-content: center; gap: 8px;">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-          Xác Thực Sinh Trắc Học Khuôn Mặt (Face ID)
-        </h3>
-      </div>
-      <div class="modal-body" style="padding: 20px;">
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
-          Tiêu chuẩn an toàn ngân hàng yêu cầu xác thực khuôn mặt thực tế từ camera để hoàn tất đăng nhập.
-        </p>
-
-        <!-- Camera Container with Oval Scan Frame -->
-        <div style="position: relative; width: 280px; height: 280px; margin: 0 auto 16px; border-radius: 16px; overflow: hidden; background: #0b0f19; border: 2px solid var(--accent-cyan); display: flex; align-items: center; justify-content: center;">
-          <video id="login-webcam-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-          <canvas id="login-landmarks-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
-
-          <!-- Oval Frame Overlay -->
-          <div style="position: absolute; width: 160px; height: 210px; border: 3px dashed var(--accent-emerald); border-radius: 50%; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55); pointer-events: none; display: flex; align-items: center; justify-content: center;">
-            <span id="login-face-hint" style="font-size: 0.72rem; color: #fff; background: rgba(0,0,0,0.7); padding: 3px 10px; border-radius: 12px; position: absolute; bottom: 12px; white-space: nowrap;">Giữ thẳng khuôn mặt vào khung</span>
-          </div>
-
-          <canvas id="login-snapshot-canvas" style="display: none;"></canvas>
-          <img id="login-preview-face" src="" style="display: none; width: 100%; height: 100%; object-fit: cover;">
-        </div>
-
-        <div id="login-face-status" style="font-size: 0.85rem; font-weight: 600; color: var(--accent-gold); margin-bottom: 20px;">
-          Đang kết nối camera sinh trắc học... Vui lòng nhìn thẳng vào camera.
-        </div>
-
-        <div style="display: flex; gap: 12px;">
-          <button type="button" class="btn btn-secondary" id="btn-cancel-login-face" style="flex: 1;">Hủy Đăng Nhập</button>
-          <button type="button" class="btn btn-success" id="btn-confirm-login-face" style="flex: 2; font-weight: 700;">Quét Mặt Thực Tế & Đăng Nhập</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal GDV Mở Thêm Tài Khoản Cho Khách Hàng -->
-  <div id="modal-teller-open-account" class="modal-overlay">
-    <div class="modal-box" style="max-width: 500px;">
-      <div class="modal-header">
-        <h3 class="modal-title" style="color: var(--accent-emerald);">Mở Tài Khoản Mới Cho Khách Hàng</h3>
-        <button class="btn-close">&times;</button>
-      </div>
-      <div class="modal-body">
-        <form id="form-teller-open-acc">
-          <div class="form-group">
-            <label for="teller-open-acc-cust">Chọn Khách Hàng *</label>
-            <select id="teller-open-acc-cust" class="form-control" required></select>
-          </div>
-          <div class="form-group">
-            <label for="teller-open-acc-type">Loại Tài Khoản *</label>
-            <select id="teller-open-acc-type" class="form-control" required>
-              <option value="PAYMENT">Tài khoản Thanh toán (Payment Account)</option>
-              <option value="SAVINGS">Tài khoản Tiết kiệm (Savings Account)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="teller-open-acc-deposit">Số tiền nạp ban đầu (VND)</label>
-            <input type="text" id="teller-open-acc-deposit" class="form-control" placeholder="0" value="0">
-          </div>
-          <button type="submit" class="btn btn-success" style="width: 100%; font-weight: 700; margin-top: 10px;">
-            ✓ Xác Nhận Mở Tài Khoản
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
 
   <!-- Modal Khách Hàng Tự Mở Thêm Tài Khoản Online -->
   <div id="modal-cust-open-account" class="modal-overlay">
@@ -3342,6 +2928,8 @@
     </div>
   </div>
 
+
+
   <!-- Modal Bàn Giao Thông Tin Tài Khoản Mới Cho Khách Hàng (Tên Đăng Nhập & Mật Khẩu) -->
   <div id="modal-customer-created-success" class="modal-overlay">
     <div class="modal-box" style="max-width: 520px; border: 1px solid var(--accent-emerald);">
@@ -3383,8 +2971,8 @@
             <strong id="created-cust-balance" style="color: var(--accent-emerald);">...</strong>
           </div>
           <div style="display: flex; justify-content: space-between;">
-            <span style="color: var(--text-muted);">Định danh sinh trắc học:</span>
-            <span style="color: var(--accent-emerald); font-weight: 600;">✓ Đã thu thập (Bắt buộc Face ID khi đăng nhập)</span>
+            <span style="color: var(--text-muted);">Trạng thái định danh:</span>
+            <span style="color: var(--accent-emerald); font-weight: 600;">✓ Đã xác thực CCCD/CMND</span>
           </div>
         </div>
 
@@ -3400,13 +2988,13 @@
     </div>
   </div>
 
-  <!-- Modal 18: Admin Add / Edit Teller & Permissions (Thêm / Chỉnh Sửa Giao Dịch Viên & Phân Quyền) -->
+  <!-- Modal 18: Admin Add / Edit Teller (Thêm / Chỉnh Sửa Giao Dịch Viên) -->
   <div class="modal-overlay" id="modal-add-edit-teller">
-    <div class="modal-box" style="max-width: 680px;">
+    <div class="modal-box" style="max-width: 540px;">
       <div class="modal-header">
         <h3 class="modal-title" id="modal-teller-form-title" style="color: var(--accent-gold); display: flex; align-items: center; gap: 8px;">
           <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-          Thêm Mới Cán Bộ Nhân Viên
+          Thêm Mới Giao Dịch Viên
         </h3>
         <button class="btn-close">&times;</button>
       </div>
@@ -3424,25 +3012,14 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
-          <div class="form-group">
-            <label for="admin-teller-position-role">Vị Trí / Chức Danh Công Việc <span style="color: var(--accent-gold);">★</span></label>
-            <select id="admin-teller-position-role" class="form-control" style="font-weight: 600; color: var(--accent-cyan);">
-              <option value="FRONT_TELLER">Giao Dịch Viên Quầy (Giao dịch & Tiền gửi)</option>
-              <option value="CREDIT_OFFICER">Chuyên Viên Tín Dụng (Thẩm định & Cho vay)</option>
-              <option value="SUPERVISOR">Kiểm Soát Viên / Trưởng Phòng (Toàn quyền giám sát)</option>
-              <option value="CUSTOM">Khác / Tùy chỉnh thẩm quyền</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="admin-teller-branch">Chi Nhánh Làm Việc <span style="color: var(--accent-danger);">*</span></label>
-            <select id="admin-teller-branch" class="form-control" required>
-              <option value="Hội Sở - Hà Nội">Hội Sở - Hà Nội</option>
-              <option value="Chi nhánh Sài Gòn">Chi nhánh Sài Gòn</option>
-              <option value="Chi nhánh Đà Nẵng">Chi nhánh Đà Nẵng</option>
-              <option value="Chi nhánh Cần Thơ">Chi nhánh Cần Thơ</option>
-            </select>
-          </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="admin-teller-branch">Chi Nhánh Làm Việc <span style="color: var(--accent-danger);">*</span></label>
+          <select id="admin-teller-branch" class="form-control" required>
+            <option value="Hội Sở - Hà Nội">Hội Sở - Hà Nội</option>
+            <option value="Chi nhánh Sài Gòn">Chi nhánh Sài Gòn</option>
+            <option value="Chi nhánh Đà Nẵng">Chi nhánh Đà Nẵng</option>
+            <option value="Chi nhánh Cần Thơ">Chi nhánh Cần Thơ</option>
+          </select>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
@@ -3456,87 +3033,17 @@
           </div>
         </div>
 
-        <!-- Quick Preset Buttons -->
-        <div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.15); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-          <span style="font-size: 0.8rem; color: var(--text-muted);">
-            ⚡ Áp dụng nhanh bộ mẫu quyền:
-          </span>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-apply-preset-teller" style="font-size: 0.72rem; padding: 3px 8px;">GDV Quầy (6)</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-apply-preset-credit" style="font-size: 0.72rem; padding: 3px 8px;">Tín Dụng (4)</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-apply-preset-supervisor" style="font-size: 0.72rem; padding: 3px 8px;">Kiểm Soát (11)</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-apply-preset-all" style="font-size: 0.72rem; padding: 3px 8px;">Tất Cả (12)</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-apply-preset-none" style="font-size: 0.72rem; padding: 3px 8px;">Bỏ Chọn</button>
-          </div>
-        </div>
-
-        <!-- Permissions Checkboxes Container -->
-        <div class="form-group" style="margin-bottom: 16px;">
-          <label style="font-weight: 700; margin-bottom: 8px; display: block; color: var(--accent-cyan);">
-            Danh Mục Thẩm Quyền Thao Tác Nghiệp Vụ (<span id="modal-selected-perms-count">0</span>/12 Quyền)
-          </label>
-          <div id="modal-teller-perms-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-            <!-- Rendered dynamically by category -->
-          </div>
-        </div>
-
         <div style="display: flex; gap: 12px; margin-top: 18px; border-top: 1px solid var(--border-color); padding-top: 14px;">
           <button type="button" class="btn btn-secondary btn-close" style="flex: 1;">Hủy Bỏ</button>
+          <button type="button" class="btn btn-danger hidden" id="btn-admin-delete-teller-modal" style="flex: 1.2; font-weight: 600; background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); color: #f87171;">🗑️ Xóa Cán Bộ</button>
           <button type="submit" class="btn btn-primary" id="btn-submit-teller-form" style="flex: 2; font-weight: 700;">
-            Lưu Thông Tin & Phân Quyền
+            Lưu Thông Tin Cán Bộ
           </button>
         </div>
       </form>
     </div>
   </div>
-
-  <!-- Modal 19: Dedicated Quick Permission Matrix Modal (Phân Quyền Riêng Cho Nhân Viên) -->
-  <div class="modal-overlay" id="modal-edit-teller-perms">
-    <div class="modal-box" style="max-width: 640px;">
-      <div class="modal-header">
-        <h3 class="modal-title" style="color: var(--accent-gold); display: flex; align-items: center; gap: 8px;">
-          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-          Thiết Lập Phân Quyền Nhân Sự
-        </h3>
-        <button class="btn-close">&times;</button>
-      </div>
-      <div style="padding: 10px 0;">
-        <input type="hidden" id="quick-perm-teller-id">
-
-        <!-- Staff Profile Banner -->
-        <div style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <div style="font-weight: 700; color: #fff; font-size: 1rem;" id="quick-perm-staff-name">...</div>
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;" id="quick-perm-staff-meta">GDV001 • Hội Sở - Hà Nội</div>
-          </div>
-          <span class="badge badge-teller" id="quick-perm-staff-badge">Giao Dịch Viên</span>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-          <span style="font-size: 0.82rem; color: var(--text-muted);">Áp dụng nhanh bộ mẫu quyền:</span>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-preset-teller" style="font-size: 0.72rem; padding: 3px 8px;">GDV Quầy (6)</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-preset-credit" style="font-size: 0.72rem; padding: 3px 8px;">Tín Dụng (4)</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-preset-supervisor" style="font-size: 0.72rem; padding: 3px 8px;">Kiểm Soát (11)</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-select-all" style="font-size: 0.72rem; padding: 3px 8px;">Tất Cả (12)</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-deselect-all" style="font-size: 0.72rem; padding: 3px 8px;">Bỏ Chọn</button>
-          </div>
-        </div>
-
-        <div id="quick-perms-list-container" style="max-height: 280px; overflow-y: auto; background: rgba(0,0,0,0.25); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
-          <!-- Rendered dynamically -->
-        </div>
-
-        <div style="display: flex; gap: 12px; margin-top: 18px;">
-          <button type="button" class="btn btn-secondary btn-close" style="flex: 1;">Hủy Bỏ</button>
-          <button type="button" class="btn btn-gold" id="btn-save-quick-perms" style="flex: 2; font-weight: 700;">
-            ✓ Cập Nhật Phân Quyền
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Modal 20: Operation Success Notification Modal (Tự động đóng trong 5s) -->
+  
   <div class="modal-overlay" id="modal-operation-success" style="z-index: 10000;">
     <div class="modal-box success-modal-box">
       <button class="btn-close" id="btn-close-success-x" style="position: absolute; top: 18px; right: 18px; font-size: 1.4rem; color: var(--text-dim); background: none; border: none; cursor: pointer;">&times;</button>
@@ -3563,7 +3070,7 @@
         ✓ Hoàn Tất & Đóng
       </button>
 
-      <div class="success-modal-countdown-container">
+      <div class="success-modal-countdown-container hidden" id="success-modal-countdown-container">
         <div class="success-modal-countdown-track">
           <div class="success-modal-countdown-bar" id="success-modal-countdown-bar"></div>
         </div>
@@ -3579,7 +3086,7 @@
   <div id="toast-container"></div>
 
   <!-- Main JavaScript App Entrypoint (ES6 Modules) -->
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=20260828-no-push-card"></script>
 
 </body>
 </html>

@@ -27,8 +27,7 @@ const initialSeedData = {
       atmWithdrawInternalFee: 0,
       atmWithdrawExternalFee: 3300,
       monthlyAccountFee: 0,
-      cardIssuanceFee: 50000,
-      freeTransferForEkyc: true
+      cardIssuanceFee: 50000
     },
     transactionLimits: {
       perTxnUnverified: 10000000,
@@ -50,7 +49,6 @@ const initialSeedData = {
     // Nhóm 1: Khách hàng & Định danh
     { id: 'PERM_CREATE_CUSTOMER', name: 'Thêm mới hồ sơ KH & Quét mặt', category: 'Khách Hàng & Định Danh', desc: 'Mở hồ sơ khách hàng mới và thu thập dữ liệu sinh trắc học' },
     { id: 'PERM_EDIT_CUSTOMER', name: 'Chỉnh sửa thông tin khách hàng', category: 'Khách Hàng & Định Danh', desc: 'Cập nhật địa chỉ, SĐT, email và thông tin hành chính của KH' },
-    { id: 'PERM_VERIFY_EKYC', name: 'Thẩm định & Phê duyệt eKYC', category: 'Khách Hàng & Định Danh', desc: 'Phê duyệt trạng thái định danh điện tử CCCD và khuôn mặt' },
 
     // Nhóm 2: Tài khoản & Tiền gửi
     { id: 'PERM_MANAGE_ACCOUNT', name: 'Khóa / Mở / Đóng tài khoản', category: 'Tài Khoản & Tiền Gửi', desc: 'Thay đổi trạng thái hoạt động của tài khoản thanh toán' },
@@ -62,10 +60,7 @@ const initialSeedData = {
     { id: 'PERM_VERIFY_COLLATERAL', name: 'Kiểm tra & Thu giữ TSBĐ gốc', category: 'Tín Dụng & Cho Vay', desc: 'Kiểm tra sổ đỏ, cà vẹt gốc tại quầy và lập biên bản niêm phong kho quỹ' },
     { id: 'PERM_APPROVE_LOANS', name: 'Phê duyệt & Giải ngân khoản vay', category: 'Tín Dụng & Cho Vay', desc: 'Thẩm quyền quyết định giải ngân tiền vay trực tiếp vào TK khách hàng' },
 
-    // Nhóm 4: Chăm sóc & Vận hành
-    { id: 'PERM_HANDLE_TICKETS', name: 'Xử lý khiếu nại & Hỗ trợ KH', category: 'Chăm Sóc & Vận Hành', desc: 'Tiếp nhận phản hồi và xử lý các ticket yêu cầu hỗ trợ' },
-
-    // Nhóm 5: Quản trị & Giám sát
+    // Nhóm 4: Quản trị & Giám sát
     { id: 'PERM_VIEW_REPORTS', name: 'Xem báo cáo thống kê & Tài chính', category: 'Quản Trị & Giám Sát', desc: 'Xem biểu đồ thanh khoản, doanh thu và báo cáo phân tích' },
     { id: 'PERM_MANAGE_TELLERS', name: 'Quản lý nhân sự & Phân quyền', category: 'Quản Trị & Giám Sát', desc: 'Thêm, sửa, khóa nhân viên và thiết lập ma trận quyền' },
     { id: 'PERM_SYSTEM_CONFIG', name: 'Cấu hình tham số & Biểu phí hệ thống', category: 'Quản Trị & Giám Sát', desc: 'Cài đặt lãi suất, hạn mức và biểu phí toàn ngân hàng' }
@@ -74,9 +69,9 @@ const initialSeedData = {
     {
       id: 'FRONT_TELLER',
       title: 'Giao Dịch Viên Quầy',
-      desc: 'Phục vụ khách hàng tại quầy: Mở TK, gửi tiết kiệm, phát hành thẻ, xử lý khiếu nại',
+      desc: 'Phục vụ khách hàng tại quầy: Mở TK, gửi tiết kiệm, phát hành thẻ',
       badgeClass: 'badge-teller',
-      permissions: ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_HANDLE_TICKETS']
+      permissions: ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS']
     },
     {
       id: 'CREDIT_OFFICER',
@@ -88,144 +83,12 @@ const initialSeedData = {
     {
       id: 'SUPERVISOR',
       title: 'Kiểm Soát Viên / Trưởng Phòng',
-      desc: 'Kiểm soát phê duyệt cấp tín dụng, giải ngân, duyệt eKYC và xem báo cáo chi nhánh',
+      desc: 'Kiểm soát phê duyệt cấp tín dụng, giải ngân và xem báo cáo chi nhánh',
       badgeClass: 'badge-admin',
-      permissions: ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_VERIFY_EKYC', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_REVIEW_LOANS', 'PERM_VERIFY_COLLATERAL', 'PERM_APPROVE_LOANS', 'PERM_HANDLE_TICKETS', 'PERM_VIEW_REPORTS']
+      permissions: ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_REVIEW_LOANS', 'PERM_VERIFY_COLLATERAL', 'PERM_APPROVE_LOANS', 'PERM_VIEW_REPORTS']
     }
   ],
-  customers: [
-    {
-      id: 'CUST-1001',
-      username: 'customer1',
-      password: 'Abc@1234',
-      role: 'CUSTOMER',
-      fullName: 'Nguyễn Văn An',
-      idCard: '001098123456',
-      phone: '0901234567',
-      email: 'an.nguyen@example.com',
-      address: '123 Đường Lê Lợi, Quận 1, TP. Hồ Chí Minh',
-      kycStatus: 'VERIFIED', // VERIFIED, NOT_VERIFIED, PENDING, REJECTED
-      idCardFront: null,
-      idCardBack: null,
-      selfiePhoto: null,
-      kycVerifiedAt: '2025-01-15 10:00:00',
-      failedLoginAttempts: 0,
-      accountLockedUntil: null,
-      accounts: [
-        {
-          accountNo: '1000123456',
-          type: 'PAYMENT', // PAYMENT: Thanh toán, SAVINGS: Tiết kiệm
-          balance: 250000000,
-          currency: 'VNĐ',
-          status: 'ACTIVE', // ACTIVE: Hoạt động, LOCKED: Khóa, CLOSED: Đóng
-          createdAt: '2025-01-15'
-        }
-      ],
-      cards: [
-        {
-          id: 'CARD-1001-1',
-          cardNumber: '4532990011228899',
-          maskedNumber: '4532 •••• •••• 8899',
-          cardHolder: 'NGUYEN VAN AN',
-          cardType: 'VISA Platinum Debit',
-          expDate: '12/28',
-          cvv: '321',
-          pin: '123456',
-          status: 'ACTIVE',
-          dailyLimit: 100000000,
-          perTxnLimit: 30000000,
-          onlinePayment: true,
-          contactless: true,
-          internationalPayment: true,
-          atmWithdrawal: true,
-          linkedAccountNo: '1000123456',
-          issuedAt: '2024-01-15'
-        },
-        {
-          id: 'CARD-1001-2',
-          cardNumber: '9704220055667788',
-          maskedNumber: '9704 •••• •••• 7788',
-          cardHolder: 'NGUYEN VAN AN',
-          cardType: 'NAPAS Smart Debit',
-          expDate: '06/29',
-          cvv: '886',
-          pin: '654321',
-          status: 'ACTIVE',
-          dailyLimit: 50000000,
-          perTxnLimit: 20000000,
-          onlinePayment: true,
-          contactless: true,
-          internationalPayment: false,
-          atmWithdrawal: true,
-          linkedAccountNo: '1000123456',
-          issuedAt: '2024-06-20'
-        }
-      ]
-    },
-    {
-      id: 'CUST-1002',
-      username: 'customer2',
-      password: 'Abc@1234',
-      role: 'CUSTOMER',
-      fullName: 'Trần Thị Bình',
-      idCard: '001098654321',
-      phone: '0988765432',
-      email: 'binh.tran@example.com',
-      address: '456 Đường Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh',
-      kycStatus: 'NOT_VERIFIED',
-      idCardFront: null,
-      idCardBack: null,
-      selfiePhoto: null,
-      kycVerifiedAt: null,
-      failedLoginAttempts: 0,
-      accountLockedUntil: null,
-      accounts: [
-        {
-          accountNo: '1000987654',
-          type: 'PAYMENT',
-          balance: 85000000,
-          currency: 'VNĐ',
-          status: 'ACTIVE',
-          createdAt: '2025-01-20'
-        }
-      ],
-      cards: [
-        {
-          cardNumber: '5241 •••• •••• 1234',
-          cardHolder: 'TRAN THI BINH',
-          cardType: 'DEBIT_NAPAS',
-          expDate: '10/27',
-          status: 'ACTIVE',
-          dailyLimit: 50000000,
-          isInternational: false
-        }
-      ]
-    },
-    {
-      id: 'CUST-1003',
-      username: 'customer3',
-      password: 'Abc@1234',
-      role: 'CUSTOMER',
-      fullName: 'Lê Hoàng Nam',
-      idCard: '001098456789',
-      phone: '0912345678',
-      email: 'nam.le@example.com',
-      address: '789 Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội',
-      failedLoginAttempts: 0,
-      accountLockedUntil: null,
-      accounts: [
-        {
-          accountNo: '1000456789',
-          type: 'PAYMENT',
-          balance: 15000000,
-          currency: 'VND',
-          status: 'ACTIVE',
-          createdAt: '2025-05-20'
-        }
-      ],
-      cards: []
-    }
-  ],
+  customers: [],
   tellers: [
     {
       id: 'TELLER-001',
@@ -241,7 +104,7 @@ const initialSeedData = {
       status: 'ACTIVE',
       failedLoginAttempts: 0,
       accountLockedUntil: null,
-      permissions: ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_REVIEW_LOANS', 'PERM_VERIFY_COLLATERAL', 'PERM_APPROVE_LOANS', 'PERM_HANDLE_TICKETS']
+      permissions: ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_REVIEW_LOANS', 'PERM_VERIFY_COLLATERAL', 'PERM_APPROVE_LOANS']
     },
     {
       id: 'TELLER-002',
@@ -257,7 +120,7 @@ const initialSeedData = {
       status: 'ACTIVE',
       failedLoginAttempts: 0,
       accountLockedUntil: null,
-      permissions: ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_REVIEW_LOANS', 'PERM_VERIFY_COLLATERAL', 'PERM_APPROVE_LOANS', 'PERM_HANDLE_TICKETS']
+      permissions: ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_REVIEW_LOANS', 'PERM_VERIFY_COLLATERAL', 'PERM_APPROVE_LOANS']
     },
     {
       id: 'TELLER-003',
@@ -273,7 +136,7 @@ const initialSeedData = {
       status: 'ACTIVE',
       failedLoginAttempts: 0,
       accountLockedUntil: null,
-      permissions: ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_VERIFY_EKYC', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_REVIEW_LOANS', 'PERM_VERIFY_COLLATERAL', 'PERM_APPROVE_LOANS', 'PERM_HANDLE_TICKETS', 'PERM_VIEW_REPORTS']
+      permissions: ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_REVIEW_LOANS', 'PERM_VERIFY_COLLATERAL', 'PERM_APPROVE_LOANS', 'PERM_VIEW_REPORTS']
     }
   ],
   admins: [
@@ -291,311 +154,34 @@ const initialSeedData = {
       permissions: ['PERM_VIEW_REPORTS', 'PERM_MANAGE_TELLERS', 'PERM_SYSTEM_CONFIG']
     }
   ],
-  transactions: [
-    {
-      id: 'TXN-CARD-8801',
-      fromAccount: '1000123456',
-      fromName: 'Nguyễn Văn An',
-      toAccount: 'POS-SHOPEE-VN',
-      toName: 'Shopee E-Commerce Vietnam',
-      amount: 1450000,
-      fee: 0,
-      type: 'CARD_POS',
-      channel: 'ONLINE',
-      cardNumber: '4532990011228899',
-      merchantName: 'Shopee Official Store VN',
-      terminalId: 'POS-ONLINE-SP99',
-      traceNo: 'TRC892102',
-      authCode: 'AUTH7741',
-      content: 'Thanh toán trực tuyến đơn hàng Shopee #SPX882910',
-      timestamp: '2026-08-14 19:45:10',
-      status: 'SUCCESS'
-    },
-    {
-      id: 'TXN-CARD-8802',
-      fromAccount: '1000123456',
-      fromName: 'Nguyễn Văn An',
-      toAccount: 'POS-HIGHLANDS',
-      toName: 'Highlands Coffee - Vincom Mega Mall',
-      amount: 125000,
-      fee: 0,
-      type: 'CARD_POS',
-      channel: 'POS',
-      cardNumber: '4532990011228899',
-      merchantName: 'Highlands Coffee #045 Vincom',
-      terminalId: 'POS-HL-VC02',
-      traceNo: 'TRC892103',
-      authCode: 'AUTH5512',
-      content: 'Quẹt thẻ Contactless tại Highlands Coffee',
-      timestamp: '2026-08-15 08:30:22',
-      status: 'SUCCESS'
-    },
-    {
-      id: 'TXN-CARD-8803',
-      fromAccount: '1000123456',
-      fromName: 'Nguyễn Văn An',
-      toAccount: 'ATM-QTB-01',
-      toName: 'Cây ATM QuangTrung Bank - Chi nhánh Hoàn Kiếm',
-      amount: 2000000,
-      fee: 1100,
-      type: 'CARD_ATM',
-      channel: 'ATM',
-      cardNumber: '4532990011228899',
-      merchantName: 'ATM QuangTrung Bank Hoan Kiem',
-      terminalId: 'ATM-HN-HK01',
-      traceNo: 'TRC892104',
-      authCode: 'AUTH9933',
-      content: 'Rút tiền mặt tại ATM bằng thẻ Visa Platinum',
-      timestamp: '2026-08-16 11:15:00',
-      status: 'SUCCESS'
-    },
-    {
-      id: 'TXN-CARD-8804',
-      fromAccount: '1000123456',
-      fromName: 'Nguyễn Văn An',
-      toAccount: 'POS-WINMART',
-      toName: 'WinMart+ Times City',
-      amount: 485000,
-      fee: 0,
-      type: 'CARD_POS',
-      channel: 'POS',
-      cardNumber: '4532990011228899',
-      merchantName: 'WinMart Plus Times City',
-      terminalId: 'POS-WM-TC01',
-      traceNo: 'TRC892105',
-      authCode: 'AUTH3319',
-      content: 'Thanh toán mua hàng tạp hóa siêu thị WinMart',
-      timestamp: '2026-08-16 18:20:45',
-      status: 'SUCCESS'
-    },
-    {
-      id: 'TXN-90281',
-      fromAccount: '1000123456',
-      fromName: 'Nguyễn Văn An',
-      toAccount: '1000987654',
-      toName: 'Trần Thị Bình',
-      amount: 5000000,
-      fee: 0,
-      type: 'TRANSFER', // TRANSFER: Chuyển khoản, DEPOSIT: Nạp tiền, WITHDRAW: Rút tiền, INTEREST: Tiền lãi
-      content: 'Chuyển tiền mua máy tính',
-      timestamp: '2026-08-01 10:30:15',
-      status: 'SUCCESS'
-    },
-    {
-      id: 'TXN-90282',
-      fromAccount: 'HỆ THỐNG',
-      fromName: 'Ngân hàng QuangTrung Bank',
-      toAccount: '1000123456',
-      toName: 'Nguyễn Văn An',
-      amount: 45000000,
-      fee: 0,
-      type: 'DEPOSIT',
-      content: 'Nhận lương tháng 07/2026 từ Công ty TechCorp',
-      timestamp: '2026-08-02 08:15:00',
-      status: 'SUCCESS'
-    },
-    {
-      id: 'TXN-90283',
-      fromAccount: '1000987654',
-      fromName: 'Trần Thị Bình',
-      toAccount: '1000456789',
-      toName: 'Lê Hoàng Nam',
-      amount: 2500000,
-      fee: 0,
-      type: 'TRANSFER',
-      content: 'Thanh toán tiền nhà',
-      timestamp: '2026-08-03 14:20:00',
-      status: 'SUCCESS'
-    }
-  ],
-  tickets: [
-    {
-      id: 'TCK-101',
-      customerId: 'CUST-1001',
-      customerName: 'Nguyễn Văn An',
-      accountNo: '1000123456',
-      subject: 'Yêu cầu nâng hạn mức chuyển tiền trực tuyến',
-      content: 'Tôi muốn nâng hạn mức chuyển khoản từ 100M/ngày lên 500M/ngày để thực hiện giao dịch bất động sản.',
-      status: 'PENDING', // PENDING: Chờ xử lý, PROCESSING: Đang xử lý, RESOLVED: Đã giải quyết, REJECTED: Từ chối
-      createdAt: '2026-08-03 09:00:00',
-      assignedTo: 'GDV001',
-      response: ''
-    },
-    {
-      id: 'TCK-102',
-      customerId: 'CUST-1002',
-      customerName: 'Trần Thị Bình',
-      accountNo: '1000987654',
-      subject: 'Thắc mắc giao dịch trừ tiền không rõ lý do',
-      content: 'Tài khoản của tôi bị trừ 50,000 VND vào ngày 01/08. Nhờ GDV hỗ trợ giải thích.',
-      status: 'RESOLVED',
-      createdAt: '2026-08-01 11:45:00',
-      assignedTo: 'GDV002',
-      response: 'Đã kiểm tra: Đây là phí duy trì dịch vụ SMS Banking định kỳ hàng tháng. Đã giải thích cho KH.'
-    }
-  ],
-  auditLogs: [
-    { id: 'LOG-1', user: 'admin', action: 'HỆ THỐNG Khởi tạo phiên bản 1.0', timestamp: '2026-08-03 08:00:00' }
-  ],
-  atmCodes: [
-    {
-      id: 'ATMC-892104',
-      code: '892104',
-      type: 'WITHDRAW',
-      customerId: 'CUST-1001',
-      customerName: 'Nguyễn Văn An',
-      accountNo: '1000123456',
-      amount: 1000000,
-      pin: '1234',
-      status: 'PENDING', // PENDING: Chờ rút, COMPLETED: Hoàn tất, CANCELLED: Hủy, EXPIRED: Hết hạn
-      createdAt: '2026-08-07 08:30:00',
-      completedAt: null
-    }
-  ],
-  savingsAccounts: [
-    {
-      id: 'SAV-10821',
-      customerId: 'CUST-1001',
-      customerName: 'Nguyễn Văn An',
-      savingsNo: '880011',
-      depositAmount: 100000000,
-      termMonths: 6,
-      interestRate: 6.5,
-      expectedInterest: 3250000,
-      renewType: 'AUTO_ROLLOVER_ALL', // AUTO_ROLLOVER_ALL, ROLLOVER_PRINCIPAL, PAY_TO_PAYMENT_ACC
-      sourceAccountNo: '1000123456',
-      status: 'ACTIVE', // ACTIVE: Đang gửi, MATURED: Đã đáo hạn, CLOSED_EARLY: Tất toán trước hạn
-      createdAt: '2026-06-01',
-      maturityDate: '2026-12-01'
-    },
-    {
-      id: 'SAV-10822',
-      customerId: 'CUST-1002',
-      customerName: 'Trần Thị Bình',
-      savingsNo: '880022',
-      depositAmount: 50000000,
-      termMonths: 12,
-      interestRate: 7.2,
-      expectedInterest: 3600000,
-      renewType: 'PAY_TO_PAYMENT_ACC',
-      sourceAccountNo: '1000987654',
-      status: 'ACTIVE',
-      createdAt: '2026-01-15',
-      maturityDate: '2027-01-15'
-    }
-  ],
+  transactions: [],
+  tickets: [],
+  auditLogs: [],
+  atmCodes: [],
+  savingsAccounts: [],
   loanPackages: [
     { id: 'MORTGAGE', name: 'Vay Mua Nhà / Bất Động Sản', baseRate: 7.5, maxTerm: 240, maxAmount: 10000000000, desc: 'Lãi suất ưu đãi từ 7.5%/năm, thời hạn lên đến 20 năm, thế chấp bằng chính BĐS' },
     { id: 'CAR', name: 'Vay Mua Ô Tô Trả Góp', baseRate: 8.5, maxTerm: 84, maxAmount: 2000000000, desc: 'Lãi suất 8.5%/năm, tài trợ đến 85% giá trị xe, phê duyệt hồ sơ nhanh chóng' },
-    { id: 'CONSUMER', name: 'Vay Tiêu Dùng Tín Chấp', baseRate: 10.5, maxTerm: 60, maxAmount: 500000000, desc: 'Không cần tài sản bảo đảm, duyệt vay dựa trên thu nhập lương chuyển khoản' },
-    { id: 'BUSINESS', name: 'Vay Sản Xuất Kinh Doanh', baseRate: 8.0, maxTerm: 120, maxAmount: 5000000000, desc: 'Bổ sung vốn lưu động linh hoạt, lãi suất cạnh tranh cho hộ kinh doanh' },
-    { id: 'OVERDRAFT', name: 'Cấp Hạn Mức Thấu Chi Tài Khoản', baseRate: 11.0, maxTerm: 12, maxAmount: 100000000, desc: 'Chi tiêu vượt số dư tài khoản thanh toán, tính lãi theo ngày thực tế' }
+    { id: 'CONSUMER', name: 'Vay Tiêu Dùng', baseRate: 10.5, maxTerm: 60, maxAmount: 500000000, desc: 'Không cần tài sản bảo đảm, duyệt vay dựa trên thu nhập lương chuyển khoản' },
+    { id: 'BUSINESS', name: 'Vay Sản Xuất Kinh Doanh', baseRate: 8.0, maxTerm: 120, maxAmount: 5000000000, desc: 'Bổ sung vốn lưu động linh hoạt, lãi suất cạnh tranh cho hộ kinh doanh' }
   ],
-  loans: [
-    {
-      id: 'LOAN-701',
-      contractNo: 'HDTD-2026-0881',
-      customerId: 'CUST-1001',
-      customerName: 'Nguyễn Văn An',
-      accountNo: '1000123456',
-      loanType: 'CONSUMER', // CONSUMER, CAR, MORTGAGE, BUSINESS, OVERDRAFT
-      title: 'Vay tiêu dùng mua sắm nội thất gia đình',
-      principalAmount: 120000000,
-      remainingBalance: 90000000,
-      termMonths: 12,
-      interestRate: 9.5, // %/năm
-      repaymentMethod: 'REDUCING_BALANCE', // REDUCING_BALANCE (Dư nợ giảm dần), ANNUITY (Góp đều)
-      monthlyPayment: 10950000,
-      nextDueDate: '2026-09-05',
-      installmentPaidCount: 3,
-      status: 'ACTIVE', // PENDING, ACTIVE, REJECTED, PAID_OFF
-      appliedAt: '2026-05-01 09:30:00',
-      approvedAt: '2026-05-02 14:15:00',
-      approvedBy: 'Phạm Minh Đức (GDV001)',
-      income: 35000000,
-      incomeSource: 'Lương chuyển khoản Công ty TechCorp',
-      collateral: 'Không (Tín chấp theo lương)',
-      purpose: 'Mua sắm thiết bị nội thất và điện máy thông minh',
-      rejectionReason: ''
-    },
-    {
-      id: 'LOAN-702',
-      contractNo: 'HDTD-2026-0912',
-      customerId: 'CUST-1001',
-      customerName: 'Nguyễn Văn An',
-      accountNo: '1000123456',
-      loanType: 'CAR',
-      title: 'Vay mua xe ô tô điện VinFast VF8',
-      principalAmount: 400000000,
-      remainingBalance: 400000000,
-      termMonths: 48,
-      interestRate: 8.5,
-      repaymentMethod: 'REDUCING_BALANCE',
-      monthlyPayment: 11166667,
-      nextDueDate: 'Chờ giải ngân',
-      installmentPaidCount: 0,
-      status: 'PENDING',
-      appliedAt: '2026-08-16 10:20:00',
-      approvedAt: null,
-      approvedBy: null,
-      income: 35000000,
-      incomeSource: 'Hợp đồng lao động & Sao kê lương',
-      collateral: 'Cà vẹt xe ô tô VinFast VF8 biển số 30K-889.99',
-      purpose: 'Vay mua xe phục vụ đi lại gia đình',
-      rejectionReason: ''
-    },
-    {
-      id: 'LOAN-703',
-      contractNo: 'HDTD-2025-0451',
-      customerId: 'CUST-1002',
-      customerName: 'Trần Thị Bình',
-      accountNo: '1000987654',
-      loanType: 'MORTGAGE',
-      title: 'Vay mua nhà căn hộ chung cư EcoGreen',
-      principalAmount: 1500000000,
-      remainingBalance: 1425000000,
-      termMonths: 120,
-      interestRate: 7.5,
-      repaymentMethod: 'ANNUITY',
-      monthlyPayment: 17800000,
-      nextDueDate: '2026-09-10',
-      installmentPaidCount: 6,
-      status: 'ACTIVE',
-      appliedAt: '2026-02-01 08:30:00',
-      approvedAt: '2026-02-03 16:00:00',
-      approvedBy: 'Võ Thu Hà (GDV002)',
-      income: 45000000,
-      incomeSource: 'Kinh doanh cửa hàng mỹ phẩm & bất động sản',
-      collateral: 'Sổ hồng căn hộ A12-08 EcoGreen Quận 7',
-      purpose: 'Nhận chuyển nhượng căn hộ chung cư',
-      rejectionReason: ''
-    }
-  ],
-  beneficiaries: [
-    {
-      id: 'BENEF-001',
-      customerId: 'CUST-1001',
-      accountNo: '1000987654',
-      name: 'Trần Thị Bình',
-      bankName: 'QuangTrung Bank',
-      nickname: 'Bình (Đồng nghiệp)'
-    },
-    {
-      id: 'BENEF-002',
-      customerId: 'CUST-1001',
-      accountNo: '1000456789',
-      name: 'Lê Hoàng Nam',
-      bankName: 'QuangTrung Bank',
-      nickname: 'Nam (Chủ nhà)'
-    }
-  ],
+  loans: [],
+  beneficiaries: [],
   savingsInterestRates: [
+    { term: 0, label: 'Không Kỳ Hạn', rate: 0.2 },
     { term: 1, label: '1 Tháng', rate: 4.5 },
     { term: 3, label: '3 Tháng', rate: 5.2 },
     { term: 6, label: '6 Tháng', rate: 6.5 },
     { term: 12, label: '12 Tháng', rate: 7.2 },
-    { term: 24, label: '24 Tháng', rate: 7.8 }
-  ]
+    { term: 24, label: '24 Tháng', rate: 7.8 },
+    { term: 36, label: '36 Tháng', rate: 8.0 }
+  ],
+  loanInterestRates: {
+    CONSUMER: { 6: 8.90, 12: 9.50, 24: 10.50, 36: 11.50, 48: 12.00, 60: 12.50 },
+    CAR: { 12: 7.80, 24: 8.20, 36: 8.50, 48: 8.90, 60: 9.20, 84: 9.80 },
+    MORTGAGE: { 36: 6.80, 60: 7.50, 120: 8.20, 180: 8.60, 240: 8.90 },
+    BUSINESS: { 6: 6.80, 12: 7.50, 24: 7.80, 36: 8.00, 60: 8.40, 120: 8.80 }
+  }
 };
 
 class BankStore {
@@ -607,40 +193,73 @@ class BankStore {
   }
 
   /**
-   * Khôi phục dữ liệu giao dịch & biến động số dư trong phiên làm việc (sessionStorage)
+   * Khôi phục cấu hình hệ thống & thông tin phiên (sessionStorage)
    */
   loadSessionBusinessData() {
     try {
       const raw = sessionStorage.getItem('QUANGTRUNG_BANK_SESSION_BUSINESS_DATA');
       if (!raw) return;
       const parsed = JSON.parse(raw);
-      if (parsed.customers && Array.isArray(parsed.customers)) {
-        parsed.customers.forEach(c => {
-          if (c.accounts && Array.isArray(c.accounts)) {
-            c.accounts = c.accounts.filter(a => a.accountNo !== '8888123456');
-          }
-        });
-        this.data.customers = parsed.customers;
-      }
-      if (parsed.transactions && Array.isArray(parsed.transactions)) {
-        this.data.transactions = parsed.transactions.filter(t => t.fromAccount !== '8888123456' && t.toAccount !== '8888123456');
-      }
-      if (parsed.savingsAccounts && Array.isArray(parsed.savingsAccounts)) {
-        parsed.savingsAccounts.forEach(s => {
-          if (s.savingsNo) s.savingsNo = String(s.savingsNo).replace(/^STK-?/i, '');
-        });
-        this.data.savingsAccounts = parsed.savingsAccounts;
-      }
-      if (this.data.savingsAccounts && Array.isArray(this.data.savingsAccounts)) {
-        this.data.savingsAccounts.forEach(s => {
-          if (s.savingsNo) s.savingsNo = String(s.savingsNo).replace(/^STK-?/i, '');
-        });
-      }
       if (parsed.currentUser) {
         this.data.currentUser = parsed.currentUser;
       }
+      if (parsed.systemSettings) {
+        this.data.systemSettings = { ...this.data.systemSettings, ...parsed.systemSettings };
+      }
+      if (parsed.savingsInterestRates && Array.isArray(parsed.savingsInterestRates)) {
+        this.data.savingsInterestRates = parsed.savingsInterestRates;
+      }
+      if (parsed.loanPackages && Array.isArray(parsed.loanPackages)) {
+        this.data.loanPackages = parsed.loanPackages;
+      }
+      if (parsed.auditLogs && Array.isArray(parsed.auditLogs)) {
+        this.data.auditLogs = parsed.auditLogs;
+      }
     } catch (e) {
       console.warn('Không thể đọc dữ liệu phiên làm việc:', e);
+    }
+
+    // Đọc audit logs đã lưu từ LocalStorage để không bị mất khi chuyển đổi tài khoản giữa các tab
+    try {
+      const logsRaw = localStorage.getItem('QUANGTRUNG_BANK_AUDIT_LOGS');
+      if (logsRaw) {
+        const pLogs = JSON.parse(logsRaw);
+        if (Array.isArray(pLogs)) {
+          const map = new Map();
+          (this.data.auditLogs || []).forEach(l => {
+            const k = `${l.timestamp}_${l.user}_${l.action}`;
+            map.set(k, l);
+          });
+          pLogs.forEach(l => {
+            const k = `${l.timestamp}_${l.user}_${l.action}`;
+            if (!map.has(k)) {
+              map.set(k, l);
+            }
+          });
+          this.data.auditLogs = Array.from(map.values()).slice(0, 100);
+        }
+      }
+    } catch (err) {
+      console.warn('Không thể đọc audit logs từ LocalStorage:', err);
+    }
+
+    // Đọc cấu hình biểu lãi suất hệ thống mới nhất từ LocalStorage (đồng bộ đa tab)
+    try {
+      const ratesRaw = localStorage.getItem('QUANGTRUNG_BANK_SYS_RATES');
+      if (ratesRaw) {
+        const pRates = JSON.parse(ratesRaw);
+        if (pRates.loanInterestRates && typeof pRates.loanInterestRates === 'object') {
+          this.data.loanInterestRates = pRates.loanInterestRates;
+        }
+        if (pRates.savingsInterestRates && Array.isArray(pRates.savingsInterestRates)) {
+          this.data.savingsInterestRates = pRates.savingsInterestRates;
+        }
+        if (pRates.loanPackages && Array.isArray(pRates.loanPackages)) {
+          this.data.loanPackages = pRates.loanPackages;
+        }
+      }
+    } catch (err) {
+      console.warn('Không thể đọc cấu hình lãi suất từ LocalStorage:', err);
     }
   }
 
@@ -652,9 +271,27 @@ class BankStore {
       const payload = {
         currentUser: this.data.currentUser,
         customers: this.data.customers,
-        transactions: this.data.transactions
+        transactions: this.data.transactions,
+        savingsAccounts: this.data.savingsAccounts,
+        atmCodes: this.data.atmCodes,
+        systemSettings: this.data.systemSettings,
+        savingsInterestRates: this.data.savingsInterestRates,
+        loanPackages: this.data.loanPackages,
+        loanInterestRates: this.data.loanInterestRates,
+        auditLogs: this.data.auditLogs
       };
       sessionStorage.setItem('QUANGTRUNG_BANK_SESSION_BUSINESS_DATA', JSON.stringify(payload));
+
+      if (this.data.auditLogs && Array.isArray(this.data.auditLogs)) {
+        localStorage.setItem('QUANGTRUNG_BANK_AUDIT_LOGS', JSON.stringify(this.data.auditLogs.slice(0, 100)));
+      }
+
+      // Lưu biểu lãi suất vào LocalStorage để đồng bộ xuyên suốt các tab và khi đổi tài khoản
+      localStorage.setItem('QUANGTRUNG_BANK_SYS_RATES', JSON.stringify({
+        savingsInterestRates: this.data.savingsInterestRates,
+        loanInterestRates: this.data.loanInterestRates,
+        loanPackages: this.data.loanPackages
+      }));
     } catch (e) {
       console.warn('Lỗi lưu dữ liệu phiên làm việc:', e);
     }
@@ -669,6 +306,7 @@ class BankStore {
       localStorage.removeItem('QUANGTRUNG_BANK_SIMULATION_DATA_V3');
       localStorage.removeItem('QUANGTRUNG_BANK_SIMULATION_DATA_V2');
       localStorage.removeItem('QUANGTRUNG_BANK_SIMULATION_DATA');
+      sessionStorage.removeItem('QUANGTRUNG_BANK_SESSION_BUSINESS_DATA');
     } catch (e) {
       console.warn('Lỗi dọn dẹp bộ nhớ lưu trữ cũ:', e);
     }
@@ -802,6 +440,57 @@ class BankStore {
   }
 
   /**
+   * Chuyển đổi chuỗi ngày giờ (bất kỳ định dạng nào) sang đối tượng Date an toàn
+   */
+  parseDateString(dateInput) {
+    if (!dateInput) return new Date();
+    if (dateInput instanceof Date && !isNaN(dateInput.getTime())) return dateInput;
+    const str = String(dateInput).trim();
+
+    // Định dạng dd/MM/yyyy hoặc HH:mm:ss dd/MM/yyyy
+    const ddmmyyyy = str.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    if (ddmmyyyy) {
+      return new Date(parseInt(ddmmyyyy[3], 10), parseInt(ddmmyyyy[2], 10) - 1, parseInt(ddmmyyyy[1], 10));
+    }
+
+    // Định dạng yyyy-MM-dd hoặc yyyy-MM-ddTHH:mm:ss
+    const yyyymmdd = str.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (yyyymmdd) {
+      return new Date(parseInt(yyyymmdd[1], 10), parseInt(yyyymmdd[2], 10) - 1, parseInt(yyyymmdd[3], 10));
+    }
+
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+
+  /**
+   * Tính ngày đến hạn của kỳ trả nợ thứ monthNum (1, 2, ...) dựa trên ngày giải ngân
+   * @param {string|Date} baseDisbursementDate - Ngày giải ngân của khoản vay
+   * @param {number} monthNum - Kỳ trả nợ (1 = kỳ đầu tiên, ...)
+   * @returns {string} - Chuỗi định dạng YYYY-MM-DD
+   */
+  getLoanInstallmentDueDate(baseDisbursementDate, monthNum = 1) {
+    const baseDate = this.parseDateString(baseDisbursementDate);
+    const targetDay = baseDate.getDate();
+    
+    // Tính tháng và năm mục tiêu
+    const targetMonthIndex = baseDate.getMonth() + monthNum;
+    const tempDate = new Date(baseDate.getFullYear(), targetMonthIndex, 1);
+    const targetYear = tempDate.getFullYear();
+    const targetMonth = tempDate.getMonth();
+    
+    // Ngày cuối cùng của tháng mục tiêu
+    const daysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+    const actualDay = Math.min(targetDay, daysInTargetMonth);
+    
+    const dueDate = new Date(targetYear, targetMonth, actualDay);
+    const yyyy = dueDate.getFullYear();
+    const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(dueDate.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  /**
    * Lấy chuỗi timestamp hiện tại theo múi giờ GMT+7 chuẩn (HH:mm:ss dd/MM/yyyy)
    */
   nowGMT7String() {
@@ -815,16 +504,43 @@ class BankStore {
     return this.formatDate(new Date());
   }
 
+  /**
+   * Sinh mã giao dịch thuần số ngắn gọn (8 chữ số), không tiền tố chữ cái
+   */
+  generateTxnId() {
+    const timePart = Math.floor((Date.now() / 1000) % 10000);
+    const randPart = Math.floor(1000 + Math.random() * 9000);
+    return `${timePart}${randPart}`;
+  }
+
+  /**
+   * Định dạng mã giao dịch để luôn hiển thị thuần số gọn gàng, loại bỏ các tiền tố như TXN-, TXN-SAV-, TXN-CARD-
+   */
+  formatTxnId(id) {
+    if (!id && id !== 0) return '';
+    const str = String(id).trim();
+    const cleanDigits = str.replace(/^[A-Za-z_-]+/g, '').replace(/\D/g, '');
+    return cleanDigits || str;
+  }
+
   // Hàm hỗ trợ ghi nhật ký hệ thống (Audit log)
   addAuditLog(user, action) {
     const log = {
       id: 'LOG-' + Date.now(),
-      user: user,
+      user: user || 'system',
       action: action,
       timestamp: this.nowGMT7String()
     };
     if (!this.data.auditLogs) this.data.auditLogs = [];
     this.data.auditLogs.unshift(log);
+    if (this.data.auditLogs.length > 200) {
+      this.data.auditLogs = this.data.auditLogs.slice(0, 200);
+    }
+    this.saveSessionBusinessData();
+
+    if (typeof window !== 'undefined' && window.BankApiService && window.BankApiService.recordAuditLog) {
+      window.BankApiService.recordAuditLog(user || 'system', action).catch(() => {});
+    }
   }
 }
 

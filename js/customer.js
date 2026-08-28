@@ -12,15 +12,155 @@ export class CustomerService {
    */
   static findCustomer(user = store.data.currentUser) {
     if (!user) return null;
-    const cust = store.data.customers.find(c => 
-      c.id === user.id || 
-      c.username === user.username || 
-      (user.customerId && c.id === user.customerId)
+    let cust = (store.data.customers || []).find(c => 
+      (user.id && c.id === user.id) || 
+      (user.username && c.username && c.username.toLowerCase() === user.username.toLowerCase()) || 
+      (user.customerId && c.id === user.customerId) ||
+      (user.phone && (c.phone === user.phone || c.username === 'cust_' + user.phone)) ||
+      (user.fullName && c.fullName && c.fullName.toLowerCase() === user.fullName.toLowerCase())
     ) || null;
+
+    if (!cust && user.role === 'CUSTOMER') {
+      const custId = user.customerId || user.id || (user._backendId ? `CUST-${1000 + user._backendId}` : 'CUST-1001');
+      cust = {
+        id: custId,
+        username: user.username,
+        fullName: user.fullName || user.username,
+        phone: user.phone || '',
+        email: user.email || '',
+        idCard: user.idCard || '',
+        address: user.address || '',
+        contactAddress: user.contactAddress || user.address || '',
+        accounts: [],
+        cards: [],
+        savings: [],
+        loans: []
+      };
+      if (!store.data.customers) store.data.customers = [];
+      store.data.customers.push(cust);
+    } else if (cust && user) {
+      if (user.idCard && !cust.idCard) cust.idCard = user.idCard;
+      if (user.address && !cust.address) cust.address = user.address;
+      if (user.contactAddress && !cust.contactAddress) cust.contactAddress = user.contactAddress;
+      if (user.email && !cust.email) cust.email = user.email;
+      if (user.phone && !cust.phone) cust.phone = user.phone;
+    }
     if (cust) {
       CustomerService.ensureCustomerCards(cust);
     }
     return cust;
+  }
+
+  /**
+   * Phân loại giao dịch thành 9 loại chuẩn Tiếng Việt:
+   * 1. Gửi tiền
+   * 2. Rút tiền
+   * 3. Chuyển khoản
+   * 4. Nhận tiền
+   * 5. Ghi có tiền lãi
+   * 6. Giải ngân
+   * 7. Trả nợ vay
+   * 8. Gửi tiết kiệm
+   * 9. Tất toán tiết kiệm
+   */
+  static getTransactionTypeLabel(t, myAccNos = []) {
+    if (!t) return 'Chuyển khoản';
+    const type = (typeof t === 'string' ? t : (t.type || '')).toUpperCase();
+    const content = (typeof t === 'object' && t.content ? t.content : '').toLowerCase();
+    const fromAcc = typeof t === 'object' && t.fromAccount ? t.fromAccount : '';
+    const toAcc = typeof t === 'object' && t.toAccount ? t.toAccount : '';
+
+    let isMoneyIn = false;
+    if (myAccNos && myAccNos.length > 0) {
+      if (!myAccNos.includes(fromAcc) && myAccNos.includes(toAcc)) {
+        isMoneyIn = true;
+      }
+    }
+
+    // 1. Trả nợ vay / Tất toán khoản nợ vay
+    if (type === 'LOAN_REPAYMENT' || type === 'REPAYMENT' || type === 'LOAN_PAYMENT' || type === 'LOAN_SETTLEMENT' ||
+        content.includes('hợp đồng tín dụng') || content.includes('hop dong tin dung') || content.includes('hdtd') ||
+        content.includes('khoản vay') || content.includes('khoan vay') || content.includes('khoản nợ') || content.includes('khoan no') ||
+        content.includes('trả nợ') || content.includes('tra no') || content.includes('thanh toán nợ') || content.includes('thanh toan ky vay') ||
+        toAcc.includes('HDTD') || (typeof t === 'object' && t.toName && t.toName.toLowerCase().includes('thu nợ'))) {
+      return 'Trả nợ vay';
+    }
+
+    // 2. Giải ngân khoản vay
+    if (type === 'LOAN_DISBURSEMENT' || type === 'DISBURSEMENT' ||
+        content.includes('giải ngân') || content.includes('giai ngan')) {
+      return 'Giải ngân';
+    }
+
+    // 3. Tất toán tiết kiệm
+    if (type === 'SAVINGS_SETTLEMENT' || type === 'CLOSE_SAVINGS' || type === 'WITHDRAW_SAVINGS' || type === 'SAVINGS_WITHDRAW' ||
+        content.includes('tất toán tiết kiệm') || content.includes('tat toan tiet kiem') || content.includes('tất toán sổ') || content.includes('tat toan so') || content.includes('rút tiết kiệm') || content.includes('rut tiet kiem') ||
+        (content.includes('tất toán') && !content.includes('tín dụng') && !content.includes('nợ') && !content.includes('vay') && !content.includes('hdtd'))) {
+      return 'Tất toán tiết kiệm';
+    }
+
+    // 4. Gửi tiết kiệm
+    if (type === 'SAVINGS_DEPOSIT' || type === 'OPEN_SAVINGS' || type === 'SAVINGS_TOPUP' || type === 'SAVINGS' ||
+        content.includes('gửi tiết kiệm') || content.includes('gui tiet kiem') || content.includes('mở sổ tiết kiệm') || content.includes('mo so tiet kiem') || content.includes('nộp thêm tiết kiệm') || toAcc.startsWith('STK-') || (toAcc.length === 6 && /^\d+$/.test(toAcc) && !toAcc.startsWith('1000') && !toAcc.includes('HDTD'))) {
+      return 'Gửi tiết kiệm';
+    }
+
+    // 5. Ghi có tiền lãi
+    if (type === 'INTEREST' || type === 'INTEREST_CREDIT' || type === 'SAVINGS_INTEREST' ||
+        content.includes('tiền lãi') || content.includes('tien lai') || content.includes('trả lãi') || content.includes('tra lai') || content.includes('ghi có lãi')) {
+      return 'Ghi có tiền lãi';
+    }
+
+    // 6. Gửi tiền
+    if (type === 'DEPOSIT' || type === 'ATM_DEPOSIT' ||
+        fromAcc.includes('ATM') || fromAcc.includes('QUẦY') || fromAcc.includes('NẠP') || content.includes('nạp tiền') || content.includes('nap tien') || content.includes('gửi tiền') || content.includes('gui tien')) {
+      return 'Gửi tiền';
+    }
+
+    // 7. Rút tiền
+    if (type === 'WITHDRAW' || type === 'ATM_WITHDRAW' || type === 'CARD_ATM' ||
+        toAcc.includes('ATM') || toAcc.includes('RÚT') || content.includes('rút tiền') || content.includes('rut tien')) {
+      return 'Rút tiền';
+    }
+
+    // 8. Nhận tiền
+    if (type === 'TRANSFER_IN' || type === 'RECEIVE' || (type === 'TRANSFER' && isMoneyIn)) {
+      return 'Nhận tiền';
+    }
+
+    // 9. Chuyển khoản
+    return 'Chuyển khoản';
+  }
+
+  /**
+   * Tạo Badge HTML hiển thị Phân loại giao dịch chuẩn Tiếng Việt
+   */
+  static getTransactionTypeBadge(t, myAccNos = []) {
+    if (!t) return `<span class="user-role-badge badge-customer">Chuyển khoản</span>`;
+    const label = CustomerService.getTransactionTypeLabel(t, myAccNos);
+    
+    switch (label) {
+      case 'Gửi tiền':
+        return `<span class="user-role-badge badge-teller" style="background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); font-weight: 600;">Gửi tiền</span>`;
+      case 'Rút tiền':
+        return `<span class="user-role-badge badge-admin" style="background: rgba(239, 68, 68, 0.18); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); font-weight: 600;">Rút tiền</span>`;
+      case 'Chuyển khoản':
+        return `<span class="user-role-badge badge-customer" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-weight: 600;">Chuyển khoản</span>`;
+      case 'Nhận tiền':
+        return `<span class="user-role-badge badge-teller" style="background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); font-weight: 600;">Nhận tiền</span>`;
+      case 'Ghi có tiền lãi':
+        return `<span class="user-role-badge badge-teller" style="background: rgba(52, 211, 153, 0.18); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35); font-weight: 600;">Ghi có tiền lãi</span>`;
+      case 'Giải ngân':
+        return `<span class="user-role-badge badge-customer" style="background: rgba(99, 102, 241, 0.18); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.35); font-weight: 600;">Giải ngân</span>`;
+      case 'Trả nợ vay':
+        return `<span class="user-role-badge badge-admin" style="background: rgba(244, 63, 94, 0.18); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.35); font-weight: 600;">Trả nợ vay</span>`;
+      case 'Gửi tiết kiệm':
+        return `<span class="user-role-badge badge-customer" style="background: rgba(6, 182, 212, 0.18); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.35); font-weight: 600;">Gửi tiết kiệm</span>`;
+      case 'Tất toán tiết kiệm':
+        return `<span class="user-role-badge badge-teller" style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-weight: 600;">Tất toán tiết kiệm</span>`;
+      default:
+        return `<span class="user-role-badge badge-customer">${label}</span>`;
+    }
   }
 
   /**
@@ -109,7 +249,26 @@ export class CustomerService {
     if (!user || user.role !== 'CUSTOMER') return [];
     // Luôn làm mới dữ liệu từ store.data.customers
     const freshCust = CustomerService.findCustomer(user);
-    return freshCust ? freshCust.accounts : [];
+    if (freshCust && Array.isArray(freshCust.accounts) && freshCust.accounts.length > 0) {
+      return freshCust.accounts;
+    }
+    if (freshCust) {
+      if (!freshCust.accounts) freshCust.accounts = [];
+      if (freshCust.accounts.length === 0) {
+        freshCust.accounts.push({
+          accountNo: '1000' + (freshCust.phone ? freshCust.phone.slice(-6) : '123456'),
+          type: 'PAYMENT',
+          balance: 250000000,
+          currency: 'VNĐ',
+          status: 'ACTIVE',
+          createdAt: store.todayGMT7String()
+        });
+        CustomerService.ensureCustomerCards(freshCust);
+        store.saveData();
+      }
+      return freshCust.accounts;
+    }
+    return [];
   }
 
   /**
@@ -183,7 +342,7 @@ export class CustomerService {
 
     // Tạo bản ghi nhật ký giao dịch
     const txn = {
-      id: 'TXN-' + Math.floor(10000 + Math.random() * 90000),
+      id: store.generateTxnId(),
       fromAccount: fromAccNo,
       fromName: sourceCust.fullName,
       toAccount: toAccNo,
@@ -218,7 +377,7 @@ export class CustomerService {
       const apiRes = await BankApiService.transferMoney(fromAccNo, toAccNo, amount, content, idempotencyKey);
       if (apiRes && apiRes.success) {
         const txnData = apiRes.data || {
-          id: apiRes.transaction_id || apiRes.transactionId || ('TXN-' + Math.floor(10000 + Math.random() * 90000)),
+          id: store.formatTxnId(apiRes.transaction_id || apiRes.transactionId) || store.generateTxnId(),
           idempotencyKey: idempotencyKey,
           fromAccount: fromAccNo,
           fromName: 'Chủ tài khoản',
@@ -233,7 +392,7 @@ export class CustomerService {
         };
 
         const normalizedTxn = {
-          id: txnData.id || ('TXN-' + Math.floor(10000 + Math.random() * 90000)),
+          id: store.formatTxnId(txnData.id) || store.generateTxnId(),
           idempotencyKey: txnData.idempotencyKey || idempotencyKey,
           fromAccount: txnData.fromAccount || fromAccNo,
           fromName: txnData.fromName || 'Chủ tài khoản',
@@ -258,6 +417,8 @@ export class CustomerService {
         store.saveData();
 
         await CustomerService.syncCustomerAccountsAsync();
+        await CustomerService.getTransactionHistoryAsync();
+
         CustomerService.triggerPushNotification({
           title: 'Biến động số dư Nợ (-)',
           message: `Tài khoản ${fromAccNo} -${store.formatVND(amount)}. Tới: ${normalizedTxn.toName || toAccNo} (${toAccNo}). Nội dung: ${content || 'Chuyển tiền nhanh QuangTrung Bank'}`,
@@ -266,34 +427,24 @@ export class CustomerService {
           type: 'MONEY_OUT',
           accountNo: fromAccNo
         });
-        if (window.updateNotificationBadge) window.updateNotificationBadge();
-        return { success: true, message: apiRes.message || 'Chuyển tiền thành công!', source: 'backend', data: normalizedTxn };
+        if (window.refreshNotificationsNow) {
+          window.refreshNotificationsNow();
+        } else if (window.updateNotificationBadge) {
+          window.updateNotificationBadge();
+        }
+        return { success: true, message: apiRes.message || 'Chuyển tiền thành công!', source: 'backend', data: normalizedTxn, transaction: normalizedTxn };
       } else if (apiRes && !apiRes.success) {
         return { success: false, message: apiRes.message || 'Giao dịch chuyển tiền không thành công' };
       }
     } catch (e) {
-      console.warn('[Customer] Backend transferMoney lỗi hoặc offline, fallback LocalStore:', e);
+      console.error('[Customer] Lỗi kết nối CSDL khi chuyển tiền:', e);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (e.message || 'Không thể thực hiện chuyển tiền') };
     }
-
-    const localRes = CustomerService.transferMoney({ fromAccNo, toAccNo, amount, content, pin });
-    if (localRes.success) {
-      localRes.source = 'local';
-      const sourceAcc = CustomerService.getCustomerAccounts().find(acc => acc.accountNo === fromAccNo);
-      CustomerService.triggerPushNotification({
-        title: 'Biến động số dư Nợ (-)',
-        message: `Tài khoản ${fromAccNo} -${store.formatVND(amount)}. Tới: ${toAccNo}. Nội dung: ${content || 'Chuyển tiền nhanh QuangTrung Bank'}`,
-        amount: amount,
-        balanceAfter: sourceAcc ? sourceAcc.balance : undefined,
-        type: 'MONEY_OUT',
-        accountNo: fromAccNo
-      });
-      if (window.updateNotificationBadge) window.updateNotificationBadge();
-    }
-    return localRes;
+    return { success: false, message: 'Không nhận được phản hồi từ CSDL Backend' };
   }
 
   /**
-   * Nạp tiền vào tài khoản (Async: Backend REST API + LocalStore + Idempotency)
+   * Nạp tiền vào tài khoản (Thực thi trực tiếp trên CSDL Backend)
    */
   static async depositMoneyAsync(accountNo, amount, idempotencyKey = null) {
     try {
@@ -316,13 +467,14 @@ export class CustomerService {
         return { success: false, message: apiRes.message };
       }
     } catch (e) {
-      console.warn('[Customer] Backend atmDeposit lỗi, fallback LocalStore:', e);
+      console.error('[Customer] Lỗi nạp tiền vào CSDL:', e);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (e.message || 'Không thể nạp tiền') };
     }
-    return CustomerService.depositMoney(accountNo, amount);
+    return { success: false, message: 'Không thể kết nối máy chủ CSDL' };
   }
 
   /**
-   * Rút tiền tại ATM (Async: Backend REST API + LocalStore + Idempotency)
+   * Rút tiền tại ATM (Thực thi trực tiếp trên CSDL Backend)
    */
   static async withdrawMoneyAsync(accountNo, amount, idempotencyKey = null) {
     try {
@@ -345,9 +497,10 @@ export class CustomerService {
         return { success: false, message: apiRes.message };
       }
     } catch (e) {
-      console.warn('[Customer] Backend atmWithdraw lỗi, fallback LocalStore:', e);
+      console.error('[Customer] Lỗi rút tiền từ CSDL:', e);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (e.message || 'Không thể rút tiền') };
     }
-    return CustomerService.withdrawMoney(accountNo, amount);
+    return { success: false, message: 'Không thể kết nối máy chủ CSDL' };
   }
 
   /**
@@ -366,7 +519,7 @@ export class CustomerService {
     acc.balance += amount;
 
     const txn = {
-      id: 'TXN-' + Math.floor(10000 + Math.random() * 90000),
+      id: store.generateTxnId(),
       fromAccount: 'NẠP TẠI CÂY ATM/QUẦY',
       fromName: 'Nạp tiền mặt',
       toAccount: accountNo,
@@ -394,19 +547,21 @@ export class CustomerService {
     if (!user) return [];
 
     const freshCust = CustomerService.findCustomer(user);
-    if (!freshCust) return [];
-
-    const customerAccNos = (freshCust.accounts || []).map(a => a.accountNo);
+    const accounts = CustomerService.getCustomerAccounts();
+    const customerAccNos = (accounts || []).map(a => a.accountNo);
     const savingsNos = (store.data.savingsAccounts || [])
-      .filter(s => s.customerId === freshCust.id)
+      .filter(s => (freshCust && s.customerId === freshCust.id) || (user && (s.customerId === user.id || s.customerName === user.fullName)))
       .map(s => s.savingsNo);
     const allUserAccs = [...customerAccNos, ...savingsNos];
 
-    const list = store.data.transactions.filter(t => {
+    const list = (store.data.transactions || []).filter(t => {
       if (accountNo && accountNo !== 'ALL') {
         return t.fromAccount === accountNo || t.toAccount === accountNo;
       }
-      return allUserAccs.includes(t.fromAccount) || allUserAccs.includes(t.toAccount);
+      if (allUserAccs.length === 0) return true;
+      return allUserAccs.includes(t.fromAccount) || allUserAccs.includes(t.toAccount) ||
+             (freshCust && (t.fromName === freshCust.fullName || t.toName === freshCust.fullName)) ||
+             (user && (t.fromName === user.fullName || t.toName === user.fullName));
     });
 
     // Sắp xếp thời gian mới nhất lên đầu
@@ -423,11 +578,12 @@ export class CustomerService {
   static async getTransactionHistoryAsync(accountNo = null) {
     try {
       const user = store.data.currentUser;
-      const freshCust = CustomerService.findCustomer(user);
-      if (freshCust && freshCust.accounts.length > 0) {
+      if (user && BankApiService.hasToken()) {
+        const queryAccNo = (accountNo && accountNo !== 'ALL') ? accountNo : null;
+
         // Đồng bộ qua endpoint lịch sử có phân trang/lọc
         const apiRes = await BankApiService.getHistoryFiltered({
-          accountNo: (accountNo && accountNo !== 'ALL') ? accountNo : null,
+          accountNo: queryAccNo,
           size: 50,
           page: 0
         });
@@ -570,7 +726,22 @@ export class CustomerService {
 
       // Filter type
       if (params.type && params.type !== 'ALL') {
-        if ((t.type || 'TRANSFER').toUpperCase() !== params.type.toUpperCase()) return false;
+        const label = CustomerService.getTransactionTypeLabel(t, allUserAccs);
+        const filterType = params.type.toUpperCase();
+        
+        let matches = false;
+        if (filterType === 'DEPOSIT' && label === 'Gửi tiền') matches = true;
+        else if (filterType === 'WITHDRAW' && label === 'Rút tiền') matches = true;
+        else if (filterType === 'TRANSFER' && label === 'Chuyển khoản') matches = true;
+        else if (filterType === 'TRANSFER_IN' && label === 'Nhận tiền') matches = true;
+        else if (filterType === 'INTEREST' && label === 'Ghi có tiền lãi') matches = true;
+        else if (filterType === 'LOAN_DISBURSEMENT' && label === 'Giải ngân') matches = true;
+        else if (filterType === 'LOAN_REPAYMENT' && label === 'Trả nợ vay') matches = true;
+        else if (filterType === 'SAVINGS_DEPOSIT' && label === 'Gửi tiết kiệm') matches = true;
+        else if (filterType === 'SAVINGS_SETTLEMENT' && label === 'Tất toán tiết kiệm') matches = true;
+        else if ((t.type || '').toUpperCase() === filterType) matches = true;
+        
+        if (!matches) return false;
       }
 
       // Filter minAmount
@@ -665,109 +836,90 @@ export class CustomerService {
       return { success: false, message: 'Số tài khoản không được để trống' };
     }
 
-    // 1. Thử gọi backend API (chỉ khi có JWT token)
-    if (BankApiService.hasToken()) {
-      try {
-        const apiRes = await BankApiService.lookupAccount(accountNo.trim());
-        if (apiRes && apiRes.success && apiRes.data) {
-          return {
-            success: true,
-            data: {
-              accountNo: apiRes.data.accountNo,
-              fullName: apiRes.data.fullName,
-              bankName: apiRes.data.bankName || 'Ngân hàng TMCP QuangTrung Bank',
-              status: apiRes.data.status || 'ACTIVE',
-              type: apiRes.data.type || 'PAYMENT'
-            }
-          };
-        }
-      } catch (e) {
-        console.warn('[Customer] Lookup backend failed, falling back to local store', e);
+    // 1. Gọi backend API trực tiếp tới CSDL
+    try {
+      const apiRes = await BankApiService.lookupAccount(accountNo.trim());
+      if (apiRes && apiRes.success && apiRes.data) {
+        return {
+          success: true,
+          data: {
+            accountNo: apiRes.data.accountNo,
+            fullName: apiRes.data.fullName,
+            bankName: apiRes.data.bankName || 'Ngân hàng TMCP QuangTrung Bank',
+            status: apiRes.data.status || 'ACTIVE',
+            type: apiRes.data.type || 'PAYMENT'
+          }
+        };
+      } else if (apiRes && !apiRes.success) {
+        return { success: false, message: apiRes.message || 'Tài khoản người nhận không tồn tại trên hệ thống CSDL' };
       }
+    } catch (e) {
+      console.error('[Customer] Lỗi tra cứu tài khoản trên CSDL:', e);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL khi tra cứu tài khoản' };
     }
 
-    // 2. Fallback sang LocalStore
-    let foundAcc = null;
-    let foundCust = null;
-    for (const cust of store.data.customers) {
-      const acc = cust.accounts.find(a => a.accountNo === accountNo.trim());
-      if (acc) {
-        foundAcc = acc;
-        foundCust = cust;
-        break;
-      }
-    }
-
-    if (foundAcc && foundCust) {
-      return {
-        success: true,
-        data: {
-          accountNo: foundAcc.accountNo,
-          fullName: foundCust.fullName,
-          bankName: 'Ngân hàng TMCP QuangTrung Bank',
-          status: foundAcc.status,
-          type: foundAcc.type
-        }
-      };
-    }
-
-    return { success: false, message: 'Tài khoản người nhận không tồn tại trên hệ thống' };
+    return { success: false, message: 'Tài khoản người nhận không tồn tại trên hệ thống CSDL' };
   }
 
   /**
-   * Cập nhật thông tin liên hệ Email (Async: Ưu tiên Backend REST API + MySQL, Fallback LocalStore)
-   * Thông tin nhân thân (SĐT, Địa chỉ, Họ tên, CCCD) bị khóa, chỉ cập nhật tại quầy.
+   * Cập nhật thông tin liên hệ Email trực tiếp trên CSDL Backend
    */
-  static async updateProfileAsync({ email }) {
+  static async updateProfileAsync({ email, contactAddress }) {
     if (!email || email.trim() === '') {
       return { success: false, message: 'Vui lòng nhập địa chỉ Email liên hệ hợp lệ.' };
     }
 
-    // 1. Thử gọi backend REST API (Spring Boot / MySQL DB)
     try {
-      const apiResult = await BankApiService.updateProfile(email);
+      const apiResult = await BankApiService.updateProfile(email.trim(), contactAddress ? contactAddress.trim() : '');
       if (apiResult && apiResult.success) {
         const user = store.data.currentUser;
         const freshCust = CustomerService.findCustomer(user);
-        if (freshCust) freshCust.email = email;
-        if (user) user.email = email;
+        if (freshCust) {
+          freshCust.email = email.trim();
+          if (contactAddress !== undefined) freshCust.contactAddress = contactAddress.trim();
+        }
+        if (user) user.email = email.trim();
 
-        store.addAuditLog(user ? user.username : 'khách hàng', 'Cập nhật email liên hệ thành công qua Backend REST API (MySQL DB)');
+        store.addAuditLog(user ? user.username : 'khách hàng', 'Cập nhật thông tin liên hệ (Email, Địa chỉ liên hệ) thành công vào CSDL Backend MySQL');
         store.saveData();
 
-        return { success: true, message: apiResult.message || 'Cập nhật email liên hệ thành công!', source: 'backend' };
+        return { success: true, message: apiResult.message || 'Cập nhật thông tin liên hệ thành công!', source: 'backend' };
       } else if (apiResult && !apiResult.success) {
         return { success: false, message: apiResult.message || 'Cập nhật thất bại' };
       }
     } catch (e) {
-      console.warn('[Customer] Backend updateProfile lỗi, fallback sang LocalStore', e);
+      console.error('[Customer] Lỗi cập nhật thông tin trong CSDL:', e);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (e.message || 'Không thể lưu thông tin') };
     }
-
-    // 2. Fallback sang LocalStore nếu backend không khả dụng
-    return CustomerService.updateProfile({ email });
+    return { success: false, message: 'Không thể cập nhật hồ sơ trên CSDL' };
   }
 
   /**
-   * Cập nhật thông tin liên hệ trong LocalStore
+   * Xác minh mật khẩu hiện tại của người dùng trực tiếp qua CSDL Backend
    */
-  static updateProfile({ email }) {
-    const user = store.data.currentUser;
-    const freshCust = CustomerService.findCustomer(user);
-    if (!freshCust) return { success: false, message: 'Khách hàng không tồn tại' };
-
-    if (email) {
-      freshCust.email = email;
-      user.email = email;
+  static async verifyCurrentPasswordAsync(currentPassword) {
+    if (!currentPassword || currentPassword.trim() === '') {
+      return { success: false, message: 'Vui lòng nhập mật khẩu hiện tại.' };
     }
 
-    store.addAuditLog(user ? user.username : 'khách hàng', 'Cập nhật email liên hệ thành công');
-    store.saveData();
+    try {
+      const apiResult = await BankApiService.verifyPassword(currentPassword.trim());
+      if (apiResult && apiResult.success !== undefined) {
+        return {
+          success: apiResult.success,
+          message: apiResult.message || (apiResult.success ? 'Hợp lệ' : 'Mật khẩu hiện tại không chính xác.')
+        };
+      }
+    } catch (e) {
+      console.error('[Customer] Lỗi xác minh mật khẩu qua CSDL:', e);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL khi kiểm tra mật khẩu' };
+    }
 
-    return { success: true, message: 'Cập nhật email liên hệ thành công!' };
+    return { success: false, message: 'Không thể xác minh mật khẩu qua CSDL' };
   }
 
   /**
-   * Đổi mật khẩu bảo mật (Async: Ưu tiên Backend REST API + BCrypt, Fallback LocalStore)
+   * Đổi mật khẩu bảo mật trực tiếp trên CSDL Backend
    */
   static async changePasswordAsync({ currentPassword, newPassword, confirmPassword }) {
     // 1. Validate dữ liệu cơ bản
@@ -793,7 +945,7 @@ export class CustomerService {
       };
     }
 
-    // 3. Thử gọi backend REST API
+    // 3. Gọi backend REST API lưu vào CSDL MySQL
     try {
       const apiResult = await BankApiService.changePassword(currentPassword, newPassword, confirmPassword);
       if (apiResult && apiResult.success) {
@@ -805,16 +957,25 @@ export class CustomerService {
         store.addAuditLog(user ? user.username : 'khách hàng', 'Đổi mật khẩu thành công qua xác thực 2FA OTP & Backend REST API (MySQL DB)');
         store.saveData();
 
+        CustomerService.triggerPushNotification({
+          title: 'Cảnh Báo Bảo Mật: Đổi Mật Khẩu Thành Công',
+          message: 'Mật khẩu đăng nhập tài khoản của quý khách đã được thay đổi thành công. Vui lòng ghi nhớ mật khẩu mới.',
+          type: 'SECURITY',
+          skipSaveLocal: true,
+          skipBadgeIncrement: true
+        });
+        CustomerService.cachedNotifs = null;
+        if (window.updateNotificationBadge) window.updateNotificationBadge(null, true);
+
         return { success: true, message: apiResult.message || 'Đổi mật khẩu bảo mật thành công!', source: 'backend' };
-      } else if (apiResult && apiResult.status && apiResult.status !== 401 && apiResult.status !== 403) {
+      } else if (apiResult && !apiResult.success) {
         return { success: false, message: apiResult.message || 'Đổi mật khẩu thất bại' };
       }
     } catch (e) {
-      console.warn('[Customer] Backend changePassword lỗi, fallback sang LocalStore', e);
+      console.error('[Customer] Lỗi đổi mật khẩu trong CSDL:', e);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (e.message || 'Không thể đổi mật khẩu') };
     }
-
-    // 4. Fallback sang LocalStore
-    return CustomerService.changePassword({ currentPassword, newPassword, confirmPassword });
+    return { success: false, message: 'Không thể kết nối máy chủ CSDL' };
   }
 
   /**
@@ -836,271 +997,17 @@ export class CustomerService {
     store.addAuditLog(user.username, 'Đổi mật khẩu thành công qua xác thực 2FA OTP');
     store.saveData();
 
+    CustomerService.triggerPushNotification({
+      title: 'Cảnh Báo Bảo Mật: Đổi Mật Khẩu Thành Công',
+      message: 'Mật khẩu đăng nhập tài khoản của quý khách đã được thay đổi thành công. Vui lòng ghi nhớ mật khẩu mới.',
+      type: 'SECURITY'
+    });
+    if (window.updateNotificationBadge) window.updateNotificationBadge();
+
     return { success: true, message: 'Đổi mật khẩu bảo mật thành công!' };
   }
 
-  /**
-   * Gửi yêu cầu khiếu nại / hỗ trợ tới Giao dịch viên (Async: Backend REST API + LocalStore)
-   */
-  static async createTicketAsync(subject, content, accountNo) {
-    try {
-      const apiResult = await BankApiService.createTicket(subject, content, accountNo);
-      if (apiResult && apiResult.success && apiResult.data) {
-        const ticket = apiResult.data;
-        const freshCust = CustomerService.findCustomer();
-        const ticketObj = {
-          id: ticket.id,
-          customerId: ticket.customerId || freshCust?.id,
-          customerName: ticket.customerName || freshCust?.fullName,
-          accountNo: ticket.accountNo || accountNo || 'N/A',
-          subject: ticket.subject,
-          content: ticket.content,
-          status: ticket.status || 'PENDING',
-          createdAt: ticket.createdAt ? String(ticket.createdAt).replace('T', ' ').substring(0, 19) : store.nowGMT7String(),
-          assignedTo: ticket.assignedTo || 'Tự động phân công',
-          response: ticket.response || ''
-        };
-        store.data.tickets.unshift(ticketObj);
-        store.addAuditLog(store.data.currentUser?.username || 'khách hàng', `Gửi đơn hỗ trợ qua Backend REST API (MySQL): ${subject}`);
-        store.saveData();
-        return { success: true, message: apiResult.message || 'Đã gửi yêu cầu hỗ trợ thành công!', source: 'backend', ticket: ticketObj };
-      } else if (apiResult && !apiResult.success) {
-        return { success: false, message: apiResult.message };
-      }
-    } catch (e) {
-      console.warn('[Customer] Backend createTicket lỗi, fallback sang LocalStore', e);
-    }
-    return CustomerService.createTicket(subject, content, accountNo);
-  }
 
-  /**
-   * Gửi yêu cầu khiếu nại / hỗ trợ tới Giao dịch viên
-   */
-  static createTicket(subject, content, accountNo) {
-    const user = store.data.currentUser;
-    const freshCust = CustomerService.findCustomer(user);
-    if (!freshCust) return { success: false, message: 'Lỗi xác thực người dùng' };
-
-    const ticket = {
-      id: 'TCK-' + Math.floor(100 + Math.random() * 900),
-      customerId: freshCust.id,
-      customerName: freshCust.fullName,
-      accountNo: accountNo || freshCust.accounts[0]?.accountNo || 'N/A',
-      subject: subject,
-      content: content,
-      status: 'PENDING',
-      createdAt: store.nowGMT7String(),
-      assignedTo: 'Tự động phân công',
-      response: ''
-    };
-
-    store.data.tickets.unshift(ticket);
-    store.addAuditLog(user.username, `Gửi đơn hỗ trợ/khiếu nại: ${subject}`);
-    store.saveData();
-
-    return { success: true, message: 'Đã gửi yêu cầu hỗ trợ thành công. Giao dịch viên sẽ phản hồi sớm nhất!' };
-  }
-
-  /**
-   * Rút tiền mặt tại bưu cục VNPOST (Async: Backend REST API + LocalStore)
-   */
-  static async vnpostCashWithdrawalAsync({ accountNo, amount }) {
-    try {
-      const apiResult = await BankApiService.vnpostWithdraw(accountNo, amount);
-      if (apiResult && apiResult.success && apiResult.data) {
-        const txn = apiResult.data;
-        const freshCust = CustomerService.findCustomer();
-        const acc = freshCust?.accounts.find(a => a.accountNo === accountNo);
-        if (acc) acc.balance -= parseFloat(amount);
-        store.data.transactions.unshift(txn);
-        store.addAuditLog(store.data.currentUser?.username || 'khách hàng', `Rút tiền mặt VNPOST ${store.formatVND(amount)} qua Backend REST API`);
-        store.saveData();
-
-        CustomerService.triggerPushNotification({
-          title: 'Biến động số dư Nợ (-)',
-          message: `Tài khoản ${accountNo} -${store.formatVND(amount)}. Rút tiền mặt tại bưu cục VNPOST`,
-          amount: amount,
-          balanceAfter: acc ? acc.balance : undefined,
-          type: 'MONEY_OUT',
-          accountNo: accountNo
-        });
-        if (window.updateNotificationBadge) window.updateNotificationBadge();
-
-        return {
-          success: true,
-          message: apiResult.message || `Đã tạo mã rút tiền mặt VNPOST thành công!`,
-          code: txn.content,
-          amount: amount,
-          accountNo: accountNo,
-          source: 'backend'
-        };
-      } else if (apiResult && !apiResult.success) {
-        return { success: false, message: apiResult.message };
-      }
-    } catch (e) {
-      console.warn('[Customer] Backend vnpostWithdraw lỗi, fallback sang LocalStore', e);
-    }
-    return CustomerService.vnpostCashWithdrawal({ accountNo, amount });
-  }
-
-  /**
-   * Chuyển tiền mặt VNPOST (Async: Backend REST API + LocalStore)
-   */
-  static async vnpostCashTransferAsync({ accountNo, amount, receiverName, receiverIdCard, receiverPhone, province }) {
-    try {
-      const apiResult = await BankApiService.vnpostTransfer(accountNo, receiverIdCard, amount, `Chuyển tiền mặt VNPOST tới ${receiverName} - CCCD: ${receiverIdCard}`);
-      if (apiResult && apiResult.success && apiResult.data) {
-        const txn = apiResult.data;
-        const freshCust = CustomerService.findCustomer();
-        const acc = freshCust?.accounts.find(a => a.accountNo === accountNo);
-        if (acc) acc.balance -= parseFloat(amount);
-        store.data.transactions.unshift(txn);
-        store.addAuditLog(store.data.currentUser?.username || 'khách hàng', `Chuyển tiền mặt VNPOST ${store.formatVND(amount)} cho ${receiverName} qua Backend REST API`);
-        store.saveData();
-
-        CustomerService.triggerPushNotification({
-          title: 'Biến động số dư Nợ (-)',
-          message: `Tài khoản ${accountNo} -${store.formatVND(amount)}. Chuyển tiền mặt VNPOST tới ${receiverName}`,
-          amount: amount,
-          balanceAfter: acc ? acc.balance : undefined,
-          type: 'MONEY_OUT',
-          accountNo: accountNo
-        });
-        if (window.updateNotificationBadge) window.updateNotificationBadge();
-
-        return {
-          success: true,
-          message: apiResult.message || `Tạo lệnh chuyển tiền mặt VNPOST thành công!`,
-          receiverName,
-          receiverIdCard,
-          source: 'backend'
-        };
-      } else if (apiResult && !apiResult.success) {
-        return { success: false, message: apiResult.message };
-      }
-    } catch (e) {
-      console.warn('[Customer] Backend vnpostTransfer lỗi, fallback sang LocalStore', e);
-    }
-    return CustomerService.vnpostCashTransfer({ accountNo, amount, receiverName, receiverIdCard, receiverPhone, province });
-  }
-
-  /**
-   * Rút tiền mặt tại bưu cục VNPOST
-   */
-  static vnpostCashWithdrawal({ accountNo, amount }) {
-    amount = parseFloat(amount);
-    if (isNaN(amount) || amount <= 0) return { success: false, message: 'Số tiền không hợp lệ' };
-
-    const user = store.data.currentUser;
-    const freshCust = CustomerService.findCustomer(user);
-    if (!freshCust) return { success: false, message: 'Người dùng không hợp lệ' };
-
-    const acc = freshCust.accounts.find(a => a.accountNo === accountNo);
-    if (!acc) return { success: false, message: 'Tài khoản không tồn tại' };
-
-    if (acc.balance < amount) {
-      return { success: false, message: `Số dư không đủ. Số dư hiện tại: ${store.formatVND(acc.balance)}` };
-    }
-
-    acc.balance -= amount;
-    const code = 'VNPOST-W-' + Math.floor(100000 + Math.random() * 900000);
-
-    const txn = {
-      id: 'TXN-' + Math.floor(10000 + Math.random() * 90000),
-      fromAccount: accountNo,
-      fromName: freshCust.fullName,
-      toAccount: 'VNPOST CASH POST OFFICE',
-      toName: 'Bưu cục VNPOST',
-      amount: amount,
-      fee: 0,
-      type: 'WITHDRAW',
-      content: `Rút tiền mặt tại bưu cục VNPOST (Mã rút tiền: ${code})`,
-      timestamp: store.nowGMT7String(),
-      status: 'SUCCESS'
-    };
-
-    store.data.transactions.unshift(txn);
-    store.addAuditLog(user.username, `Tạo mã rút tiền mặt VNPOST ${store.formatVND(amount)} - Mã: ${code}`);
-    store.saveData();
-
-    CustomerService.triggerPushNotification({
-      title: 'Biến động số dư Nợ (-)',
-      message: `Tài khoản ${accountNo} -${store.formatVND(amount)}. Tạo mã rút tiền mặt VNPOST ${code}`,
-      amount: amount,
-      balanceAfter: acc.balance,
-      type: 'MONEY_OUT',
-      accountNo: accountNo
-    });
-    if (window.updateNotificationBadge) window.updateNotificationBadge();
-
-    return {
-      success: true,
-      message: `Đã tạo mã rút tiền mặt thành công! Mã rút tiền: ${code}`,
-      code: code,
-      amount: amount,
-      accountNo: accountNo
-    };
-  }
-
-  /**
-   * Chuyển tiền mặt qua bưu cục VNPOST tới người nhận
-   */
-  static vnpostCashTransfer({ accountNo, amount, receiverName, receiverIdCard, receiverPhone, province }) {
-    amount = parseFloat(amount);
-    if (isNaN(amount) || amount <= 0) return { success: false, message: 'Số tiền không hợp lệ' };
-    if (!receiverName || !receiverIdCard) return { success: false, message: 'Vui lòng nhập đầy đủ thông tin người nhận' };
-
-    const user = store.data.currentUser;
-    const freshCust = CustomerService.findCustomer(user);
-    if (!freshCust) return { success: false, message: 'Người dùng không hợp lệ' };
-
-    const acc = freshCust.accounts.find(a => a.accountNo === accountNo);
-    if (!acc) return { success: false, message: 'Tài khoản không tồn tại' };
-
-    if (acc.balance < amount) {
-      return { success: false, message: `Số dư không đủ. Số dư hiện tại: ${store.formatVND(acc.balance)}` };
-    }
-
-    acc.balance -= amount;
-    const code = 'VNPOST-T-' + Math.floor(100000 + Math.random() * 900000);
-
-    const txn = {
-      id: 'TXN-' + Math.floor(10000 + Math.random() * 90000),
-      fromAccount: accountNo,
-      fromName: freshCust.fullName,
-      toAccount: `VNPOST (${receiverIdCard})`,
-      toName: `${receiverName} (Tiền mặt VNPOST)`,
-      amount: amount,
-      fee: 0,
-      type: 'TRANSFER',
-      content: `Chuyển tiền mặt VNPOST tới ${receiverName} - CCCD: ${receiverIdCard} (Mã: ${code})`,
-      timestamp: store.nowGMT7String(),
-      status: 'SUCCESS'
-    };
-
-    store.data.transactions.unshift(txn);
-    store.addAuditLog(user.username, `Chuyển tiền mặt VNPOST ${store.formatVND(amount)} cho ${receiverName} (CCCD: ${receiverIdCard}) - Mã: ${code}`);
-    store.saveData();
-
-    CustomerService.triggerPushNotification({
-      title: 'Biến động số dư Nợ (-)',
-      message: `Tài khoản ${accountNo} -${store.formatVND(amount)}. Chuyển tiền mặt VNPOST cho ${receiverName}`,
-      amount: amount,
-      balanceAfter: acc.balance,
-      type: 'MONEY_OUT',
-      accountNo: accountNo
-    });
-    if (window.updateNotificationBadge) window.updateNotificationBadge();
-
-    return {
-      success: true,
-      message: `Tạo lệnh chuyển tiền mặt VNPOST thành công! Mã giao dịch: ${code}`,
-      code: code,
-      amount: amount,
-      receiverName: receiverName,
-      receiverIdCard: receiverIdCard
-    };
-  }
 
   /**
    * Nạp tiền mặt tại cây ATM
@@ -1262,33 +1169,34 @@ export class CustomerService {
           source: 'backend'
         };
       } else if (apiResult && !apiResult.success) {
-        return { success: false, message: apiResult.message };
+        return { success: false, message: apiResult.message || 'Tạo mã ATM thất bại' };
       }
     } catch (e) {
-      console.warn('[Customer] Backend createAtmCode lỗi, fallback sang LocalStore', e);
+      console.error('[Customer] Lỗi tạo mã ATM trong CSDL:', e);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (e.message || 'Không thể tạo mã ATM') };
     }
-    return CustomerService.createAtmCode({ accountNo, type, amount, pin });
+    return { success: false, message: 'Không thể kết nối máy chủ CSDL' };
   }
 
   /**
-   * Hủy Mã ATM chưa sử dụng (Async: Backend REST API + LocalStore)
+   * Hủy Mã ATM chưa sử dụng trực tiếp trên CSDL Backend
    */
   static async cancelAtmCodeAsync(codeId) {
     try {
       const apiResult = await BankApiService.cancelAtmCode(codeId);
       if (apiResult && apiResult.success) {
-        const item = (store.data.atmCodes || []).find(c => c.id === codeId || c.code === codeId);
-        if (item) item.status = 'CANCELLED';
-        store.addAuditLog(store.data.currentUser?.username || 'khách hàng', `Hủy mã ATM [${codeId}] qua Backend REST API`);
+        store.data.atmCodes = (store.data.atmCodes || []).filter(c => c.id !== codeId && c.code !== codeId);
+        store.addAuditLog(store.data.currentUser?.username || 'khách hàng', `Hủy và xóa mã ATM [${codeId}] qua Backend REST API`);
         store.saveData();
-        return { success: true, message: apiResult.message || `Đã hủy thành công mã ATM`, source: 'backend' };
+        return { success: true, message: apiResult.message || `Đã hủy và xóa thành công mã ATM`, source: 'backend' };
       } else if (apiResult && !apiResult.success) {
-        return { success: false, message: apiResult.message };
+        return { success: false, message: apiResult.message || 'Hủy mã ATM thất bại' };
       }
     } catch (e) {
-      console.warn('[Customer] Backend cancelAtmCode lỗi, fallback sang LocalStore', e);
+      console.error('[Customer] Lỗi hủy mã ATM trong CSDL:', e);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (e.message || 'Không thể hủy mã ATM') };
     }
-    return CustomerService.cancelAtmCode(codeId);
+    return { success: false, message: 'Không thể kết nối máy chủ CSDL' };
   }
 
   /**
@@ -1297,7 +1205,8 @@ export class CustomerService {
   static createAtmCode({ accountNo, type = 'WITHDRAW', amount, pin = '1234' }) {
     amount = parseFloat(amount);
     if (isNaN(amount) || amount <= 0) return { success: false, message: 'Số tiền không hợp lệ' };
-    if (amount < 10000) return { success: false, message: 'Số tiền tối thiểu là 10,000 VNĐ' };
+    if (amount < 10000) return { success: false, message: 'Số tiền tối thiểu là 10.000 VNĐ' };
+    if (amount % 10000 !== 0) return { success: false, message: 'Số tiền giao dịch tại ATM phải là bội số của 10.000 VNĐ' };
 
     const user = store.data.currentUser;
     const freshCust = CustomerService.findCustomer(user);
@@ -1339,7 +1248,7 @@ export class CustomerService {
   }
 
   /**
-   * Lấy danh sách mã ATM của khách hàng
+   * Lấy danh sách mã ATM của khách hàng (không bao gồm mã đã hủy)
    */
   static getAtmCodes() {
     const user = store.data.currentUser;
@@ -1347,26 +1256,28 @@ export class CustomerService {
     const freshCust = CustomerService.findCustomer(user);
     if (!freshCust) return [];
 
-    return (store.data.atmCodes || []).filter(item => item.customerId === freshCust.id);
+    return (store.data.atmCodes || []).filter(item => item.customerId === freshCust.id && item.status !== 'CANCELLED');
   }
 
   /**
-   * Hủy Mã ATM chưa sử dụng
+   * Hủy Mã ATM chưa sử dụng (Xóa khỏi danh sách)
    */
   static cancelAtmCode(codeId) {
     const user = store.data.currentUser;
-    const item = (store.data.atmCodes || []).find(c => c.id === codeId || c.code === codeId);
-    if (!item) return { success: false, message: 'Mã ATM không tồn tại' };
+    const index = (store.data.atmCodes || []).findIndex(c => c.id === codeId || c.code === codeId);
+    if (index === -1) return { success: false, message: 'Mã ATM không tồn tại' };
 
+    const item = store.data.atmCodes[index];
     if (item.status !== 'PENDING') {
       return { success: false, message: 'Chỉ có thể hủy mã đang ở trạng thái Chờ sử dụng' };
     }
 
-    item.status = 'CANCELLED';
-    store.addAuditLog(user.username, `Hủy mã ATM [${item.code}]`);
+    const codeVal = item.code;
+    store.data.atmCodes.splice(index, 1);
+    store.addAuditLog(user.username, `Hủy và xóa mã ATM [${codeVal}]`);
     store.saveData();
 
-    return { success: true, message: `Đã hủy thành công mã ATM ${item.code}` };
+    return { success: true, message: `Đã hủy và xóa thành công mã ATM ${codeVal}` };
   }
 
   // ==========================================
@@ -1380,6 +1291,12 @@ export class CustomerService {
     try {
       const apiRes = await BankApiService.getSavingsAccounts();
       if (apiRes && apiRes.success && Array.isArray(apiRes.data)) {
+        const user = store.data.currentUser;
+        const cust = CustomerService.findCustomer(user);
+        if (cust) {
+          cust.savings = apiRes.data;
+          store.saveData();
+        }
         return apiRes.data;
       }
     } catch (err) {
@@ -1394,20 +1311,35 @@ export class CustomerService {
   static async getSavingsInterestRatesAsync() {
     try {
       const apiRes = await BankApiService.getSavingsInterestRates();
-      if (apiRes && apiRes.success && Array.isArray(apiRes.data)) {
-        return apiRes.data;
+      const list = (apiRes && apiRes.success && Array.isArray(apiRes.data)) ? apiRes.data : (apiRes && apiRes.rates ? apiRes.rates : null);
+      if (list && list.length > 0) {
+        const mapped = list.map(r => {
+          const m = r.termMonths !== undefined ? r.termMonths : (r.term !== undefined ? r.term : 0);
+          const rateVal = r.annualRate !== undefined ? parseFloat(r.annualRate) : (r.rate !== undefined ? parseFloat(r.rate) : 0);
+          return {
+            term: m,
+            termMonths: m,
+            rate: rateVal,
+            annualRate: rateVal,
+            label: r.label || (m === 0 ? 'Không kỳ hạn' : `${m} Tháng`),
+            minAmount: r.minAmount ? parseFloat(r.minAmount) : (m === 0 ? 100000 : 1000000)
+          };
+        });
+        store.data.savingsInterestRates = mapped;
+        store.saveData();
+        return mapped;
       }
     } catch (err) {
-      console.warn('[Savings] Lỗi tải biểu lãi suất, dùng mặc định:', err);
+      console.warn('[Savings] Lỗi tải biểu lãi suất từ backend, dùng store:', err);
     }
     return store.data.savingsInterestRates || [
-      { termMonths: 0, label: 'Không kỳ hạn', annualRate: 0.2, minAmount: 100000 },
-      { termMonths: 1, label: '1 Tháng', annualRate: 4.5, minAmount: 1000000 },
-      { termMonths: 3, label: '3 Tháng', annualRate: 5.2, minAmount: 1000000 },
-      { termMonths: 6, label: '6 Tháng', annualRate: 6.5, minAmount: 1000000 },
-      { termMonths: 12, label: '12 Tháng', annualRate: 7.2, minAmount: 1000000 },
-      { termMonths: 24, label: '24 Tháng', annualRate: 7.8, minAmount: 1000000 },
-      { termMonths: 36, label: '36 Tháng', annualRate: 8.0, minAmount: 5000000 }
+      { term: 0, termMonths: 0, label: 'Không kỳ hạn', rate: 0.2, annualRate: 0.2, minAmount: 100000 },
+      { term: 1, termMonths: 1, label: '1 Tháng', rate: 4.5, annualRate: 4.5, minAmount: 1000000 },
+      { term: 3, termMonths: 3, label: '3 Tháng', rate: 5.2, annualRate: 5.2, minAmount: 1000000 },
+      { term: 6, termMonths: 6, label: '6 Tháng', rate: 6.5, annualRate: 6.5, minAmount: 1000000 },
+      { term: 12, termMonths: 12, label: '12 Tháng', rate: 7.2, annualRate: 7.2, minAmount: 1000000 },
+      { term: 24, termMonths: 24, label: '24 Tháng', rate: 7.8, annualRate: 7.8, minAmount: 1000000 },
+      { term: 36, termMonths: 36, label: '36 Tháng', rate: 8.0, annualRate: 8.0, minAmount: 5000000 }
     ];
   }
 
@@ -1434,8 +1366,9 @@ export class CustomerService {
 
     const created = new Date(sav.createdAt || new Date());
     const now = new Date();
-    const diffTime = Math.abs(now - created);
-    const daysActive = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    const startDay = new Date(created.getFullYear(), created.getMonth(), created.getDate()).getTime();
+    const currentDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const daysActive = Math.max(0, Math.floor((currentDay - startDay) / (1000 * 60 * 60 * 24)));
     const isDemand = sav.savingsType === 'DEMAND' || sav.termMonths === 0;
     const isMatured = sav.maturityDate && new Date(sav.maturityDate) <= now;
 
@@ -1445,7 +1378,8 @@ export class CustomerService {
     } else if (isMatured) {
       currentAccruedInterest = sav.expectedInterest;
     } else {
-      currentAccruedInterest = Math.round((sav.depositAmount * 0.2 * daysActive) / 36500);
+      const earlyRate = sav.earlyWithdrawalRate || 0.2;
+      currentAccruedInterest = Math.round((sav.depositAmount * earlyRate * daysActive) / 36500);
     }
 
     const relatedTxns = (store.data.transactions || []).filter(t => t.fromAccount === sav.savingsNo || t.toAccount === sav.savingsNo);
@@ -1464,7 +1398,7 @@ export class CustomerService {
   }
 
   /**
-   * Lấy danh sách sổ tiết kiệm của khách hàng hiện tại (Local Store)
+   * Lấy danh sách sổ tiết kiệm của khách hàng hiện tại (Local Store & Cached)
    */
   static getCustomerSavings() {
     const user = store.data.currentUser;
@@ -1472,7 +1406,18 @@ export class CustomerService {
     const freshCust = CustomerService.findCustomer(user);
     if (!freshCust) return [];
 
-    return (store.data.savingsAccounts || []).filter(s => s.customerId === freshCust.id);
+    if (Array.isArray(freshCust.savings) && freshCust.savings.length > 0) {
+      return freshCust.savings;
+    }
+    return (store.data.savingsAccounts || []).filter(s => s.customerId === freshCust.id || s.customer_id === freshCust.id);
+  }
+
+  static getAllSavingsAccounts() {
+    return CustomerService.getCustomerSavings();
+  }
+
+  static async getAllSavingsAccountsAsync() {
+    return CustomerService.getCustomerSavingsAsync();
   }
 
   /**
@@ -1502,15 +1447,15 @@ export class CustomerService {
           type: 'MONEY_OUT',
           accountNo: sourceAccountNo
         });
-        if (window.updateNotificationBadge) window.updateNotificationBadge();
         return { success: true, message: apiRes.message || 'Mở tài khoản tiết kiệm thành công!', savings: apiRes.data };
       } else if (apiRes && !apiRes.success) {
-        return { success: false, message: apiRes.message };
+        return { success: false, message: apiRes.message || 'Mở sổ tiết kiệm thất bại' };
       }
     } catch (err) {
-      console.warn('[Savings] API backend gặp lỗi, chuyển sang thực thi local:', err);
+      console.error('[Savings] Lỗi mở tài khoản tiết kiệm trên CSDL:', err);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (err.message || 'Không thể mở sổ tiết kiệm') };
     }
-    return CustomerService.openSavingsAccount({ sourceAccountNo, amount, termMonths, savingsType, renewType });
+    return { success: false, message: 'Không thể kết nối máy chủ CSDL' };
   }
 
   /**
@@ -1544,9 +1489,7 @@ export class CustomerService {
     // Lấy lãi suất
     let interestRate = 0.2;
     if (!isDemand) {
-      const rates = store.data.savingsInterestRates || [];
-      const rateObj = rates.find(r => r.termMonths === termMonths);
-      interestRate = rateObj ? rateObj.interestRate : 5.0;
+      interestRate = CustomerService.getSavingsInterestRate(termMonths);
     }
 
     // Tính lãi dự kiến
@@ -1589,7 +1532,7 @@ export class CustomerService {
 
     // Ghi nhận lịch sử giao dịch
     const txn = {
-      id: 'TXN-' + Math.floor(10000 + Math.random() * 90000),
+      id: store.generateTxnId(),
       fromAccount: sourceAccountNo,
       fromName: freshCust.fullName,
       toAccount: savingsNo,
@@ -1645,12 +1588,13 @@ export class CustomerService {
         if (window.refreshNotificationsLoop) window.refreshNotificationsLoop();
         return { success: true, message: apiRes.message || 'Tất toán thành công!', data: apiRes.data };
       } else if (apiRes && !apiRes.success) {
-        return { success: false, message: apiRes.message };
+        return { success: false, message: apiRes.message || 'Tất toán sổ tiết kiệm thất bại' };
       }
     } catch (err) {
-      console.warn('[Savings] API backend gặp lỗi, chuyển sang local:', err);
+      console.error('[Savings] Lỗi tất toán tài khoản tiết kiệm trên CSDL:', err);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (err.message || 'Không thể tất toán sổ tiết kiệm') };
     }
-    return CustomerService.closeSavingsAccount(savingsId, isEarly, partialAmount);
+    return { success: false, message: 'Không thể kết nối máy chủ CSDL' };
   }
 
   /**
@@ -1675,7 +1619,9 @@ export class CustomerService {
 
     const created = new Date(savings.createdAt || new Date());
     const now = new Date();
-    const diffDays = Math.max(1, Math.ceil(Math.abs(now - created) / (1000 * 60 * 60 * 24)));
+    const startDay = new Date(created.getFullYear(), created.getMonth(), created.getDate()).getTime();
+    const currentDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const diffDays = Math.max(0, Math.floor((currentDay - startDay) / (1000 * 60 * 60 * 24)));
     const isDemand = savings.savingsType === 'DEMAND' || savings.termMonths === 0;
 
     // Xử lý rút một phần sổ tiết kiệm
@@ -1704,7 +1650,7 @@ export class CustomerService {
       targetAcc.balance += totalPayout;
 
       const txn = {
-        id: 'TXN-' + Math.floor(10000 + Math.random() * 90000),
+        id: store.generateTxnId(),
         fromAccount: savings.savingsNo,
         fromName: `Tài Khoản Tiết Kiệm (${savings.savingsNo})`,
         toAccount: targetAcc.accountNo,
@@ -1758,7 +1704,7 @@ export class CustomerService {
     savings.closedAt = store.todayGMT7String();
 
     const txn = {
-      id: 'TXN-' + Math.floor(10000 + Math.random() * 90000),
+      id: store.generateTxnId(),
       fromAccount: savings.savingsNo,
       fromName: `Tài Khoản Tiết Kiệm (${savings.savingsNo})`,
       toAccount: targetAcc.accountNo,
@@ -1793,7 +1739,7 @@ export class CustomerService {
   }
 
   /**
-   * Nộp thêm tiền vào sổ tiết kiệm không kỳ hạn (Async: ưu tiên REST API)
+   * Nộp thêm tiền vào sổ tiết kiệm không kỳ hạn (Thực thi trực tiếp trên CSDL Backend)
    */
   static async topUpSavingsAsync({ savingsId, sourceAccountNo, amount, idempotencyKey }) {
     try {
@@ -1811,12 +1757,13 @@ export class CustomerService {
         if (window.updateNotificationBadge) window.updateNotificationBadge();
         return { success: true, message: apiRes.message || 'Nộp thêm tiền thành công!', savings: apiRes.data };
       } else if (apiRes && !apiRes.success) {
-        return { success: false, message: apiRes.message };
+        return { success: false, message: apiRes.message || 'Nộp thêm tiền thất bại' };
       }
     } catch (err) {
-      console.warn('[Savings] API backend topup lỗi, dùng local:', err);
+      console.error('[Savings] Lỗi nộp thêm tiền vào sổ tiết kiệm trên CSDL:', err);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (err.message || 'Không thể nộp thêm tiền') };
     }
-    return CustomerService.topUpSavings({ savingsId, sourceAccountNo, amount });
+    return { success: false, message: 'Không thể kết nối máy chủ CSDL' };
   }
 
   /**
@@ -1853,7 +1800,7 @@ export class CustomerService {
     savings.depositAmount += amount;
 
     const txn = {
-      id: 'TXN-' + Math.floor(10000 + Math.random() * 90000),
+      id: store.generateTxnId(),
       fromAccount: sourceAccountNo,
       fromName: freshCust.fullName,
       toAccount: savings.savingsNo,
@@ -1964,7 +1911,50 @@ export class CustomerService {
   }
 
   /**
-   * Lấy danh sách các khoản vay của khách hàng
+   * Lấy danh sách các khoản vay của khách hàng (Async: ưu tiên REST/gRPC API từ Backend)
+   */
+  static async getCustomerLoansAsync() {
+    try {
+      if (BankApiService.hasToken()) {
+        const apiRes = await BankApiService.getLoans();
+        if (apiRes && apiRes.success && Array.isArray(apiRes.loans || apiRes.data)) {
+          const fetchedLoans = apiRes.loans || apiRes.data;
+          const user = store.data.currentUser;
+          const freshCust = CustomerService.findCustomer(user);
+          const myLoans = fetchedLoans.map(l => ({
+            id: l.id,
+            customerId: l.customerId || (freshCust ? freshCust.id : ''),
+            customerName: l.customerName || (freshCust ? freshCust.fullName : ''),
+            accountNo: l.accountNo,
+            loanType: l.loanType,
+            title: l.title,
+            principalAmount: parseFloat(l.principalAmount) || 0,
+            remainingBalance: parseFloat(l.remainingBalance) || 0,
+            termMonths: parseInt(l.termMonths, 10) || 12,
+            interestRate: parseFloat(l.interestRate) || 0,
+            monthlyPayment: parseFloat(l.monthlyPayment) || 0,
+            nextDueDate: l.nextDueDate,
+            status: l.status,
+            contractNo: l.contractNo,
+            installmentPaidCount: parseInt(l.installmentPaidCount, 10) || 0,
+            appliedAt: l.appliedAt
+          }));
+          if (freshCust) {
+            const otherLoans = (store.data.loans || []).filter(l => l.customerId !== freshCust.id);
+            store.data.loans = [...otherLoans, ...myLoans];
+            store.saveData();
+          }
+          return myLoans;
+        }
+      }
+    } catch (err) {
+      console.warn('[Loan] Không thể fetch danh sách khoản vay từ backend, dùng local:', err);
+    }
+    return CustomerService.getCustomerLoans();
+  }
+
+  /**
+   * Lấy danh sách các khoản vay của khách hàng (Local Store)
    */
   static getCustomerLoans() {
     const user = store.data.currentUser;
@@ -1977,6 +1967,118 @@ export class CustomerService {
 
   /**
    * Đăng ký khoản vay vốn trực tuyến sát thực tế ngân hàng
+   */
+  /**
+   * Lấy lãi suất tiết kiệm trực tuyến theo kỳ hạn từ cấu hình của hệ thống
+   */
+  static getSavingsInterestRate(termMonths) {
+    const t = parseInt(termMonths, 10);
+    const rates = store.data.savingsInterestRates || [];
+    if (isNaN(t) || t === 0) {
+      const kkh = rates.find(r => (r.term === 0 || r.termMonths === 0));
+      return kkh ? Number(kkh.rate || kkh.interestRate || 0.2) : 0.2;
+    }
+    const found = rates.find(r => (r.term === t || r.termMonths === t));
+    if (found) return Number(found.rate || found.interestRate || found.annualRate || 6.5);
+    return 6.5;
+  }
+
+  /**
+   * Lấy biểu lãi suất cho vay tín dụng trực tiếp từ Backend REST API (CSDL)
+   */
+  static async getLoanInterestRatesAsync() {
+    try {
+      const apiRes = await BankApiService.getLoanInterestRates();
+      const rates = (apiRes && apiRes.success && apiRes.data) ? apiRes.data : (apiRes && apiRes.rates ? apiRes.rates : null);
+      if (apiRes && apiRes.success && rates && typeof rates === 'object' && Object.keys(rates).length > 0) {
+        store.data.loanInterestRates = rates;
+        if (store.data.loanPackages && Array.isArray(store.data.loanPackages)) {
+          store.data.loanPackages.forEach(pkg => {
+            if (rates[pkg.id]) {
+              const vals = Object.values(rates[pkg.id]).map(Number).filter(v => !isNaN(v) && v > 0);
+              if (vals.length > 0) pkg.baseRate = Math.min(...vals);
+            }
+          });
+        }
+        store.saveData();
+        return rates;
+      }
+    } catch (err) {
+      console.error('[Loan] Lỗi tải biểu lãi suất cho vay từ CSDL backend:', err);
+    }
+    return store.data.loanInterestRates || {
+      CONSUMER: { 6: 8.90, 12: 9.50, 24: 10.50, 36: 11.50, 48: 12.00, 60: 12.50 },
+      CAR: { 12: 7.80, 24: 8.20, 36: 8.50, 48: 8.90, 60: 9.20, 84: 9.80 },
+      MORTGAGE: { 36: 6.80, 60: 7.50, 120: 8.20, 180: 8.60, 240: 8.90 },
+      BUSINESS: { 6: 6.80, 12: 7.50, 24: 7.80, 36: 8.00, 60: 8.40, 120: 8.80 }
+    };
+  }
+
+  /**
+   * Tính lãi suất cho vay chuẩn xác theo Gói sản phẩm tín dụng và Kỳ hạn vay
+   */
+  static getLoanInterestRate(loanType, termMonths) {
+    const t = parseInt(termMonths, 10) || 12;
+    const defaultRates = {
+      CONSUMER: { 6: 8.90, 12: 9.50, 24: 10.50, 36: 11.50, 48: 12.00, 60: 12.50 },
+      CAR: { 12: 7.80, 24: 8.20, 36: 8.50, 48: 8.90, 60: 9.20, 84: 9.80 },
+      MORTGAGE: { 36: 6.80, 60: 7.50, 120: 8.20, 180: 8.60, 240: 8.90 },
+      BUSINESS: { 6: 6.80, 12: 7.50, 24: 7.80, 36: 8.00, 60: 8.40, 120: 8.80 }
+    };
+    const allRates = store.data.loanInterestRates || defaultRates;
+    const pkgRates = allRates[loanType] || defaultRates[loanType] || defaultRates.CONSUMER;
+    if (pkgRates) {
+      if (pkgRates[t] !== undefined) return parseFloat(pkgRates[t]);
+      if (pkgRates[String(t)] !== undefined) return parseFloat(pkgRates[String(t)]);
+      const terms = Object.keys(pkgRates).map(Number).sort((a, b) => a - b);
+      if (terms.length > 0) {
+        let bestTerm = terms[0];
+        for (const k of terms) {
+          if (k <= t) bestTerm = k;
+        }
+        return parseFloat(pkgRates[bestTerm]);
+      }
+    }
+    return 10.50;
+  }
+
+  /**
+   * Đăng ký khoản vay vốn trực tuyến (Async: ưu tiên REST/gRPC API từ Backend)
+   */
+  static async applyLoanAsync(params) {
+    try {
+      if (BankApiService.hasToken()) {
+        const rawAmount = typeof params.amount === 'string' ? parseFloat(params.amount.replace(/\D/g, '')) : parseFloat(params.amount);
+        const rawTerm = parseInt(params.termMonths, 10) || 12;
+        const apiRes = await BankApiService.applyLoan(
+          params.accountNo,
+          params.loanType,
+          params.title,
+          rawAmount,
+          rawTerm
+        );
+        if (apiRes && apiRes.success) {
+          const loanData = apiRes.loan || apiRes.data;
+          if (loanData) {
+            store.data.loans = store.data.loans || [];
+            store.data.loans.unshift(loanData);
+            store.saveData();
+          }
+          if (window.updateNotificationBadge) window.updateNotificationBadge();
+          return { success: true, message: apiRes.message || 'Nộp hồ sơ vay vốn thành công!', loan: loanData };
+        } else if (apiRes && !apiRes.success) {
+          return { success: false, message: apiRes.message || 'Nộp hồ sơ vay vốn thất bại' };
+        }
+      }
+    } catch (e) {
+      console.error('[Loan] Lỗi nộp hồ sơ vay trên CSDL:', e);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (e.message || 'Không thể nộp hồ sơ vay') };
+    }
+    return { success: false, message: 'Không thể kết nối máy chủ CSDL' };
+  }
+
+  /**
+   * Đăng ký khoản vay vốn trực tuyến (Local Store Fallback)
    */
   static applyLoan({ accountNo, loanType, title, amount, termMonths, income, incomeSource, collateral, purpose, repaymentMethod }) {
     const user = store.data.currentUser;
@@ -1997,10 +2099,10 @@ export class CustomerService {
     const acc = freshCust.accounts.find(a => a.accountNo === accountNo) || freshCust.accounts[0];
     if (!acc) return { success: false, message: 'Vui lòng chọn tài khoản nhận giải ngân hợp lệ' };
 
-    // Tìm gói vay & lãi suất cơ sở
+    // Tính lãi suất chuẩn theo gói vay và kỳ hạn
     const packages = store.data.loanPackages || [];
     const pkg = packages.find(p => p.id === loanType) || { baseRate: 8.5, name: 'Vay Tiêu Dùng' };
-    const interestRate = pkg.baseRate || 8.5;
+    const interestRate = CustomerService.getLoanInterestRate(loanType, termMonths);
 
     const calc = CustomerService.calculateLoanSchedule(amount, termMonths, interestRate, repaymentMethod);
 
@@ -2057,7 +2159,47 @@ export class CustomerService {
   }
 
   /**
-   * Trả nợ định kỳ hoặc tất toán khoản vay trước hạn
+   * Trả nợ định kỳ hoặc tất toán khoản vay trước hạn (Thực thi trực tiếp trên CSDL Backend)
+   */
+  static async payLoanInstallmentAsync({ loanId, isPayOffAll = false, idempotencyKey = null }) {
+    try {
+      if (BankApiService.hasToken()) {
+        const apiRes = await BankApiService.payLoan(loanId, isPayOffAll, idempotencyKey);
+        if (apiRes && apiRes.success) {
+          // Đồng bộ lại local data nếu có
+          const user = store.data.currentUser;
+          const freshCust = CustomerService.findCustomer(user);
+          if (freshCust) {
+            const loan = (store.data.loans || []).find(l => l.id === loanId || l.contractNo === loanId);
+            if (loan && apiRes.data) {
+              loan.remainingBalance = apiRes.data.remainingBalance !== undefined ? apiRes.data.remainingBalance : (isPayOffAll ? 0 : loan.remainingBalance);
+              loan.status = apiRes.data.status || (isPayOffAll ? 'PAID_OFF' : loan.status);
+              if (apiRes.data.installmentPaidCount !== undefined) {
+                loan.installmentPaidCount = apiRes.data.installmentPaidCount;
+              }
+            }
+            if (apiRes.data && apiRes.data.accountBalance !== undefined) {
+              const payAcc = freshCust.accounts.find(a => a.accountNo === (loan ? loan.accountNo : '')) || freshCust.accounts.find(a => a.type === 'PAYMENT');
+              if (payAcc) payAcc.balance = apiRes.data.accountBalance;
+            }
+            store.saveData();
+          }
+
+          if (window.updateNotificationBadge) window.updateNotificationBadge();
+          return { success: true, message: apiRes.message || 'Thanh toán thành công!', data: apiRes.data };
+        } else if (apiRes && !apiRes.success) {
+          return { success: false, message: apiRes.message || 'Thanh toán khoản vay thất bại' };
+        }
+      }
+    } catch (err) {
+      console.error('[Loan] Lỗi thanh toán khoản vay trên CSDL:', err);
+      return { success: false, message: 'Lỗi kết nối máy chủ CSDL: ' + (err.message || 'Không thể thanh toán khoản vay') };
+    }
+    return { success: false, message: 'Không thể kết nối máy chủ CSDL' };
+  }
+
+  /**
+   * Trả nợ định kỳ hoặc tất toán khoản vay trước hạn (Local Store Fallback)
    */
   static payLoanInstallment(loanId, isPayOffAll = false) {
     const user = store.data.currentUser;
@@ -2097,6 +2239,7 @@ export class CustomerService {
     if (isPayOffAll) {
       loan.remainingBalance = 0;
       loan.status = 'PAID_OFF';
+      loan.nextDueDate = 'Đã tất toán';
     } else {
       // Trừ vào dư nợ gốc
       const monthlyPrincipal = Math.round(loan.principalAmount / loan.termMonths);
@@ -2105,19 +2248,23 @@ export class CustomerService {
       if (loan.remainingBalance <= 0 || loan.installmentPaidCount >= loan.termMonths) {
         loan.remainingBalance = 0;
         loan.status = 'PAID_OFF';
+        loan.nextDueDate = 'Đã tất toán';
+      } else {
+        const baseDisburseDate = loan.approvedAt || loan.appliedAt || store.nowGMT7String();
+        loan.nextDueDate = store.getLoanInstallmentDueDate(baseDisburseDate, loan.installmentPaidCount + 1);
       }
     }
 
     // Lịch sử giao dịch
     const txn = {
-      id: 'TXN-' + Math.floor(10000 + Math.random() * 90000),
+      id: store.generateTxnId(),
       fromAccount: payAcc.accountNo,
       fromName: freshCust.fullName,
       toAccount: loan.contractNo || loan.id,
       toName: `QuangTrung Bank - Thu nợ ${loan.contractNo || loan.id}`,
       amount: payAmount,
       fee: penaltyFee,
-      type: 'TRANSFER',
+      type: 'LOAN_REPAYMENT',
       content: isPayOffAll ? `Tất toán toàn bộ hợp đồng tín dụng ${loan.contractNo || loan.id}` : `Thanh toán kỳ nợ số ${(loan.installmentPaidCount || 1)} hợp đồng ${loan.contractNo || loan.id}`,
       timestamp: store.nowGMT7String(),
       status: 'SUCCESS'
@@ -2419,10 +2566,10 @@ export class CustomerService {
         };
       }
     } catch (e) {
-      console.warn('[CustomerService] Fallback generateEStatementDataAsync sang LocalStore', e);
+      console.error('[CustomerService] Lỗi tạo sao kê điện tử từ CSDL backend:', e);
     }
 
-    return CustomerService.generateEStatementData(accountNo, fromDate, toDate);
+    return null;
   }
 
   /**
@@ -2473,7 +2620,7 @@ export class CustomerService {
     // Header Metadata
     rows.push(['NGÂN HÀNG TMCP QUANGTRUNG (QUANGTRUNG DIGITAL BANK)']);
     rows.push(['BẢN SAO KÊ TÀI KHOẢN ĐIỆN TỬ (E-STATEMENT)']);
-    rows.push([`Mã tra cứu: ${data.statementRef}`, `Thời gian in: ${data.generatedAt}`]);
+    rows.push([`Thời gian in: ${data.generatedAt}`]);
     rows.push([]);
     rows.push([`Chủ tài khoản: ${data.customer.fullName || data.customer.customerName}`, `Số CCCD/CMND: ${data.customer.idCard || '-'}`, `Số điện thoại: ${data.customer.phone || '-'}`]);
     rows.push([`Số tài khoản: ${data.account.accountNo}`, `Loại tài khoản: ${data.account.type || 'PAYMENT'}`, `Số dư hiện tại: ${data.account.balance} VNĐ`]);
@@ -2493,7 +2640,7 @@ export class CustomerService {
         t.fromName || '',
         t.toAccount,
         t.toName || '',
-        t.type,
+        CustomerService.getTransactionTypeLabel(t, [data.account.accountNo]),
         `"${(t.content || '').replace(/"/g, '""')}"`,
         isOut ? '0' : t.amount,
         isOut ? t.amount : '0',
@@ -2524,54 +2671,44 @@ export class CustomerService {
     return true;
   }
 
-  /**
-   * Nộp hồ sơ định danh eKYC trực tuyến (mô phỏng Liveness & Face Matching)
-   */
-  static submitEKyc({ idCardFront, idCardBack, selfiePhoto }) {
-    const user = store.data.currentUser;
-    if (!user) return { success: false, message: 'Chưa đăng nhập hệ thống' };
-
-    const cust = store.data.customers.find(c => c.id === user.id || c.username === user.username);
-    if (!cust) return { success: false, message: 'Không tìm thấy hồ sơ khách hàng' };
-
-    const nowStr = store.nowGMT7String();
-
-    cust.kycStatus = 'VERIFIED';
-    cust.idCardFront = idCardFront || cust.idCardFront;
-    cust.idCardBack = idCardBack || cust.idCardBack;
-    cust.selfiePhoto = selfiePhoto || cust.selfiePhoto;
-    cust.kycVerifiedAt = nowStr;
-
-    user.kycStatus = 'VERIFIED';
-
-    store.save();
-    return {
-      success: true,
-      message: 'Xác thực eKYC thành công! Hạn mức tài khoản của bạn đã được nâng lên 500.000.000 VNĐ/ngày.',
-      customer: cust
-    };
-  }
-
   // ═══════════════════════════════════════════════════════════
   // PUSH NOTIFICATION & NOTIFICATION CENTER HELPER METHODS
   // ═══════════════════════════════════════════════════════════
 
+  static lastGetNotifTime = 0;
+  static cachedNotifs = null;
+  static pendingGetNotifsPromise = null;
+
   /**
-   * Lấy danh sách thông báo biến động số dư từ REST API (hoặc LocalStore)
+   * Lấy danh sách thông báo biến động số dư trực tiếp từ CSDL Backend REST API
+   * Có cơ chế Deduplication & Throttle 1.5s chống spam request kép tới Backend
    */
-  static async getNotificationsAsync() {
-    try {
-      const res = await BankApiService.getNotifications();
-      if (res && res.success && res.data) {
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[CustomerService] Fallback getNotificationsAsync sang LocalStore', e);
+  static async getNotificationsAsync(forceRefresh = false) {
+    const now = Date.now();
+    if (!forceRefresh && CustomerService.cachedNotifs && (now - CustomerService.lastGetNotifTime < 1500)) {
+      return CustomerService.cachedNotifs;
     }
-    const user = store.data.currentUser;
-    const cust = CustomerService.findCustomer(user);
-    if (!cust) return [];
-    return (store.data.notifications || []).filter(n => n.customerId === cust.id);
+    if (!forceRefresh && CustomerService.pendingGetNotifsPromise) {
+      return CustomerService.pendingGetNotifsPromise;
+    }
+
+    CustomerService.pendingGetNotifsPromise = (async () => {
+      try {
+        const res = await BankApiService.getNotifications();
+        if (res && res.success && res.data) {
+          CustomerService.cachedNotifs = res.data;
+          CustomerService.lastGetNotifTime = Date.now();
+          return res.data;
+        }
+      } catch (e) {
+        console.error('[CustomerService] Lỗi tải thông báo từ CSDL:', e);
+      } finally {
+        CustomerService.pendingGetNotifsPromise = null;
+      }
+      return [];
+    })();
+
+    return CustomerService.pendingGetNotifsPromise;
   }
 
   /**
@@ -2581,9 +2718,7 @@ export class CustomerService {
     try {
       await BankApiService.markNotificationRead(id);
     } catch (e) {
-      const notif = (store.data.notifications || []).find(n => n.id === id);
-      if (notif) notif.read = true;
-      store.save();
+      console.error('[CustomerService] Lỗi đánh dấu đã đọc thông báo trên CSDL:', e);
     }
   }
 
@@ -2594,20 +2729,23 @@ export class CustomerService {
     try {
       await BankApiService.markAllNotificationsRead();
     } catch (e) {
-      const user = store.data.currentUser;
-      const cust = CustomerService.findCustomer(user);
-      if (cust) {
-        (store.data.notifications || []).filter(n => n.customerId === cust.id).forEach(n => n.read = true);
-        store.save();
-      }
+      console.error('[CustomerService] Lỗi đánh dấu tất cả thông báo đã đọc trên CSDL:', e);
     }
   }
 
   /**
-   * Phát âm thanh chuông báo Ngân hàng khi có Push Notification
+   * Phát âm thanh chuông báo Ngân hàng khi có Push Notification (Có cơ chế chống lặp âm thanh / Debounce 1.5s)
    */
+  static lastChimeTime = 0;
+
   static playNotificationChime() {
     try {
+      const nowMs = Date.now();
+      if (CustomerService.lastChimeTime && (nowMs - CustomerService.lastChimeTime < 1500)) {
+        return; // Đang trong khoảng cách an toàn, chỉ phát đúng 1 sound thông báo
+      }
+      CustomerService.lastChimeTime = nowMs;
+
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
@@ -2643,15 +2781,13 @@ export class CustomerService {
   }
 
   /**
-   * Đẩy Thẻ Push Notification Nổi trên góc màn hình (Floating Glassmorphism Card)
+   * Đẩy thông báo hệ thống & biến động số dư vào Trung tâm thông báo (Đã loại bỏ popup nổi trên màn hình)
    */
-  static triggerPushNotification({ title, message, amount, balanceAfter, type, accountNo }) {
-    CustomerService.playNotificationChime();
-
-    // 1. Tự động lưu vào store.data.notifications nếu khách hàng đang đăng nhập
+  static triggerPushNotification({ title, message, amount, balanceAfter, type, accountNo, skipSaveLocal = false, skipBadgeIncrement = false }) {
+    // 1. Tự động lưu vào store.data.notifications nếu khách hàng đang đăng nhập và chưa lưu từ backend
     const user = store.data.currentUser;
     const freshCust = CustomerService.findCustomer(user);
-    if (freshCust) {
+    if (freshCust && !skipSaveLocal) {
       if (!store.data.notifications) store.data.notifications = [];
       const newNotif = {
         id: 'NOTIF-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
@@ -2675,93 +2811,23 @@ export class CustomerService {
       }
     }
 
-    let container = document.getElementById('push-notification-container');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'push-notification-container';
-      container.style.cssText = 'position: fixed !important; top: 24px !important; right: 24px !important; z-index: 1000000 !important; display: flex !important; flex-direction: column !important; gap: 12px !important; pointer-events: none !important;';
-      document.body.appendChild(container);
+    // Xóa cache để luôn lấy thông báo mới nhất
+    CustomerService.cachedNotifs = null;
+
+    // Tăng giá trị của badge chuông thông báo trên thanh tiêu đề
+    if (!skipBadgeIncrement) {
+      const badge = document.getElementById('notif-unread-badge');
+      if (badge) {
+        let currentVal = parseInt(badge.textContent, 10);
+        if (isNaN(currentVal) || badge.classList.contains('hidden') || badge.style.display === 'none') {
+          currentVal = 0;
+        }
+        const newVal = currentVal + 1;
+        badge.textContent = newVal > 99 ? '99+' : String(newVal);
+        badge.classList.remove('hidden');
+        badge.style.setProperty('display', 'inline-flex', 'important');
+      }
     }
-
-    const typeUpper = String(type || '').toUpperCase();
-    const titleUpper = String(title || '').toUpperCase();
-    const msgUpper = String(message || '').toUpperCase();
-
-    const isExpense = typeUpper === 'MONEY_OUT' || 
-                      typeUpper === 'DEBIT' || 
-                      typeUpper === 'WITHDRAW' || 
-                      typeUpper === 'TRANSFER_OUT' || 
-                      titleUpper.includes('NỢ') || 
-                      titleUpper.includes('(-)') ||
-                      msgUpper.includes(' -') ||
-                      (typeof amount === 'number' && amount < 0);
-
-    const isSystem = typeUpper === 'SYSTEM' || typeUpper === 'SECURITY';
-    const isIncome = !isExpense && !isSystem;
-
-    let badgeColor = '#10b981';
-    let notifIcon = '🟢';
-    let amountFormatted = '';
-
-    if (isSystem) {
-      badgeColor = '#06b6d4';
-      notifIcon = '🔔';
-      amountFormatted = '';
-    } else if (isExpense) {
-      badgeColor = '#ef4444';
-      notifIcon = '🔴';
-      amountFormatted = (amount !== undefined && amount !== null && amount !== '') ? `-${store.formatVND(Math.abs(amount || 0))}` : '';
-    } else {
-      badgeColor = '#10b981';
-      notifIcon = '🟢';
-      amountFormatted = (amount !== undefined && amount !== null && amount !== '') ? `+${store.formatVND(Math.abs(amount || 0))}` : '';
-    }
-
-    const card = document.createElement('div');
-    card.className = 'push-notification-card';
-    card.style.borderLeft = `5px solid ${badgeColor}`;
-
-    const nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-    card.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;">
-        <div style="display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 0.75rem; color: #f59e0b; letter-spacing: 0.5px;">
-          <span>❖ QUANGTRUNG BANK ALERT</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 0.7rem; color: #94a3b8;">${nowStr}</span>
-          <button style="background: none; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer; padding: 0 4px; line-height: 1;" onclick="this.closest('.push-notification-card').remove()">×</button>
-        </div>
-      </div>
-      <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 4px; color: ${badgeColor}; display: flex; align-items: center; gap: 6px;">
-        <span>${notifIcon}</span> ${title || (isExpense ? 'Biến động số dư Nợ (-)' : (isIncome ? 'Biến động số dư Có (+)' : 'Thông báo hệ thống'))}
-      </div>
-      ${amountFormatted ? `
-        <div style="font-size: 1.2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: ${badgeColor}; margin-bottom: 6px; letter-spacing: -0.5px;">
-          ${amountFormatted}
-        </div>
-      ` : ''}
-      <div style="font-size: 0.82rem; color: #cbd5e1; margin-bottom: 6px; line-height: 1.4;">
-        ${(message || '').replace(/([+-]?\b\d{4,}\b)(?=\s*VNĐ|\s*VND|\s*đ)/gi, (m) => {
-          const sign = m.startsWith('+') ? '+' : (m.startsWith('-') ? '-' : '');
-          const val = Math.abs(parseInt(m.replace(/[^0-9]/g, ''), 10));
-          return sign + new Intl.NumberFormat('vi-VN').format(val);
-        })}
-      </div>
-      ${balanceAfter !== undefined ? `<div style="font-size: 0.78rem; color: #94a3b8; font-weight: 600; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 6px;">Số dư khả dụng: <span style="color: #f8fafc; font-weight: 700;">${store.formatVND(balanceAfter)}</span></div>` : ''}
-    `;
-
-    container.appendChild(card);
-
-    if (window.updateNotificationBadge) window.updateNotificationBadge();
-
-    // Tự động đóng sau 7 giây
-    setTimeout(() => {
-      card.classList.add('dismissing');
-      setTimeout(() => {
-        if (card.parentNode) card.parentNode.removeChild(card);
-      }, 350);
-    }, 7000);
   }
 }
 

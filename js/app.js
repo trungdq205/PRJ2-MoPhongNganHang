@@ -9,7 +9,6 @@ import { AdminService } from './admin.js';
 import { ReportService } from './reports.js';
 import { BankApiService } from './api.js';
 import { SecurityService } from './security.js';
-import { CccdOcrService } from './ocr.js';
 
 // Các phần tử DOM
 const loginScreen = document.getElementById('login-screen');
@@ -81,7 +80,8 @@ function showSuccessModal({
   txId = null,
   accountNo = null,
   counterparty = null,
-  autoCloseMs = 5000,
+  customDetails = null,
+  autoCloseMs = 0,
   onClosed = null
 } = {}) {
   const modal = document.getElementById('modal-operation-success');
@@ -101,14 +101,16 @@ function showSuccessModal({
     successModalInterval = null;
   }
 
-  // Đồng thời phát Push Notification Card nổi góc trên màn hình
+  // Đồng thời phát Push Notification Card nổi góc trên màn hình (không lưu trùng lặp vào DB/Store)
   if (typeof CustomerService !== 'undefined' && CustomerService.triggerPushNotification) {
     CustomerService.triggerPushNotification({
       title: title || 'Giao dịch thành công',
       message: message || '',
       amount: (amount !== null && amount !== undefined && amount !== '' && !isNaN(amount)) ? amount : undefined,
       type: 'SUCCESS',
-      accountNo: accountNo || ''
+      accountNo: accountNo || '',
+      skipSaveLocal: true,
+      skipBadgeIncrement: true
     });
   } else if (typeof CustomerService !== 'undefined' && CustomerService.playNotificationChime) {
     CustomerService.playNotificationChime();
@@ -122,6 +124,7 @@ function showSuccessModal({
   const amountBox = document.getElementById('success-modal-amount-box');
   const amountEl = document.getElementById('success-modal-amount');
   const detailsBox = document.getElementById('success-modal-details-box');
+  const countdownContainer = document.getElementById('success-modal-countdown-container') || modal.querySelector('.success-modal-countdown-container');
   const countdownBar = document.getElementById('success-modal-countdown-bar');
   const countdownText = document.getElementById('success-modal-countdown-text');
   const closeBtn = document.getElementById('btn-close-success-modal');
@@ -141,40 +144,51 @@ function showSuccessModal({
 
   if (detailsBox) {
     let detailsHtml = '';
-    if (txId) {
-      detailsHtml += `<div class="detail-row"><span>Mã GD:</span><strong style="font-family: var(--font-mono); color: var(--accent-gold); font-size: 0.95rem;">${txId}</strong></div>`;
-    }
-    if (accountNo) {
-      detailsHtml += `<div class="detail-row"><span>Tài khoản:</span><strong>${accountNo}</strong></div>`;
-    }
-    if (counterparty) {
-      detailsHtml += `<div class="detail-row"><span>Đối ứng:</span><strong style="max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${counterparty}</strong></div>`;
+    if (Array.isArray(customDetails) && customDetails.length > 0) {
+      customDetails.forEach(d => {
+        detailsHtml += `<div class="detail-row"><span>${d.label}:</span><strong style="${d.color ? `color: ${d.color};` : ''} font-family: var(--font-mono);">${d.value}</strong></div>`;
+      });
+    } else {
+      if (txId) {
+        detailsHtml += `<div class="detail-row"><span>Mã GD:</span><strong style="font-family: var(--font-mono); color: var(--accent-gold); font-size: 0.95rem;">${store.formatTxnId(txId)}</strong></div>`;
+      }
+      if (accountNo) {
+        detailsHtml += `<div class="detail-row"><span>Tài khoản:</span><strong>${accountNo}</strong></div>`;
+      }
+      if (counterparty) {
+        detailsHtml += `<div class="detail-row"><span>Đối ứng:</span><strong style="max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${counterparty}</strong></div>`;
+      }
     }
     detailsHtml += `<div class="detail-row"><span>Thời gian:</span><span>${store.nowGMT7String()}</span></div>`;
     detailsBox.innerHTML = detailsHtml;
   }
 
-  // Hiệu ứng thanh tiến trình đếm ngược 5 giây
-  if (countdownBar) {
-    countdownBar.style.transition = 'none';
-    countdownBar.style.width = '100%';
-    setTimeout(() => {
-      countdownBar.style.transition = `width ${autoCloseMs}ms linear`;
-      countdownBar.style.width = '0%';
-    }, 40);
-  }
-
-  let remainingSec = Math.ceil(autoCloseMs / 1000);
-  if (countdownText) countdownText.textContent = `Tự động đóng trong ${remainingSec}s...`;
-
-  successModalInterval = setInterval(() => {
-    remainingSec -= 1;
-    if (remainingSec > 0 && countdownText) {
-      countdownText.textContent = `Tự động đóng trong ${remainingSec}s...`;
-    } else if (remainingSec <= 0 && countdownText) {
-      countdownText.textContent = `Đang đóng...`;
+  // Hiệu ứng thanh tiến trình đếm ngược (chỉ chạy nếu autoCloseMs > 0)
+  if (autoCloseMs && autoCloseMs > 0) {
+    if (countdownContainer) countdownContainer.classList.remove('hidden');
+    if (countdownBar) {
+      countdownBar.style.transition = 'none';
+      countdownBar.style.width = '100%';
+      setTimeout(() => {
+        countdownBar.style.transition = `width ${autoCloseMs}ms linear`;
+        countdownBar.style.width = '0%';
+      }, 40);
     }
-  }, 1000);
+
+    let remainingSec = Math.ceil(autoCloseMs / 1000);
+    if (countdownText) countdownText.textContent = `Tự động đóng trong ${remainingSec}s...`;
+
+    successModalInterval = setInterval(() => {
+      remainingSec -= 1;
+      if (remainingSec > 0 && countdownText) {
+        countdownText.textContent = `Tự động đóng trong ${remainingSec}s...`;
+      } else if (remainingSec <= 0 && countdownText) {
+        countdownText.textContent = `Đang đóng...`;
+      }
+    }, 1000);
+  } else {
+    if (countdownContainer) countdownContainer.classList.add('hidden');
+  }
 
   const handleClose = () => {
     if (successModalTimer) {
@@ -201,14 +215,36 @@ function showSuccessModal({
 
   modal.classList.add('active');
 
-  successModalTimer = setTimeout(() => {
-    handleClose();
-  }, autoCloseMs);
+  if (autoCloseMs && autoCloseMs > 0) {
+    successModalTimer = setTimeout(() => {
+      handleClose();
+    }, autoCloseMs);
+  }
 }
 
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    if (el.parentElement !== document.body) {
+      document.body.appendChild(el);
+    }
+    el.classList.add('active');
+  }
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.remove('active');
+  }
+}
+
+window.openModal = openModal;
+window.closeModal = closeModal;
 window.showToast = showToast;
 window.showSuccessModal = showSuccessModal;
 window.showOperationSuccessModal = showSuccessModal;
+window.openAddEditTellerModal = (id) => openAddEditTellerModal(id);
 
 // Định nghĩa menu điều hướng theo vai trò người dùng
 const navigationConfigs = {
@@ -216,17 +252,14 @@ const navigationConfigs = {
     { id: 'cust-dash', label: 'Trang Chủ', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', view: 'view-customer-dashboard' },
     { id: 'cust-savings', label: 'Tài Khoản Tiết Kiệm', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', view: 'view-customer-savings' },
     { id: 'cust-loans', label: 'Tín Dụng & Vay Vốn', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', view: 'view-customer-loans' },
-    { id: 'cust-analytics', label: 'Chi Tiêu & Sao Kê', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', view: 'view-customer-analytics' },
     { id: 'cust-hist', label: 'Lịch Sử Giao Dịch', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', view: 'view-customer-history' },
-    { id: 'cust-prof', label: 'Thông Tin Cá Nhân', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', view: 'view-customer-profile' },
-    { id: 'cust-supp', label: 'Gửi Khiếu Nại / Hỗ Trợ', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', view: 'view-customer-support' }
+    { id: 'cust-prof', label: 'Thông Tin Cá Nhân', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', view: 'view-customer-profile' }
   ],
   TELLER: [
     { id: 'tell-dash', label: 'Trang Chủ GDV', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', view: 'view-teller-dashboard' },
     { id: 'tell-create-cust', label: 'Thêm Hồ Sơ Khách Hàng', icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z', view: 'view-teller-new-customer' },
     { id: 'tell-cust-list', label: 'Tra Cứu & Sửa Thông Tin KH', icon: 'M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 012-2h2a2 2 0 012 2v1m-6 0h6', view: 'view-teller-customers' },
     { id: 'tell-acc-list', label: 'Quản Lý Tài Khoản', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', view: 'view-teller-accounts' },
-    { id: 'tell-tickets', label: 'Xử Lý Khiếu Nại & Hỗ Trợ', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', view: 'view-teller-tickets' },
     { id: 'tell-loans', label: 'Thẩm Định & Duyệt Vay', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', view: 'view-teller-loans' }
   ],
   ADMIN: [
@@ -237,19 +270,23 @@ const navigationConfigs = {
 };
 
 // Khởi tạo Ứng dụng
-async function initApp() {
-  setupLoginEvents();
-  setupModalEvents();
-  setupEkycEvents();
-  setupViewEkycEvents();
-  initCurrencyInputFormatting();
-  await checkBackendConnection();
+function initApp() {
+  try {
+    setupLoginEvents();
+    setupModalEvents();
+    initCurrencyInputFormatting();
+    populateLoanTypeSelect();
 
-  // Kiểm tra phiên đăng nhập hiện tại
-  const user = AuthService.getCurrentUser();
-  if (user) {
-    launchApp(user);
-  } else {
+    // Kiểm tra phiên đăng nhập hiện tại ngay lập tức
+    const user = AuthService.getCurrentUser();
+    if (user) {
+      launchApp(user);
+    } else {
+      if (loginScreen) loginScreen.classList.remove('hidden');
+      if (appShell) appShell.classList.add('hidden');
+    }
+  } catch (err) {
+    console.error('[App] Lỗi khi khởi tạo ứng dụng:', err);
     if (loginScreen) loginScreen.classList.remove('hidden');
     if (appShell) appShell.classList.add('hidden');
   }
@@ -279,7 +316,6 @@ async function checkBackendConnection() {
   return isHealthy;
 }
 
-let loginWebcamStream = null;
 let pendingLoginResponse = null;
 
 let landmarkAnimFrames = {};
@@ -418,124 +454,29 @@ function playBiometricAudioChime() {
   }
 }
 
-async function startLoginFaceWebcam() {
-  const video = document.getElementById('login-webcam-video');
-  const status = document.getElementById('login-face-status');
-  const preview = document.getElementById('login-preview-face');
-  if (preview) preview.style.display = 'none';
-  if (video) video.style.display = 'block';
 
-  startFaceLandmarksAnimation('login-landmarks-canvas');
 
-  try {
-    loginWebcamStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-      audio: false
-    });
-    if (video) {
-      video.srcObject = loginWebcamStream;
-      video.play();
+function switchLoginRole(role) {
+  activeRoleTab = role;
+  document.querySelectorAll('.role-tab-btn').forEach(b => {
+    if (b.getAttribute('data-role') === role) {
+      b.classList.add('active');
+    } else {
+      b.classList.remove('active');
     }
-    if (status) {
-      status.innerHTML = '<span style="color: var(--accent-emerald);"><i class="fas fa-check-circle"></i> Camera sinh trắc học đã kết nối. Giữ thẳng khuôn mặt vào khung Oval...</span>';
-    }
-  } catch (err) {
-    console.warn('[FaceAuth] Webcam error:', err);
-    if (status) {
-      status.innerHTML = '<span style="color: var(--accent-gold);"><i class="fas fa-info-circle"></i> Đang ở chế độ quét sinh trắc học AI (Bật camera để quét mặt thực tế).</span>';
-    }
+  });
+
+  const uInput = document.getElementById('login-username');
+  const pInput = document.getElementById('login-password');
+  if (uInput) {
+    if (role === 'CUSTOMER') uInput.value = '0901234567';
+    else if (role === 'TELLER') uInput.value = '0933445566';
+    else if (role === 'ADMIN') uInput.value = '0988888888';
   }
+  if (pInput) pInput.value = 'Abc@1234';
 }
 
-function stopLoginFaceWebcam() {
-  stopFaceLandmarksAnimation('login-landmarks-canvas');
-  if (loginWebcamStream) {
-    loginWebcamStream.getTracks().forEach(t => t.stop());
-    loginWebcamStream = null;
-  }
-}
-
-function openLoginFaceAuthModal(resData) {
-  pendingLoginResponse = resData;
-  openModal('modal-login-face-auth');
-  startLoginFaceWebcam();
-
-  const btnConfirm = document.getElementById('btn-confirm-login-face');
-  const btnCancel = document.getElementById('btn-cancel-login-face');
-
-  if (btnCancel) {
-    btnCancel.onclick = () => {
-      stopLoginFaceWebcam();
-      closeModal('modal-login-face-auth');
-      pendingLoginResponse = null;
-      showToast('Đã hủy đăng nhập sinh trắc học', 'info');
-    };
-  }
-
-  if (btnConfirm) {
-    btnConfirm.onclick = async () => {
-      btnConfirm.disabled = true;
-      btnConfirm.textContent = 'Đang quét & xác thực...';
-
-      const video = document.getElementById('login-webcam-video');
-      const canvas = document.getElementById('login-snapshot-canvas');
-      const preview = document.getElementById('login-preview-face');
-      const status = document.getElementById('login-face-status');
-
-      let photoData = null;
-      if (loginWebcamStream && video && video.readyState === 4) {
-        canvas.width = video.videoWidth || 400;
-        canvas.height = video.videoHeight || 300;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        photoData = canvas.toDataURL('image/png');
-      } else {
-        photoData = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%230f172a"/><circle cx="150" cy="110" r="50" fill="%2338bdf8"/><path d="M70 250 c0 -50 40 -80 80 -80 s80 30 80 80" fill="%2338bdf8"/></svg>`;
-      }
-
-      if (preview) {
-        preview.src = photoData;
-        preview.style.display = 'block';
-        if (video) video.style.display = 'none';
-      }
-
-      if (status) {
-        status.innerHTML = '<span style="color: var(--accent-cyan);"><i class="fas fa-spinner fa-spin"></i> Đang phân tích sinh trắc học Liveness & So khớp 3D...</span>';
-      }
-
-      playBiometricAudioChime();
-
-      setTimeout(async () => {
-        const score = (98.2 + Math.random() * 1.6).toFixed(1);
-        stopLoginFaceWebcam();
-        closeModal('modal-login-face-auth');
-        btnConfirm.disabled = false;
-        btnConfirm.textContent = 'Quét Mặt Thực Tế & Đăng Nhập';
-
-        if (pendingLoginResponse && pendingLoginResponse.user) {
-          const user = pendingLoginResponse.user;
-          const src = pendingLoginResponse.source === 'backend' ? '(Backend)' : '(Local)';
-          showToast(`Xác thực sinh trắc học FaceID thành công (${score}% Match)! Chào mừng ${user.fullName} ${src}`, 'success');
-          launchApp(user);
-          pendingLoginResponse = null;
-        } else {
-          // Trường hợp Đăng nhập FaceID trực tiếp không qua form mật khẩu
-          let uname = document.getElementById('login-username')?.value?.trim();
-          if (!uname) {
-            uname = (activeRoleTab === 'CUSTOMER') ? '0901234567' : ((activeRoleTab === 'TELLER') ? '0933445566' : '0900000000');
-          }
-          const faceRes = await AuthService.loginWithFaceAsync(uname, photoData);
-          if (faceRes.success) {
-            showToast(faceRes.message || `Xác thực FaceID thành công (${score}% Match)!`, 'success');
-            launchApp(faceRes.user);
-          } else {
-            showToast(faceRes.message || 'Xác thực sinh trắc học không khớp', 'danger');
-          }
-        }
-      }, 1200);
-    };
-  }
-}
+window.switchLoginRole = switchLoginRole;
 
 // Bộ xử lý sự kiện Đăng nhập
 function setupLoginEvents() {
@@ -546,18 +487,9 @@ function setupLoginEvents() {
 
   document.querySelectorAll('.role-tab-btn').forEach(btn => {
     btn.onclick = (e) => {
-      document.querySelectorAll('.role-tab-btn').forEach(b => b.classList.remove('active'));
       const targetBtn = e.currentTarget;
-      targetBtn.classList.add('active');
-      activeRoleTab = targetBtn.getAttribute('data-role');
-
-      // Tự động điền số điện thoại & mật khẩu chuẩn của tài khoản demo
-      if (uInput) {
-        if (activeRoleTab === 'CUSTOMER') uInput.value = '0901234567';
-        else if (activeRoleTab === 'TELLER') uInput.value = '0933445566';
-        else if (activeRoleTab === 'ADMIN') uInput.value = '0900000000';
-      }
-      if (pInput) pInput.value = 'Abc@1234';
+      const role = targetBtn.getAttribute('data-role');
+      switchLoginRole(role);
     };
   });
 
@@ -593,12 +525,7 @@ function setupLoginEvents() {
     };
   }
 
-  const btnOpenFaceIdLogin = document.getElementById('btn-open-faceid-login');
-  if (btnOpenFaceIdLogin) {
-    btnOpenFaceIdLogin.onclick = () => {
-      openLoginFaceAuthModal(null);
-    };
-  }
+
 
   const btnExit = document.getElementById('btn-logout') || btnLogout;
   if (btnExit) {
@@ -652,20 +579,137 @@ function launchApp(user) {
 
   // Xây dựng menu sidebar cho vai trò hiện tại
   buildSidebarMenu(user.role);
-  updateEkycHeaderBadge();
 
-  if (user.role === 'CUSTOMER') {
-    initNotificationSystem();
-  }
+  // Khởi tạo hệ thống thông báo cho người dùng hiện tại
+  initNotificationSystem();
 }
 
 let pushedNotificationIds = new Set();
+const readTellerNotifIds = new Set();
+const readAdminNotifIds = new Set();
+
+function getTellerNotifications() {
+  const user = AuthService.getCurrentUser();
+  const list = [];
+
+  // 1. Hồ sơ vay vốn đang chờ phê duyệt thẩm định
+  const pendingLoans = (store.data.loans || []).filter(l => l.status === 'PENDING');
+  pendingLoans.forEach(l => {
+    const id = `NOTIF-TELLER-LOAN-${l.id}`;
+    list.push({
+      id: id,
+      title: 'Hồ sơ vay vốn cần thẩm định',
+      message: `Khách hàng ${l.customerName} gửi hồ sơ vay ${store.formatVND(l.principalAmount)} (${l.title}). Cần duyệt hồ sơ.`,
+      type: 'LOAN',
+      amount: l.principalAmount,
+      createdAt: l.appliedAt || store.nowGMT7String(),
+      read: readTellerNotifIds.has(id),
+      targetView: 'view-teller-loans'
+    });
+  });
+
+  // 2. Thông báo trạng thái ca làm việc
+  list.push({
+    id: 'NOTIF-TELLER-SYS-1',
+    title: 'Trạng thái quầy giao dịch',
+    message: `Giao dịch viên ${user?.fullName || user?.username || 'GDV'} đang trực quầy. Hệ thống Core Banking kết nối ổn định.`,
+    type: 'SYSTEM',
+    createdAt: store.nowGMT7String(),
+    read: readTellerNotifIds.has('NOTIF-TELLER-SYS-1') || true
+  });
+
+  return list;
+}
+
+function getAdminNotifications() {
+  const user = AuthService.getCurrentUser();
+  const list = [];
+
+  const recentLogs = (store.data.auditLogs || []).slice(0, 10);
+  recentLogs.forEach((log, idx) => {
+    const id = `NOTIF-ADMIN-${log.id || idx}`;
+    list.push({
+      id: id,
+      title: 'Nhật ký giám sát hệ thống',
+      message: `[${log.user || 'system'}] ${log.action}`,
+      type: 'SYSTEM',
+      createdAt: log.timestamp || store.nowGMT7String(),
+      read: readAdminNotifIds.has(id) || idx > 1
+    });
+  });
+
+  return list;
+}
 
 function stopNotificationPolling() {
   if (window.notifPollTimer) {
     clearInterval(window.notifPollTimer);
     window.notifPollTimer = null;
   }
+}
+
+// Kênh truyền thông tin Realtime đồng bộ Sự Kiện giữa các tab (Pure Event-Driven Architecture)
+if (typeof BroadcastChannel !== 'undefined') {
+  try {
+    const realtimeBc = new BroadcastChannel('bank_realtime_events');
+    realtimeBc.onmessage = async (ev) => {
+      if (!ev || !ev.data) return;
+      const user = AuthService.getCurrentUser();
+      if (!user) return;
+
+      if (user.role === 'CUSTOMER') {
+        if (ev.data.type === 'LOAN_APPROVED') {
+          const payload = ev.data;
+          const msg = payload.message || `Khoản vay ${payload.contractNo || payload.loanId} đã được giải ngân thành công ${store.formatVND(payload.amount)} vào tài khoản ${payload.accountNo || ''}.`;
+          
+          // Đẩy thông báo nổi & phát âm thanh
+          CustomerService.triggerPushNotification({
+            title: 'Biến động số dư Có (+)',
+            message: msg,
+            amount: payload.amount,
+            balanceAfter: payload.balanceAfter,
+            type: 'MONEY_IN',
+            accountNo: payload.accountNo
+          });
+
+          // Đồng bộ số dư và cập nhật giao diện
+          await CustomerService.syncCustomerAccountsAsync();
+          const curSec = document.querySelector('.view-section:not(.hidden)');
+          if (curSec && curSec.id === 'view-customer-dashboard') renderCustomerDashboard();
+          if (curSec && curSec.id === 'view-customer-loans') renderCustomerLoansView();
+        } else if (ev.data.type === 'REFRESH_NOTIFICATIONS' || ev.data.type === 'NEW_NOTIFICATION') {
+          await updateNotificationBadge(null, true);
+          await CustomerService.syncCustomerAccountsAsync();
+        }
+      } else if (user.role === 'TELLER') {
+        if (ev.data.type === 'NEW_LOAN_APPLICATION') {
+          // 1. Đồng bộ lại danh sách khoản vay từ CSDL
+          await TellerService.getAllLoansAsync();
+
+          // 2. Kích hoạt thông báo nổi (Push Card) + Âm thanh chuông báo nghiệp vụ cho GDV
+          CustomerService.triggerPushNotification({
+            title: 'Hồ sơ vay vốn mới cần thẩm định',
+            message: `Khách hàng ${ev.data.customerName || 'Khách hàng'} vừa nộp hồ sơ vay ${store.formatVND(ev.data.amount || 0)} (${ev.data.title || 'Vay vốn'}). Cần duyệt hồ sơ tại quầy.`,
+            amount: ev.data.amount,
+            type: 'LOAN',
+            targetView: 'view-teller-loans'
+          });
+
+          // 3. Cập nhật huy hiệu chuông đỏ và render lại giao diện nếu GDV đang mở
+          await updateNotificationBadge(null, true);
+          const curSec = document.querySelector('.view-section:not(.hidden)');
+          if (curSec && curSec.id === 'view-teller-loans') renderTellerLoansView();
+          if (curSec && curSec.id === 'view-teller-dashboard') renderTellerDashboard();
+        } else {
+          await updateNotificationBadge(null, true);
+        }
+      }
+    };
+  } catch (err) {}
+}
+
+function startNotificationPolling() {
+  stopNotificationPolling();
 }
 
 async function initNotificationSystem() {
@@ -691,19 +735,36 @@ async function initNotificationSystem() {
 
   if (btnMarkAllRead) {
     btnMarkAllRead.onclick = async () => {
-      await CustomerService.markAllNotificationsReadAsync();
+      const user = AuthService.getCurrentUser();
+      if (user?.role === 'CUSTOMER') {
+        await CustomerService.markAllNotificationsReadAsync();
+      } else if (user?.role === 'TELLER') {
+        getTellerNotifications().forEach(n => readTellerNotifIds.add(n.id));
+      } else if (user?.role === 'ADMIN') {
+        getAdminNotifications().forEach(n => readAdminNotifIds.add(n.id));
+      }
       renderNotificationCenterList();
-      refreshNotificationsLoop();
+      await updateNotificationBadge(null, true);
     };
   }
 
-  // Khởi tạo các notification đã tồn tại trước đó để không push lặp lại cho thông báo cũ khi mới tải trang
-  const initialNotifs = await CustomerService.getNotificationsAsync();
-  initialNotifs.forEach(n => pushedNotificationIds.add(n.id));
-
-  // Tắt polling hoàn toàn và cập nhật badge
   stopNotificationPolling();
-  await updateNotificationBadge();
+  
+  const user = AuthService.getCurrentUser();
+  if (user?.role === 'CUSTOMER') {
+    const initialNotifs = await CustomerService.getNotificationsAsync(true);
+    if (Array.isArray(initialNotifs)) {
+      initialNotifs.forEach(n => {
+        if (n && n.id) pushedNotificationIds.add(n.id);
+      });
+    }
+    await updateNotificationBadge(initialNotifs);
+  } else if (user?.role === 'TELLER') {
+    await TellerService.getAllLoansAsync();
+    await updateNotificationBadge(null, true);
+  } else {
+    await updateNotificationBadge();
+  }
 }
 
 window.updateNotificationBadge = updateNotificationBadge;
@@ -712,57 +773,160 @@ window.refreshNotificationsLoop = refreshNotificationsNow;
 window.CustomerService = CustomerService;
 window.triggerPushNotification = (opts) => CustomerService.triggerPushNotification(opts);
 
-async function updateNotificationBadge() {
+function countUnreadNotifications(list) {
+  if (!Array.isArray(list)) return 0;
+  return list.filter(n => {
+    if (!n) return false;
+    return n.read !== true && n.isRead !== true && n.read !== 'true' && n.isRead !== 'true';
+  }).length;
+}
+
+async function updateNotificationBadge(preloadedNotifs = null, force = false) {
   const user = AuthService.getCurrentUser();
-  if (!user || user.role !== 'CUSTOMER') return;
-
-  const notifications = await CustomerService.getNotificationsAsync();
-  const unreadCount = notifications.filter(n => !n.read && !n.isRead).length;
-
   const badge = document.getElementById('notif-unread-badge');
-  if (badge) {
-    if (unreadCount > 0) {
-      badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-      badge.classList.remove('hidden');
-    } else {
-      badge.classList.add('hidden');
+  if (!user || !badge) return;
+
+  let unreadCount = 0;
+
+  if (user.role === 'CUSTOMER') {
+    let notifications = preloadedNotifs;
+    if (!Array.isArray(notifications)) {
+      notifications = await CustomerService.getNotificationsAsync(force);
     }
+    unreadCount = countUnreadNotifications(notifications);
+  } else if (user.role === 'TELLER') {
+    const tellerNotifs = getTellerNotifications();
+    unreadCount = countUnreadNotifications(tellerNotifs);
+  } else if (user.role === 'ADMIN') {
+    const adminNotifs = getAdminNotifications();
+    unreadCount = countUnreadNotifications(adminNotifs);
+  }
+
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+    badge.classList.remove('hidden');
+    badge.style.setProperty('display', 'inline-flex', 'important');
+  } else {
+    badge.textContent = '0';
+    badge.classList.add('hidden');
+    badge.style.setProperty('display', 'none', 'important');
   }
 }
 
-async function refreshNotificationsNow() {
-  await updateNotificationBadge();
-  const user = AuthService.getCurrentUser();
-  if (!user || user.role !== 'CUSTOMER') return;
+let lastRefreshNotifTime = 0;
+let pendingRefreshNotifPromise = null;
 
-  const notifications = await CustomerService.getNotificationsAsync();
-  // Tự động kiểm tra và đẩy thẻ Push Card cho các thông báo mới tạo
-  notifications.slice(0, 5).forEach(n => {
-    const notifId = n.id;
-    const isUnread = !n.read && !n.isRead;
-    if (isUnread && !pushedNotificationIds.has(notifId)) {
-      pushedNotificationIds.add(notifId);
-      CustomerService.triggerPushNotification({
-        title: n.title,
-        message: n.message,
-        amount: n.amount,
-        balanceAfter: n.balanceAfter,
-        type: n.type,
-        accountNo: n.accountNo
-      });
+async function refreshNotificationsNow(preloadedNotifs = null) {
+  const user = AuthService.getCurrentUser();
+  if (!user) return;
+
+  if (user.role === 'TELLER') {
+    await TellerService.getAllLoansAsync();
+    const currentPending = (store.data.loans || []).filter(l => l.status === 'PENDING');
+    
+    currentPending.forEach(l => {
+      const notifId = `NOTIF-TELLER-LOAN-${l.id}`;
+      if (!pushedNotificationIds.has(notifId) && !readTellerNotifIds.has(notifId)) {
+        pushedNotificationIds.add(notifId);
+        CustomerService.triggerPushNotification({
+          title: 'Hồ sơ vay vốn mới cần thẩm định',
+          message: `Khách hàng ${l.customerName} gửi hồ sơ vay ${store.formatVND(l.principalAmount)} (${l.title}). Cần duyệt hồ sơ.`,
+          amount: l.principalAmount,
+          type: 'LOAN',
+          targetView: 'view-teller-loans'
+        });
+      }
+    });
+
+    await updateNotificationBadge(null, true);
+    const notifDropdown = document.getElementById('notif-dropdown');
+    if (notifDropdown && !notifDropdown.classList.contains('hidden')) {
+      renderNotificationCenterList();
     }
-  });
+    return;
+  }
+
+  if (user.role !== 'CUSTOMER') return;
+
+  if (Array.isArray(preloadedNotifs)) {
+    await updateNotificationBadge(preloadedNotifs);
+    return;
+  }
+
+  const now = Date.now();
+  if (pendingRefreshNotifPromise) {
+    return pendingRefreshNotifPromise;
+  }
+  if (now - lastRefreshNotifTime < 600) {
+    return;
+  }
+  lastRefreshNotifTime = now;
+
+  pendingRefreshNotifPromise = (async () => {
+    try {
+      CustomerService.cachedNotifs = null;
+      const notifications = await CustomerService.getNotificationsAsync(true);
+      await updateNotificationBadge(notifications);
+
+      (notifications || []).slice(0, 5).forEach(n => {
+        const notifId = n.id;
+        const isUnread = n.read !== true && n.isRead !== true;
+        if (isUnread && !pushedNotificationIds.has(notifId)) {
+          pushedNotificationIds.add(notifId);
+          CustomerService.triggerPushNotification({
+            title: n.title,
+            message: n.message,
+            amount: n.amount,
+            balanceAfter: n.balanceAfter,
+            type: n.type,
+            accountNo: n.accountNo,
+            skipBadgeIncrement: true
+          });
+        }
+      });
+
+      const notifDropdown = document.getElementById('notif-dropdown');
+      if (notifDropdown && !notifDropdown.classList.contains('hidden')) {
+        renderNotificationCenterList(notifications);
+      }
+    } finally {
+      pendingRefreshNotifPromise = null;
+    }
+  })();
+
+  return pendingRefreshNotifPromise;
 }
 
-async function renderNotificationCenterList() {
+async function renderNotificationCenterList(preloadedNotifs = null) {
   const container = document.getElementById('notif-list-container');
+  const titleEl = document.getElementById('notif-dropdown-title');
   if (!container) return;
 
-  const notifications = await CustomerService.getNotificationsAsync();
+  const user = AuthService.getCurrentUser();
+  let notifications = preloadedNotifs;
+
+  if (user?.role === 'CUSTOMER') {
+    if (titleEl) titleEl.textContent = '🔔 Biến Động Số Dư Realtime';
+    if (!Array.isArray(notifications)) {
+      notifications = await CustomerService.getNotificationsAsync();
+    }
+  } else if (user?.role === 'TELLER') {
+    if (titleEl) titleEl.textContent = '📋 Thông Báo Nghiệp Vụ Quầy GD';
+    notifications = getTellerNotifications();
+  } else if (user?.role === 'ADMIN') {
+    if (titleEl) titleEl.textContent = '🛡️ Thông Báo Giám Sát Hệ Thống';
+    notifications = getAdminNotifications();
+  } else {
+    notifications = [];
+  }
+
   container.innerHTML = '';
 
-  if (notifications.length === 0) {
-    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-dim); font-size: 0.84rem;">Không có thông báo biến động số dư nào.</div>`;
+  if (!notifications || notifications.length === 0) {
+    const emptyMsg = user?.role === 'CUSTOMER' 
+      ? 'Không có thông báo biến động số dư nào.'
+      : (user?.role === 'TELLER' ? 'Không có thông báo nghiệp vụ quầy mới.' : 'Không có cảnh báo hệ thống.');
+    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-dim); font-size: 0.84rem;">${emptyMsg}</div>`;
     return;
   }
 
@@ -772,25 +936,39 @@ async function renderNotificationCenterList() {
     const titleUpper = String(n.title || '').toUpperCase();
     const msgUpper = String(n.message || '').toUpperCase();
 
-    const isExpense = typeUpper === 'MONEY_OUT' || 
+    const isInfoOnly = typeUpper === 'INFO' || 
+                       typeUpper === 'SYSTEM' || 
+                       typeUpper === 'SECURITY' || 
+                       typeUpper === 'LOAN' || 
+                       typeUpper === 'LOAN_APPLIED' ||
+                       typeUpper === 'LOAN_PENDING' ||
+                       typeUpper === 'AUDIT' ||
+                       !n.amount || 
+                       parseFloat(n.amount) === 0;
+
+    const isExpense = !isInfoOnly && (
+                      typeUpper === 'MONEY_OUT' || 
                       typeUpper === 'DEBIT' || 
                       typeUpper === 'WITHDRAW' || 
                       typeUpper === 'TRANSFER_OUT' || 
                       titleUpper.includes('NỢ') || 
                       titleUpper.includes('(-)') ||
                       msgUpper.includes(' -') ||
-                      (typeof n.amount === 'number' && n.amount < 0);
+                      (typeof n.amount === 'number' && n.amount < 0));
 
-    const isSystem = typeUpper === 'SYSTEM' || typeUpper === 'SECURITY';
-    const isIncome = !isExpense && !isSystem;
+    const isIncome = !isInfoOnly && !isExpense;
 
     let notifColor = 'var(--accent-emerald)';
     let notifIcon = '🟢';
     let amountFormatted = '';
 
-    if (isSystem) {
+    if (typeUpper === 'LOAN' || typeUpper === 'LOAN_PENDING') {
+      notifColor = 'var(--accent-gold)';
+      notifIcon = '📋';
+      amountFormatted = store.formatVND(n.amount || 0);
+    } else if (isInfoOnly) {
       notifColor = 'var(--accent-cyan)';
-      notifIcon = '🔔';
+      notifIcon = typeUpper === 'AUDIT' ? '🛡️' : '🔔';
       amountFormatted = '';
     } else if (isExpense) {
       notifColor = 'var(--accent-danger, #ef4444)';
@@ -824,9 +1002,25 @@ async function renderNotificationCenterList() {
     item.onmouseleave = () => { item.style.background = isRead ? 'transparent' : 'rgba(14, 165, 233, 0.08)'; };
 
     item.onclick = async () => {
-      await CustomerService.markNotificationReadAsync(n.id);
-      renderNotificationCenterList();
-      refreshNotificationsLoop();
+      if (user?.role === 'CUSTOMER') {
+        await CustomerService.markNotificationReadAsync(n.id);
+        renderNotificationCenterList();
+        refreshNotificationsLoop();
+      } else if (user?.role === 'TELLER') {
+        readTellerNotifIds.add(n.id);
+        renderNotificationCenterList();
+        updateNotificationBadge();
+        if (n.targetView) {
+          const btn = document.querySelector(`.nav-item button[data-view="${n.targetView}"]`);
+          if (btn) btn.click();
+          const notifDropdown = document.getElementById('notif-dropdown');
+          if (notifDropdown) notifDropdown.classList.add('hidden');
+        }
+      } else if (user?.role === 'ADMIN') {
+        readAdminNotifIds.add(n.id);
+        renderNotificationCenterList();
+        updateNotificationBadge();
+      }
     };
 
     item.innerHTML = `
@@ -852,46 +1046,6 @@ async function renderNotificationCenterList() {
     `;
     container.appendChild(item);
   });
-}
-
-function updateEkycHeaderBadge() {
-  const headerActions = document.querySelector('.header-actions');
-  if (!headerActions) return;
-
-  const user = store.data.currentUser;
-  if (!user || user.role !== 'CUSTOMER') {
-    const existing = document.getElementById('header-ekyc-box');
-    if (existing) existing.remove();
-    return;
-  }
-
-  const cust = CustomerService.findCustomer(user);
-  const isVerified = (cust && cust.kycStatus === 'VERIFIED') || user.kycStatus === 'VERIFIED';
-
-  let box = document.getElementById('header-ekyc-box');
-  if (!box) {
-    box = document.createElement('div');
-    box.id = 'header-ekyc-box';
-    headerActions.insertBefore(box, headerActions.firstChild);
-  }
-
-  if (isVerified) {
-    box.innerHTML = `
-      <span class="user-role-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid var(--accent-emerald); font-weight: 600; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;">
-        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-        Đã xác thực eKYC
-      </span>
-    `;
-  } else {
-    box.innerHTML = `
-      <button type="button" class="btn btn-gold btn-sm" id="btn-header-open-ekyc" style="display: inline-flex; align-items: center; gap: 6px;">
-        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-        Xác Thực eKYC Ngay
-      </button>
-    `;
-    const btn = document.getElementById('btn-header-open-ekyc');
-    if (btn) btn.onclick = () => switchNavView('view-customer-ekyc');
-  }
 }
 
 // Xây dựng Menu Sidebar & Xử lý Chuyển đổi Giao diện
@@ -954,19 +1108,15 @@ const pageTitles = {
   'view-customer-accounts': { title: 'Tài Khoản & Thẻ', subtitle: 'Quản lý danh sách tài khoản và thẻ ngân hàng' },
   'view-customer-savings': { title: 'Tài Khoản Tiết Kiệm', subtitle: 'Mở và quản lý tài khoản tiết kiệm tích lũy' },
   'view-customer-loans': { title: 'Tín Dụng & Vay Vốn', subtitle: 'Nộp hồ sơ xin vay vốn và theo dõi lịch trả nợ' },
-  'view-customer-analytics': { title: 'Chi Tiêu & Sao Kê', subtitle: 'Phân tích dòng tiền và xuất bản sao kê điện tử' },
   'view-customer-history': { title: 'Lịch Sử Giao Dịch', subtitle: 'Tra cứu nhật ký giao dịch chi tiết' },
   'view-customer-profile': { title: 'Thông Tin Cá Nhân', subtitle: 'Cập nhật thông tin liên hệ và mật khẩu' },
-  'view-customer-ekyc': { title: 'Xác Thực Định Danh eKYC', subtitle: 'Quy trình định danh điện tử xác thực khuôn mặt & CCCD' },
-  'view-customer-support': { title: 'Gửi Khiếu Nại / Hỗ Trợ', subtitle: 'Gửi yêu cầu hỗ trợ tới giao dịch viên' },
   'view-teller-dashboard': { title: 'Trang Chủ Giao Dịch Viên', subtitle: 'Tổng quan nghiệp vụ và tác vụ tại quầy' },
   'view-teller-new-customer': { title: 'Thêm Hồ Sơ Khách Hàng', subtitle: 'Tạo tài khoản và phát hành thẻ cho khách hàng mới' },
   'view-teller-customers': { title: 'Tra Cứu Khách Hàng', subtitle: 'Danh sách và chỉnh sửa thông tin khách hàng' },
   'view-teller-accounts': { title: 'Quản Lý Tài Khoản', subtitle: 'Quản lý và tra cứu tài khoản trên hệ thống' },
-  'view-teller-tickets': { title: 'Xử Lý Khiếu Nại & Hỗ Trợ', subtitle: 'Tiếp nhận và phản hồi các yêu cầu từ khách hàng' },
   'view-teller-loans': { title: 'Thẩm Định & Duyệt Vay', subtitle: 'Tiếp nhận hồ sơ vay và phê duyệt giải ngân cho khách hàng' },
   'view-admin-dashboard': { title: 'Dashboard Báo Cáo', subtitle: 'Thống kê tổng quan thanh khoản và quy mô ngân hàng' },
-  'view-admin-tellers': { title: 'Quản Lý Giao Dịch Viên & Phân Quyền', subtitle: 'Quản lý tài khoản GDV và ma trận phân quyền hệ thống' },
+  'view-admin-tellers': { title: 'Quản Lý Giao Dịch Viên', subtitle: 'Quản lý danh sách tài khoản giao dịch viên ngân hàng' },
   'view-admin-system': { title: 'Tham Số Hệ Thống', subtitle: 'Cấu hình tham số lãi suất, phí và audit log' }
 };
 
@@ -993,16 +1143,12 @@ function switchView(viewId) {
   else if (viewId === 'view-customer-accounts') renderCustomerAccounts();
   else if (viewId === 'view-customer-savings') renderCustomerSavingsView();
   else if (viewId === 'view-customer-loans') renderCustomerLoansView();
-  else if (viewId === 'view-customer-analytics') renderCustomerAnalyticsView();
   else if (viewId === 'view-customer-history') renderCustomerHistoryView();
   else if (viewId === 'view-customer-profile') renderCustomerProfileView();
-  else if (viewId === 'view-customer-ekyc') renderCustomerEkycView();
-  else if (viewId === 'view-customer-support') renderCustomerSupportView();
   else if (viewId === 'view-teller-dashboard') renderTellerDashboard();
   else if (viewId === 'view-teller-new-customer') renderTellerNewCustomerView();
   else if (viewId === 'view-teller-customers') renderTellerCustomersView();
   else if (viewId === 'view-teller-accounts') renderTellerAccountsView();
-  else if (viewId === 'view-teller-tickets') renderTellerTicketsView();
   else if (viewId === 'view-teller-loans') renderTellerLoansView();
   else if (viewId === 'view-admin-dashboard') renderAdminDashboard();
   else if (viewId === 'view-admin-tellers') renderAdminTellersView();
@@ -1028,26 +1174,29 @@ function switchNavView(viewId) {
 
 async function renderCustomerDashboard() {
   const user = store.data.currentUser;
-  if (backendOnline && BankApiService.hasToken()) {
-    await CustomerService.syncCustomerAccountsAsync();
-  }
-  const cust = CustomerService.findCustomer(user);
-  const isVerified = (cust && cust.kycStatus === 'VERIFIED') || (user && user.kycStatus === 'VERIFIED');
+  if (!user) return;
 
-  const ekycBanner = document.getElementById('cust-ekyc-banner');
-  if (ekycBanner) {
-    if (isVerified) ekycBanner.classList.add('hidden');
-    else ekycBanner.classList.remove('hidden');
+  if (BankApiService.hasToken()) {
+    try {
+      await Promise.allSettled([
+        CustomerService.syncCustomerAccountsAsync(true),
+        CustomerService.getCustomerSavingsAsync(),
+        CustomerService.getTransactionHistoryAsync(),
+        CustomerService.getCustomerLoansAsync()
+      ]);
+    } catch (e) {
+      console.warn('Lỗi đồng bộ dữ liệu Customer Dashboard:', e);
+    }
   }
-  const btnBannerEkyc = document.getElementById('btn-banner-open-ekyc');
-  if (btnBannerEkyc) btnBannerEkyc.onclick = () => switchNavView('view-customer-ekyc');
+
+
 
   const accounts = CustomerService.getCustomerAccounts();
   const paymentAcc = accounts.find(a => a.type === 'PAYMENT') || accounts[0];
 
   const balEl = document.getElementById('cust-total-balance');
   if (balEl) {
-    balEl.textContent = isBalanceMasked ? '••••••••' : (paymentAcc ? store.formatVND(paymentAcc.balance) : '0 VND');
+    balEl.textContent = isBalanceMasked ? '••••••••' : (paymentAcc ? store.formatVND(paymentAcc.balance) : '0 VNĐ');
   }
   
   const accNoEl = document.getElementById('cust-account-number');
@@ -1091,11 +1240,13 @@ async function renderCustomerDashboard() {
   }
 
   // Lấy và tính toán tổng số dư Tiền gửi tiết kiệm đang hoạt động
-  let allSavings = [];
-  try {
-    allSavings = await CustomerService.getCustomerSavingsAsync();
-  } catch (err) {
-    allSavings = CustomerService.getCustomerSavings();
+  let allSavings = CustomerService.getCustomerSavings();
+  if (!allSavings || allSavings.length === 0) {
+    try {
+      allSavings = await CustomerService.getCustomerSavingsAsync();
+    } catch (err) {
+      allSavings = CustomerService.getCustomerSavings();
+    }
   }
   const activeSavings = (allSavings || []).filter(s => s.status === 'ACTIVE' || !s.status);
   const totalSavingsBalance = activeSavings.reduce((sum, s) => sum + (parseFloat(s.depositAmount || s.balance || 0)), 0);
@@ -1114,13 +1265,9 @@ async function renderCustomerDashboard() {
     dashInterestRate.textContent = `${currentRate}%`;
   }
 
-  // Đồng bộ toàn bộ lịch sử giao dịch từ Backend
-  if (backendOnline && BankApiService.hasToken()) {
-    await CustomerService.getTransactionHistoryAsync();
-  }
-
   const txns = CustomerService.getTransactionHistory();
-  const myAccNos = (cust?.accounts || []).map(a => a.accountNo);
+  const currentAccounts = CustomerService.getCustomerAccounts();
+  const myAccNos = currentAccounts.map(a => a.accountNo);
   const mySavNos = (allSavings || []).map(s => s.savingsNo);
   const allUserAccs = [...myAccNos, ...mySavNos];
 
@@ -1137,23 +1284,47 @@ async function renderCustomerDashboard() {
     if (txns.length === 0) {
       tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-dim); padding: 20px;">Chưa có giao dịch nào gần đây.</td></tr>`;
     } else {
+      const primaryAccNo = currentAccounts.find(a => a.type === 'PAYMENT')?.accountNo || myAccNos[0];
+
+      const formatCounterparty = (name, account) => {
+        if (!name && !account) return '-';
+        if (!name) return account || '-';
+        if (!account) return name;
+        if (account && name.includes(account)) return name;
+        return `${name} (${account})`;
+      };
+
       txns.slice(0, 5).forEach(t => {
-        const isOut = allUserAccs.includes(t.fromAccount);
-        const tr = document.createElement('tr');
-
-        let typeBadge = `<span class="user-role-badge badge-customer">${t.type || 'TRANSFER'}</span>`;
-        if (t.type === 'DEPOSIT') typeBadge = `<span class="user-role-badge badge-teller">DEPOSIT</span>`;
-        if (t.type === 'WITHDRAW') typeBadge = `<span class="user-role-badge badge-admin">WITHDRAW</span>`;
-
+        let isOut = false;
         let counterpartyText = '-';
-        if (isOut) {
-          counterpartyText = t.toName ? `${t.toName} (${t.toAccount})` : (t.toAccount || '-');
+
+        if (myAccNos.includes(t.fromAccount) && !myAccNos.includes(t.toAccount)) {
+          isOut = true;
+          counterpartyText = formatCounterparty(t.toName, t.toAccount);
+        } else if (!myAccNos.includes(t.fromAccount) && myAccNos.includes(t.toAccount)) {
+          isOut = false;
+          counterpartyText = formatCounterparty(t.fromName, t.fromAccount);
+        } else if (myAccNos.includes(t.fromAccount) && myAccNos.includes(t.toAccount)) {
+          if (primaryAccNo === t.toAccount) {
+            isOut = false;
+            counterpartyText = formatCounterparty(t.fromName, t.fromAccount);
+          } else {
+            isOut = true;
+            counterpartyText = formatCounterparty(t.toName, t.toAccount);
+          }
         } else {
-          counterpartyText = t.fromName ? `${t.fromName} (${t.fromAccount})` : (t.fromAccount || '-');
+          isOut = mySavNos.includes(t.fromAccount);
+          counterpartyText = isOut
+            ? formatCounterparty(t.toName, t.toAccount)
+            : formatCounterparty(t.fromName, t.fromAccount);
         }
 
+        const tr = document.createElement('tr');
+
+        let typeBadge = CustomerService.getTransactionTypeBadge(t, myAccNos);
+
         tr.innerHTML = `
-          <td><strong style="font-family: var(--font-mono); color: var(--accent-gold);">${t.id}</strong></td>
+          <td><strong style="font-family: var(--font-mono); color: var(--accent-gold);">${store.formatTxnId(t.id)}</strong></td>
           <td>${typeBadge}</td>
           <td style="max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${counterpartyText}">${counterpartyText}</td>
           <td class="${isOut ? 'text-danger' : 'text-emerald'}" style="font-weight: 700;">
@@ -1173,8 +1344,7 @@ async function renderCustomerDashboard() {
   const btnQr = document.getElementById('btn-service-qr');
   if (btnQr) btnQr.onclick = () => openQRModal();
 
-  const btnVnpost = document.getElementById('btn-service-vnpost');
-  if (btnVnpost) btnVnpost.onclick = () => openVNPOSTModal();
+
 
   const btnCreateAtmCode = document.getElementById('btn-service-create-atm-code');
   if (btnCreateAtmCode) btnCreateAtmCode.onclick = () => openCreateAtmCodeModal();
@@ -1198,10 +1368,6 @@ async function renderCustomerDashboard() {
 
   const btnQuickStmt = document.getElementById('btn-quick-view-statement');
   if (btnQuickStmt) btnQuickStmt.onclick = () => openStatementModal();
-
-  if (user && user.role === 'CUSTOMER') {
-    refreshNotificationsLoop();
-  }
 }
 
 // Hàm mở các cửa sổ Modal dịch vụ
@@ -1220,8 +1386,32 @@ function openTransferModal() {
   document.getElementById('form-modal-transfer').reset();
   const recipientBox = document.getElementById('transfer-modal-recipient-box');
   const recipientErr = document.getElementById('transfer-modal-recipient-error');
+  const alertBox = document.getElementById('transfer-modal-balance-alert');
+  const remainingSpan = document.getElementById('transfer-modal-remaining-balance');
+  const amountInput = document.getElementById('transfer-modal-amount');
+  const submitBtn = document.getElementById('btn-submit-transfer-modal');
+
   if (recipientBox) recipientBox.classList.add('hidden');
   if (recipientErr) recipientErr.classList.add('hidden');
+  if (alertBox) alertBox.classList.add('hidden');
+  if (remainingSpan) remainingSpan.textContent = '';
+  if (amountInput) {
+    amountInput.style.borderColor = '';
+    amountInput.style.boxShadow = '';
+  }
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+    submitBtn.style.cursor = 'pointer';
+  }
+
+  // Cập nhật nhãn số dư khả dụng ban đầu
+  const availSpan = document.getElementById('transfer-modal-avail-balance');
+  if (availSpan) {
+    const firstAcc = paymentAccounts[0];
+    availSpan.textContent = `Số dư: ${firstAcc ? store.formatVND(firstAcc.balance) : '0 VNĐ'}`;
+  }
+
   openModal('modal-transfer');
 }
 
@@ -1287,30 +1477,7 @@ function openQRModal() {
   openModal('modal-qr-receive');
 }
 
-function openVNPOSTModal() {
-  const accounts = CustomerService.getCustomerAccounts();
-  const paymentAccounts = accounts.filter(acc => acc.type === 'PAYMENT' || acc.type !== 'SAVINGS');
-  const selectW = document.getElementById('vnpost-w-acc');
-  const selectT = document.getElementById('vnpost-t-acc');
 
-  [selectW, selectT].forEach(sel => {
-    if (!sel) return;
-    sel.innerHTML = '';
-    paymentAccounts.forEach(acc => {
-      const opt = document.createElement('option');
-      opt.value = acc.accountNo;
-      opt.textContent = `${acc.accountNo} (Thanh toán) - Số dư: ${store.formatVND(acc.balance)}`;
-      sel.appendChild(opt);
-    });
-  });
-
-  document.getElementById('form-vnpost-withdraw').reset();
-  document.getElementById('form-vnpost-transfer').reset();
-  const resultBox = document.getElementById('vnpost-result-box');
-  if (resultBox) resultBox.classList.add('hidden');
-
-  openModal('modal-vnpost');
-}
 
 function openCreateAtmCodeModal() {
   const accounts = CustomerService.getCustomerAccounts();
@@ -1327,20 +1494,28 @@ function openCreateAtmCodeModal() {
   });
 
   document.getElementById('form-create-atm-code').reset();
-  document.getElementById('create-atm-pin').value = '1234';
+  const hintAtmAmt = document.getElementById('create-atm-amount-hint');
+  const hintTextAtmAmt = document.getElementById('create-atm-amount-hint-text');
+  if (hintAtmAmt && hintTextAtmAmt) {
+    hintAtmAmt.style.color = 'var(--accent-gold)';
+    hintTextAtmAmt.textContent = 'Lưu ý: Số tiền tối thiểu là 10.000 VNĐ và phải là bội số của 10.000 VNĐ.';
+  }
   const resultBox = document.getElementById('atm-created-result-box');
   if (resultBox) resultBox.classList.add('hidden');
 
   openModal('modal-create-atm-code');
 }
 
+const revealedAtmCodeIds = new Set();
+
 async function openManageAtmCodesModal() {
   if (backendOnline) {
     try {
       const apiRes = await BankApiService.getAtmCodes();
       if (apiRes && apiRes.success && Array.isArray(apiRes.data)) {
+        store.data.atmCodes = (store.data.atmCodes || []).filter(c => c.status !== 'CANCELLED');
         apiRes.data.forEach(c => {
-          if (!store.data.atmCodes.some(item => item.id === c.id || item.code === c.code)) {
+          if (c.status !== 'CANCELLED' && !store.data.atmCodes.some(item => item.id === c.id || item.code === c.code)) {
             store.data.atmCodes.unshift(c);
           }
         });
@@ -1350,6 +1525,8 @@ async function openManageAtmCodesModal() {
     }
   }
 
+  // Lọc sạch mọi mã đã hủy khỏi bộ nhớ
+  store.data.atmCodes = (store.data.atmCodes || []).filter(c => c.status !== 'CANCELLED');
   const codes = CustomerService.getAtmCodes();
   const tbody = document.getElementById('cust-atm-codes-tbody');
   if (!tbody) return;
@@ -1364,8 +1541,28 @@ async function openManageAtmCodesModal() {
       if (c.status === 'COMPLETED') statusBadge = `<span class="user-role-badge badge-teller">Đã hoàn thành</span>`;
       if (c.status === 'CANCELLED') statusBadge = `<span class="user-role-badge badge-admin">Đã hủy</span>`;
 
+      const isRevealed = revealedAtmCodeIds.has(c.id) || revealedAtmCodeIds.has(c.code);
+
+      const codeHtml = isRevealed
+        ? `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <strong style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent-gold); letter-spacing: 2px;">${c.code}</strong>
+            <button type="button" class="btn btn-secondary btn-sm btn-hide-atm-code" data-id="${c.id}" title="Ẩn mã ATM" style="padding: 2px 7px; border-radius: 6px; line-height: 1;">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/></svg>
+            </button>
+          </div>
+        `
+        : `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <strong style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--text-dim); letter-spacing: 3px;">••••••</strong>
+            <button type="button" class="btn btn-secondary btn-sm btn-reveal-atm-code" data-id="${c.id}" data-acc="${c.accountNo}" data-amount="${c.amount}" title="Xác minh PIN & OTP để xem mã ATM" style="padding: 2px 7px; border-radius: 6px; line-height: 1; border-color: var(--accent-cyan); color: var(--accent-cyan);">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            </button>
+          </div>
+        `;
+
       tr.innerHTML = `
-        <td><strong style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent-gold); letter-spacing: 2px;">${c.code}</strong></td>
+        <td>${codeHtml}</td>
         <td>${c.type === 'WITHDRAW' ? 'RÚT TIỀN' : 'NẠP TIỀN'}</td>
         <td><code>${c.accountNo}</code></td>
         <td><strong class="text-cyan">${store.formatVND(c.amount)}</strong></td>
@@ -1373,39 +1570,105 @@ async function openManageAtmCodesModal() {
         <td style="font-size: 0.75rem; color: var(--text-dim);">${c.createdAt}</td>
         <td>
           ${c.status === 'PENDING' ? `
-            <button class="btn btn-primary btn-sm btn-use-code-at-atm" data-code="${c.code}" style="margin-right: 4px;">Sử dụng tại ATM</button>
-            <button class="btn btn-danger btn-sm btn-cancel-atm-code" data-id="${c.id}">Hủy mã</button>
+            <button class="btn btn-primary btn-sm btn-guide-atm-code" data-id="${c.id}" data-type="${c.type}" style="margin-right: 4px; padding: 4px 10px;">Hướng dẫn</button>
+            <button class="btn btn-danger btn-sm btn-cancel-atm-code" data-id="${c.id}" style="padding: 4px 10px;">Hủy mã</button>
           ` : '<span style="font-size: 0.75rem; color: var(--text-dim);">-</span>'}
         </td>
       `;
       tbody.appendChild(tr);
     });
 
-    // Gán sự kiện cho các nút hành động
-    tbody.querySelectorAll('.btn-use-code-at-atm').forEach(btn => {
+    // Gán sự kiện xem mã ATM (yêu cầu xác thực 2FA PIN + OTP)
+    tbody.querySelectorAll('.btn-reveal-atm-code').forEach(btn => {
       btn.onclick = (e) => {
-        const code = e.currentTarget.getAttribute('data-code');
-        const item = (store.data.atmCodes || []).find(c => c.code === code);
-        if (item) {
-          showToast(`Mã xác thực ATM ${code} (${store.formatVND(item.amount)}). Mang mã này và PIN ${item.pin || '1234'} tới cây ATM QuangTrung Bank để thực hiện giao dịch!`, 'info');
-        } else {
-          showToast(`Mã ATM ${code} sẵn sàng sử dụng tại cây ATM`, 'info');
-        }
+        const id = e.currentTarget.getAttribute('data-id');
+        const item = (store.data.atmCodes || []).find(c => c.id === id || c.code === id);
+        if (!item) return;
+
+        requestTransactionVerification({
+          title: 'Xác Thực Bảo Mật Xem Mã ATM',
+          actionName: `Hiển thị mã giao dịch ATM (${store.formatVND(item.amount)})`,
+          fromAcc: item.accountNo,
+          amount: parseFloat(item.amount),
+          onVerified: () => {
+            revealedAtmCodeIds.add(item.id);
+            if (item.code) revealedAtmCodeIds.add(item.code);
+            openManageAtmCodesModal();
+            showToast(`Đã xác minh thành công! Mã ATM của bạn: ${item.code}`, 'success');
+          }
+        });
       };
     });
 
+    // Gán sự kiện ẩn lại mã ATM
+    tbody.querySelectorAll('.btn-hide-atm-code').forEach(btn => {
+      btn.onclick = (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        const item = (store.data.atmCodes || []).find(c => c.id === id || c.code === id);
+        if (item) {
+          revealedAtmCodeIds.delete(item.id);
+          revealedAtmCodeIds.delete(item.code);
+        } else {
+          revealedAtmCodeIds.delete(id);
+        }
+        openManageAtmCodesModal();
+      };
+    });
+
+    // Gán sự kiện cho nút Hướng dẫn sử dụng mã tại ATM (mở modal hướng dẫn chi tiết)
+    tbody.querySelectorAll('.btn-guide-atm-code').forEach(btn => {
+      btn.onclick = (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        const item = (store.data.atmCodes || []).find(c => c.id === id);
+        if (!item) return;
+
+        const isDeposit = item.type === 'DEPOSIT';
+        const typeLabel = isDeposit ? 'Nạp Tiền Mặt Không Thẻ' : 'Rút Tiền Mặt Không Thẻ';
+        const isRevealed = revealedAtmCodeIds.has(item.id) || revealedAtmCodeIds.has(item.code);
+
+        const typeEl = document.getElementById('atm-guide-type-text');
+        const amountEl = document.getElementById('atm-guide-amount-text');
+        const codeEl = document.getElementById('atm-guide-code-text');
+
+        if (typeEl) typeEl.textContent = typeLabel;
+        if (amountEl) amountEl.textContent = store.formatVND(item.amount);
+        if (codeEl) {
+          if (isRevealed) {
+            codeEl.innerHTML = `<span style="color: var(--accent-gold); letter-spacing: 2px;">${item.code}</span>`;
+          } else {
+            codeEl.innerHTML = `
+              <span style="color: var(--text-dim); letter-spacing: 2px;">••••••</span>
+              <span style="font-size: 0.78rem; font-weight: 500; color: var(--accent-cyan); display: inline-flex; align-items: center; gap: 5px; margin-left: 8px; background: rgba(0, 242, 254, 0.12); padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(0, 242, 254, 0.25); vertical-align: middle;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                Xác thực PIN & OTP để xem
+              </span>
+            `;
+          }
+        }
+
+        openModal('modal-atm-guide');
+      };
+    });
+
+    // Gán sự kiện hủy mã ATM
     tbody.querySelectorAll('.btn-cancel-atm-code').forEach(btn => {
       btn.onclick = async (e) => {
         const id = e.currentTarget.getAttribute('data-id');
+        if (!confirm('Bạn có chắc chắn muốn hủy và xóa mã giao dịch ATM này không?')) return;
         const res = await CustomerService.cancelAtmCodeAsync(id);
         showToast(res.message, res.success ? 'success' : 'danger');
-        if (res.success) openManageAtmCodesModal();
+        if (res.success) {
+          revealedAtmCodeIds.delete(id);
+          openManageAtmCodesModal();
+        }
       };
     });
   }
 
   openModal('modal-manage-atm-codes');
 }
+
+
 
 
 // =============================================
@@ -2063,19 +2326,23 @@ async function renderCustomerHistoryView(targetPage = 0) {
   // Populate account select dropdown if empty
   const accSelect = document.getElementById('filter-hist-acc');
   if (accSelect && accSelect.children.length === 0 && freshCust) {
-    accSelect.innerHTML = `<option value="ALL">Tất cả tài khoản (${myAccs.length})</option>`;
-    freshCust.accounts.forEach(a => {
+    const paymentAccounts = (freshCust.accounts || []).filter(a => a.type === 'PAYMENT' || !a.type || a.type !== 'SAVINGS');
+    accSelect.innerHTML = `<option value="ALL">Tất cả tài khoản (${paymentAccounts.length})</option>`;
+    paymentAccounts.forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.accountNo;
       opt.textContent = `${a.accountNo} (${a.type === 'PAYMENT' ? 'Thanh toán' : a.type})`;
       accSelect.appendChild(opt);
     });
-    (store.data.savingsAccounts || []).filter(s => s.customerId === freshCust.id).forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s.savingsNo;
-      opt.textContent = `${(s.savingsNo || '').replace(/^STK-?/i, '')} (Tiết kiệm ${s.termMonths > 0 ? s.termMonths + 'T' : 'KKH'})`;
-      accSelect.appendChild(opt);
-    });
+  }
+
+  const btnOpenStmt = document.getElementById('btn-open-modal-statement');
+  if (btnOpenStmt && !btnOpenStmt.dataset.listenerSet) {
+    btnOpenStmt.dataset.listenerSet = 'true';
+    btnOpenStmt.onclick = () => {
+      const selectedAcc = accSelect?.value || (freshCust?.accounts?.[0]?.accountNo || 'ALL');
+      openStatementModal(selectedAcc);
+    };
   }
 
   // Read filter values from form inputs
@@ -2118,12 +2385,10 @@ async function renderCustomerHistoryView(targetPage = 0) {
       const isOut = myAccs.includes(t.fromAccount);
       const tr = document.createElement('tr');
 
-      let typeBadge = `<span class="user-role-badge badge-customer">${t.type || 'TRANSFER'}</span>`;
-      if (t.type === 'DEPOSIT') typeBadge = `<span class="user-role-badge badge-teller">DEPOSIT</span>`;
-      if (t.type === 'WITHDRAW') typeBadge = `<span class="user-role-badge badge-admin">WITHDRAW</span>`;
+      let typeBadge = CustomerService.getTransactionTypeBadge(t, myAccs);
 
       tr.innerHTML = `
-        <td><strong style="font-family: var(--font-mono); color: var(--accent-gold);">${t.id}</strong></td>
+        <td><strong style="font-family: var(--font-mono); color: var(--accent-gold);">${store.formatTxnId(t.id)}</strong></td>
         <td style="font-size: 0.8rem; color: var(--text-dim); white-space: nowrap;">${store.formatDateTime(t.timestamp)}</td>
         <td>${typeBadge}</td>
         <td>${t.fromName || '-'} (<code>${t.fromAccount}</code>)</td>
@@ -2192,35 +2457,65 @@ async function renderCustomerHistoryView(targetPage = 0) {
   }
 }
 
-function renderCustomerProfileView() {
+async function renderCustomerProfileView() {
   const user = AuthService.getCurrentUser();
-  const freshCust = CustomerService.findCustomer(user);
-  if (!freshCust) return;
+  let freshCust = CustomerService.findCustomer(user);
 
-  document.getElementById('profile-fullname').value = freshCust.fullName || '';
-  document.getElementById('profile-idcard').value = freshCust.idCard || '';
-  document.getElementById('profile-phone').value = freshCust.phone || '';
-  document.getElementById('profile-email').value = freshCust.email || '';
-  document.getElementById('profile-address').value = freshCust.address || '';
+  if (user && user._hasJwtToken && (!freshCust || !freshCust.idCard || !freshCust.address)) {
+    try {
+      const profRes = await BankApiService.getProfile();
+      if (profRes && profRes.success && profRes.data) {
+        const pd = profRes.data;
+        if (user) {
+          if (pd.idCard) user.idCard = pd.idCard;
+          if (pd.address) user.address = pd.address;
+          if (pd.contactAddress) user.contactAddress = pd.contactAddress;
+          if (pd.customerId) user.customerId = pd.customerId;
+          if (pd.fullName) user.fullName = pd.fullName;
+          if (pd.email) user.email = pd.email;
+          if (pd.phone) user.phone = pd.phone;
+        }
+        if (freshCust) {
+          if (pd.idCard) freshCust.idCard = pd.idCard;
+          if (pd.address) freshCust.address = pd.address;
+          if (pd.contactAddress) freshCust.contactAddress = pd.contactAddress;
+          if (pd.fullName) freshCust.fullName = pd.fullName;
+          if (pd.email) freshCust.email = pd.email;
+          if (pd.phone) freshCust.phone = pd.phone;
+        }
+      }
+    } catch (err) {
+      console.warn('Lỗi đồng bộ hồ sơ khách hàng từ Backend:', err);
+    }
+  }
 
-  const isVerified = freshCust.kycStatus === 'VERIFIED';
-  const badgeEl = document.getElementById('profile-ekyc-badge');
-  const descEl = document.getElementById('profile-ekyc-desc');
-  const btnProfileEkyc = document.getElementById('btn-profile-open-ekyc');
+  freshCust = CustomerService.findCustomer(user);
+  if (!freshCust && !user) return;
 
-  if (badgeEl) {
-    badgeEl.textContent = isVerified ? '✓ Đã xác thực eKYC' : '⚠ Chưa định danh eKYC';
-    badgeEl.className = `user-role-badge ${isVerified ? 'badge-customer' : 'badge-admin'}`;
-  }
-  if (descEl) {
-    descEl.innerHTML = isVerified
-      ? `Hồ sơ định danh cá nhân eKYC của bạn đã được xác thực thành công vào lúc <strong>${freshCust.kycVerifiedAt || '15/01/2025'}</strong>. Hạn mức giao dịch trực tuyến: <strong>500.000.000 VNĐ/ngày</strong>.`
-      : `Tài khoản của bạn hiện ở cấp độ chưa định danh. Hạn mức giao dịch bị giới hạn tối đa <strong>10.000.000 VNĐ/ngày</strong> và không thể mở Tài khoản tiết kiệm trực tuyến.`;
-  }
-  if (btnProfileEkyc) {
-    btnProfileEkyc.textContent = isVerified ? 'Cập Nhật Lại eKYC / Đổi CCCD' : 'Thực Hiện Định Danh eKYC Ngay';
-    btnProfileEkyc.onclick = () => switchNavView('view-customer-ekyc');
-  }
+  const fullName = (freshCust && freshCust.fullName) || (user && user.fullName) || '';
+  const idCard = (freshCust && freshCust.idCard) || (user && user.idCard) || '';
+  const phone = (freshCust && freshCust.phone) || (user && user.phone) || '';
+  const email = (freshCust && freshCust.email) || (user && user.email) || '';
+  const address = (freshCust && freshCust.address) || (user && user.address) || '';
+  const contactAddress = (freshCust && (freshCust.contactAddress || freshCust.address)) || (user && (user.contactAddress || user.address)) || '';
+
+  const elFullname = document.getElementById('profile-fullname');
+  if (elFullname) elFullname.value = fullName;
+
+  const elIdCard = document.getElementById('profile-idcard');
+  if (elIdCard) elIdCard.value = idCard;
+
+  const elPhone = document.getElementById('profile-phone');
+  if (elPhone) elPhone.value = phone;
+
+  const elEmail = document.getElementById('profile-email');
+  if (elEmail) elEmail.value = email;
+
+  const elAddress = document.getElementById('profile-address');
+  if (elAddress) elAddress.value = address;
+
+  const contactAddressInput = document.getElementById('profile-contact-address');
+  if (contactAddressInput) contactAddressInput.value = contactAddress;
 
   const pwdCurrentInput = document.getElementById('change-pwd-current');
   const pwdNewInput = document.getElementById('change-pwd-new');
@@ -2239,56 +2534,6 @@ function renderCustomerProfileView() {
   }
 }
 
-async function renderCustomerSupportView() {
-  const user = AuthService.getCurrentUser();
-  const freshCust = CustomerService.findCustomer(user);
-  if (!freshCust) return;
-
-  const select = document.getElementById('ticket-account');
-  select.innerHTML = '';
-  freshCust.accounts.forEach(a => {
-    select.innerHTML += `<option value="${a.accountNo}">Tài khoản: ${a.accountNo}</option>`;
-  });
-
-  if (backendOnline) {
-    try {
-      const apiRes = await BankApiService.getTickets();
-      if (apiRes && apiRes.success && Array.isArray(apiRes.data)) {
-        apiRes.data.forEach(t => {
-          if (!store.data.tickets.some(item => item.id === t.id)) {
-            store.data.tickets.unshift(t);
-          }
-        });
-      }
-    } catch (e) {
-      console.warn('Could not fetch tickets from backend', e);
-    }
-  }
-
-  const listContainer = document.getElementById('cust-tickets-list');
-  const myTickets = store.data.tickets.filter(t => t.customerId === freshCust.id || t.customerId === user.id || t.customerId === user.username);
-
-  listContainer.innerHTML = '';
-  if (myTickets.length === 0) {
-    listContainer.innerHTML = '<p style="color: var(--text-dim); font-size: 0.85rem;">Bạn chưa có yêu cầu hỗ trợ nào.</p>';
-    return;
-  }
-
-  myTickets.forEach(t => {
-    const div = document.createElement('div');
-    div.style.cssText = 'padding: 14px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px;';
-    div.innerHTML = `
-      <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-        <strong style="font-size: 0.9rem;">${t.subject}</strong>
-        <span class="user-role-badge ${t.status === 'RESOLVED' ? 'badge-customer' : 'badge-teller'}">${t.status}</span>
-      </div>
-      <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">${t.content}</div>
-      ${t.response ? `<div style="font-size: 0.8rem; padding: 8px; background: rgba(16, 185, 129, 0.1); border-left: 3px solid var(--accent-emerald); border-radius: 4px;"><strong>GDV Phản hồi:</strong> ${t.response}</div>` : ''}
-    `;
-    listContainer.appendChild(div);
-  });
-}
-
 /* ==========================================================================
    HÀM HIỂN THỊ DỮ LIỆU CHO PHÂN HỆ GIAO DỊCH VIÊN (TELLER VIEWS)
    ========================================================================== */
@@ -2301,73 +2546,31 @@ function renderTellerDashboard() {
   document.getElementById('teller-branch-name').textContent = `Chi nhánh: ${freshTeller.branch || 'Hội Sở QuangTrung Bank'}`;
   document.getElementById('teller-total-cust').textContent = store.data.customers.length;
   
-  const pendingTickets = store.data.tickets.filter(t => t.status === 'PENDING').length;
-  document.getElementById('teller-pending-tickets').textContent = pendingTickets;
+  const pendingLoans = (store.data.loanApplications || []).filter(l => l.status === 'PENDING').length;
+  const pendingLoansEl = document.getElementById('teller-pending-loans-dash');
+  if (pendingLoansEl) pendingLoansEl.textContent = pendingLoans;
 
   document.getElementById('btn-nav-teller-new-cust').onclick = () => switchNavView('view-teller-new-customer');
   document.getElementById('btn-nav-teller-accounts').onclick = () => switchNavView('view-teller-accounts');
-  document.getElementById('btn-nav-teller-tickets').onclick = () => switchNavView('view-teller-tickets');
   const btnTellerLoans = document.getElementById('btn-nav-teller-loans');
   if (btnTellerLoans) btnTellerLoans.onclick = () => switchNavView('view-teller-loans');
 }
 
 // Biến trạng thái phân hệ Tạo hồ sơ khách hàng tại quầy (GDV)
 let tellerWebcamStream = null;
-let tellerCapturedFaceData = null;
-
 function renderTellerNewCustomerView() {
-  tellerCapturedFaceData = null;
-  const preview = document.getElementById('teller-preview-face');
-  if (preview) preview.style.display = 'none';
-  const video = document.getElementById('teller-webcam-video');
-  if (video) video.style.display = 'block';
-  const badge = document.getElementById('teller-face-status-badge');
-  if (badge) {
-    badge.style.background = 'rgba(239,68,68,0.1)';
-    badge.style.borderColor = 'rgba(239,68,68,0.3)';
-    badge.style.color = '#f87171';
-    badge.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Chưa thu thập dữ liệu khuôn mặt (Bắt buộc quét mặt để lưu hồ sơ).</span>';
-  }
+  const form = document.getElementById('form-teller-create-cust');
+  if (form) form.reset();
 }
 
-async function startTellerWebcam() {
-  const video = document.getElementById('teller-webcam-video');
-  const preview = document.getElementById('teller-preview-face');
-  const overlay = document.getElementById('teller-oval-overlay');
-  if (!video) return;
-
-  if (preview) preview.style.display = 'none';
-  if (video) video.style.display = 'block';
-  if (overlay) overlay.style.display = 'flex';
-
-  startFaceLandmarksAnimation('teller-landmarks-canvas');
-
-  try {
-    tellerWebcamStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-    video.srcObject = tellerWebcamStream;
-  } catch (err) {
-    console.warn('Teller webcam access error:', err);
-    showToast('Không thể kết nối webcam thực tế. Bạn có thể bấm nút "Dùng Ảnh Mẫu Sinh Trắc Học".', 'info');
-  }
-}
-
-function stopTellerWebcam() {
-  stopFaceLandmarksAnimation('teller-landmarks-canvas');
-  if (tellerWebcamStream) {
-    tellerWebcamStream.getTracks().forEach(t => t.stop());
-    tellerWebcamStream = null;
-  }
-}
-
-function renderTellerCustomersView() {
+async function renderTellerCustomersView() {
+  await TellerService.syncCustomersAsync();
   const tbody = document.getElementById('teller-customers-tbody');
+  if (!tbody) return;
   tbody.innerHTML = '';
 
   store.data.customers.forEach(c => {
-    const isVerified = c.kycStatus === 'VERIFIED';
-    const statusBadge = isVerified 
-      ? `<span class="user-role-badge badge-customer">✓ Đã Định Danh</span>`
-      : `<span class="user-role-badge badge-admin">Chưa Định Danh</span>`;
+    const accountsCount = Array.isArray(c.accounts) ? c.accounts.length : 1;
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -2376,54 +2579,37 @@ function renderTellerCustomersView() {
       <td>${c.idCard}</td>
       <td>${c.phone}</td>
       <td>${c.email}</td>
-      <td><span class="user-role-badge badge-customer">${c.accounts.length} TK</span></td>
-      <td>${statusBadge}</td>
+      <td><span class="user-role-badge badge-customer">${accountsCount} TK</span></td>
       <td>
-        <button class="btn btn-secondary btn-sm btn-edit-cust-modal" data-id="${c.id}" style="margin-right: 4px;">Sửa HĐ</button>
-        <button class="btn ${isVerified ? 'btn-danger' : 'btn-success'} btn-sm btn-toggle-ekyc" data-id="${c.id}">
-          ${isVerified ? 'Hủy eKYC' : 'Duyệt eKYC'}
-        </button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openTellerEditCustomerModal('${c.id}')">Sửa HĐ</button>
       </td>
     `;
     tbody.appendChild(tr);
   });
-
-  tbody.querySelectorAll('.btn-toggle-ekyc').forEach(btn => {
-    btn.onclick = (e) => {
-      const cid = e.currentTarget.getAttribute('data-id');
-      const cust = store.data.customers.find(c => c.id === cid);
-      if (cust) {
-        const newStatus = cust.kycStatus === 'VERIFIED' ? 'NOT_VERIFIED' : 'VERIFIED';
-        const res = TellerService.approveEKyc(cid, newStatus);
-        showToast(res.message, res.success ? 'success' : 'danger');
-        renderTellerCustomersView();
-      }
-    };
-  });
-
-  // Gán sự kiện click chỉnh sửa
-  tbody.querySelectorAll('.btn-edit-cust-modal').forEach(btn => {
-    btn.onclick = (e) => {
-      const cid = e.currentTarget.getAttribute('data-id');
-      const cust = store.data.customers.find(c => c.id === cid);
-      if (cust) {
-        document.getElementById('modal-edit-cust-id').value = cust.id;
-        document.getElementById('modal-edit-cust-fullname').value = cust.fullName;
-        document.getElementById('modal-edit-cust-phone').value = cust.phone;
-        document.getElementById('modal-edit-cust-email').value = cust.email;
-        document.getElementById('modal-edit-cust-address').value = cust.address;
-        openModal('modal-edit-customer');
-      }
-    };
-  });
 }
 
-function renderTellerAccountsView() {
+function openTellerEditCustomerModal(cid) {
+  const cust = (store.data.customers || []).find(c => c.id === cid);
+  if (cust) {
+    document.getElementById('modal-edit-cust-id').value = cust.id;
+    document.getElementById('modal-edit-cust-fullname').value = cust.fullName;
+    document.getElementById('modal-edit-cust-phone').value = cust.phone;
+    document.getElementById('modal-edit-cust-email').value = cust.email;
+    document.getElementById('modal-edit-cust-address').value = cust.address;
+    openModal('modal-edit-customer');
+  }
+}
+
+window.openTellerEditCustomerModal = openTellerEditCustomerModal;
+
+async function renderTellerAccountsView() {
+  await TellerService.syncCustomersAsync();
   const tbody = document.getElementById('teller-accounts-tbody');
+  if (!tbody) return;
   tbody.innerHTML = '';
 
   store.data.customers.forEach(c => {
-    c.accounts.forEach(a => {
+    (c.accounts || []).forEach(a => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><code>${a.accountNo}</code></td>
@@ -2455,40 +2641,7 @@ function renderTellerAccountsView() {
   });
 }
 
-function renderTellerTicketsView() {
-  const tbody = document.getElementById('teller-tickets-tbody');
-  tbody.innerHTML = '';
 
-  store.data.tickets.forEach(t => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><code>${t.id}</code></td>
-      <td style="font-weight: 600;">${t.customerName}</td>
-      <td><code>${t.accountNo}</code></td>
-      <td>${t.subject}</td>
-      <td style="font-size: 0.8rem; color: var(--text-dim);">${t.createdAt}</td>
-      <td><span class="user-role-badge ${t.status === 'RESOLVED' ? 'badge-customer' : 'badge-teller'}">${t.status}</span></td>
-      <td>
-        <button class="btn btn-primary btn-sm btn-resolve-tck" data-id="${t.id}">Xử Lý</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  tbody.querySelectorAll('.btn-resolve-tck').forEach(btn => {
-    btn.onclick = (e) => {
-      const tid = e.currentTarget.getAttribute('data-id');
-      const tck = store.data.tickets.find(t => t.id === tid);
-      if (tck) {
-        document.getElementById('modal-ticket-id').value = tck.id;
-        document.getElementById('modal-ticket-cust-info').value = `${tck.customerName} (${tck.accountNo})`;
-        document.getElementById('modal-ticket-content-text').value = tck.content;
-        document.getElementById('modal-ticket-response-input').value = tck.response || '';
-        openModal('modal-resolve-ticket');
-      }
-    };
-  });
-}
 
 /* ==========================================================================
    HÀM HIỂN THỊ DỮ LIỆU TÍN DỤNG & VAY VỐN (LOANS & CREDIT SYSTEM)
@@ -2496,7 +2649,7 @@ function renderTellerTicketsView() {
 
 let currentCustomerLoanFilter = 'ALL';
 
-function renderCustomerLoansView(filter = currentCustomerLoanFilter) {
+async function renderCustomerLoansView(filter = currentCustomerLoanFilter) {
   currentCustomerLoanFilter = filter;
   const user = AuthService.getCurrentUser();
   if (!user || user.role !== 'CUSTOMER') return;
@@ -2504,7 +2657,14 @@ function renderCustomerLoansView(filter = currentCustomerLoanFilter) {
   const freshCust = CustomerService.findCustomer(user);
   if (!freshCust) return;
 
-  const loans = CustomerService.getCustomerLoans();
+  // Lấy dữ liệu biểu lãi suất cho vay mới nhất từ Backend API
+  await CustomerService.getLoanInterestRatesAsync();
+
+  // Cập nhật thẻ biểu lãi suất gói vay theo cấu hình mới nhất
+  renderLoanPackagesGuide();
+  populateLoanTypeSelect();
+
+  const loans = await CustomerService.getCustomerLoansAsync();
   const activeLoans = loans.filter(l => l.status === 'ACTIVE');
   const totalBalance = activeLoans.reduce((sum, l) => sum + (l.remainingBalance || 0), 0);
 
@@ -2514,7 +2674,7 @@ function renderCustomerLoansView(filter = currentCustomerLoanFilter) {
   if (activeLoans.length > 0) {
     const firstActive = activeLoans[0];
     nextPayment = firstActive.monthlyPayment || 0;
-    nextDueStr = `Hạn nộp: ${firstActive.nextDueDate || 'Ngày 05 hàng tháng'}`;
+    nextDueStr = `Hạn nộp: ${firstActive.nextDueDate ? store.formatDate(firstActive.nextDueDate) : 'Chờ giải ngân'}`;
   }
 
   // Cập nhật thẻ KPI
@@ -2559,8 +2719,7 @@ function renderCustomerLoansView(filter = currentCustomerLoanFilter) {
     MORTGAGE: '🏠 Vay Mua BĐS',
     CAR: '🚗 Vay Mua Ô Tô',
     CONSUMER: '💼 Vay Tiêu Dùng',
-    BUSINESS: '📈 Vay Kinh Doanh',
-    OVERDRAFT: '💳 Thấu Chi'
+    BUSINESS: '📈 Vay Kinh Doanh'
   };
 
   displayedLoans.forEach(loan => {
@@ -2601,9 +2760,6 @@ function renderCustomerLoansView(filter = currentCustomerLoanFilter) {
           <button class="btn btn-secondary btn-sm btn-loan-contract" data-id="${loan.id}" title="Xem Hợp Đồng Tín Dụng" style="padding: 4px 8px; font-size: 0.75rem;">
             📑 HĐ
           </button>
-          <button class="btn btn-secondary btn-sm btn-loan-sched" data-id="${loan.id}" title="Xem Bảng Lịch Trả Nợ" style="padding: 4px 8px; font-size: 0.75rem;">
-            📊 Lịch
-          </button>
           ${loan.status === 'ACTIVE' ? `
             <button class="btn btn-primary btn-sm btn-pay-installment" data-id="${loan.id}" title="Thanh Toán Kỳ Nợ Hiện Tại" style="padding: 4px 8px; font-size: 0.75rem;">
               💵 Trả Nợ
@@ -2623,70 +2779,17 @@ function renderCustomerLoansView(filter = currentCustomerLoanFilter) {
     btn.onclick = () => openLoanContractModal(btn.getAttribute('data-id'));
   });
 
-  tbody.querySelectorAll('.btn-loan-sched').forEach(btn => {
-    btn.onclick = () => openLoanScheduleModal(btn.getAttribute('data-id'));
-  });
-
   tbody.querySelectorAll('.btn-pay-installment').forEach(btn => {
     btn.onclick = () => {
       const loanId = btn.getAttribute('data-id');
-      const loan = store.data.loans.find(l => l.id === loanId);
-      if (!loan) return;
-
-      requestSecurityVerification({
-        actionTitle: `Thanh toán kỳ nợ [${loan.contractNo || loan.id}] - Số tiền: ${store.formatVND(loan.monthlyPayment)}`,
-        onVerified: () => {
-          const res = CustomerService.payLoanInstallment(loanId, false);
-          if (res.success) {
-            showSuccessModal({
-              title: 'Thanh Toán Kỳ Nợ Thành Công!',
-              message: res.message || `Đã thanh toán kỳ nợ ${store.formatVND(loan.monthlyPayment)} cho hợp đồng ${loan.contractNo || loan.id}.`,
-              amount: parseFloat(loan.monthlyPayment),
-              txId: loan.contractNo || loan.id,
-              counterparty: 'QuangTrung Bank Credit'
-            });
-            renderCustomerLoansView();
-            renderCustomerDashboard();
-          } else {
-            showToast(res.message, 'danger');
-          }
-        }
-      });
+      openPayLoanModal(loanId, false);
     };
   });
 
   tbody.querySelectorAll('.btn-pay-early-all').forEach(btn => {
     btn.onclick = () => {
       const loanId = btn.getAttribute('data-id');
-      const loan = store.data.loans.find(l => l.id === loanId);
-      if (!loan) return;
-
-      const penalty = Math.round(loan.remainingBalance * 0.015);
-      const totalPay = loan.remainingBalance + penalty;
-
-      if (!confirm(`Xác nhận TẤT TOÁN TOÀN BỘ khoản vay [${loan.contractNo || loan.id}]?\n\n- Dư nợ gốc còn lại: ${store.formatVND(loan.remainingBalance)}\n- Phí phạt tất toán trước hạn (1.5%): ${store.formatVND(penalty)}\n- Tổng số tiền cần thanh toán: ${store.formatVND(totalPay)}\n\nSố tiền sẽ được trích trực tiếp từ tài khoản thanh toán.`)) {
-        return;
-      }
-
-      requestSecurityVerification({
-        actionTitle: `Tất toán trước hạn HĐ [${loan.contractNo || loan.id}] - Tổng tiền: ${store.formatVND(totalPay)}`,
-        onVerified: () => {
-          const res = CustomerService.payLoanInstallment(loanId, true);
-          if (res.success) {
-            showSuccessModal({
-              title: 'Tất Toán Khoản Vay Thành Công!',
-              message: res.message || `Đã tất toán toàn bộ dư nợ hợp đồng ${loan.contractNo || loan.id}.`,
-              amount: parseFloat(totalPay),
-              txId: loan.contractNo || loan.id,
-              counterparty: 'QuangTrung Bank Credit'
-            });
-            renderCustomerLoansView();
-            renderCustomerDashboard();
-          } else {
-            showToast(res.message, 'danger');
-          }
-        }
-      });
+      openPayLoanModal(loanId, true);
     };
   });
 
@@ -2697,9 +2800,9 @@ function renderCustomerLoansView(filter = currentCustomerLoanFilter) {
 
 let currentTellerLoanFilter = 'PENDING';
 
-function renderTellerLoansView(filter = currentTellerLoanFilter, search = '') {
+async function renderTellerLoansView(filter = currentTellerLoanFilter, search = '') {
   currentTellerLoanFilter = filter;
-  const loans = store.data.loans || [];
+  const loans = await TellerService.getAllLoansAsync();
 
   const pendingLoans = loans.filter(l => l.status === 'PENDING');
   const approvedLoans = loans.filter(l => l.status === 'ACTIVE' || l.status === 'PAID_OFF');
@@ -2761,8 +2864,7 @@ function renderTellerLoansView(filter = currentTellerLoanFilter, search = '') {
     MORTGAGE: '🏠 Vay Mua BĐS',
     CAR: '🚗 Vay Mua Ô Tô',
     CONSUMER: '💼 Vay Tiêu Dùng',
-    BUSINESS: '📈 Vay Kinh Doanh',
-    OVERDRAFT: '💳 Thấu Chi'
+    BUSINESS: '📈 Vay Kinh Doanh'
   };
 
   displayed.forEach(loan => {
@@ -2813,9 +2915,6 @@ function renderTellerLoansView(filter = currentTellerLoanFilter, search = '') {
           <button class="btn btn-secondary btn-sm btn-teller-view-contract" data-id="${loan.id}" title="Xem Hợp Đồng Tín Dụng" style="padding: 4px 8px; font-size: 0.75rem;">
             📑 HĐ
           </button>
-          <button class="btn btn-secondary btn-sm btn-teller-view-sched" data-id="${loan.id}" title="Xem Lịch Trả Nợ Chi Tiết" style="padding: 4px 8px; font-size: 0.75rem;">
-            📊 Lịch
-          </button>
         </div>
       </td>
     `;
@@ -2837,10 +2936,10 @@ function renderTellerLoansView(filter = currentTellerLoanFilter, search = '') {
         // Vay tín chấp: Trực tiếp xác thực mật khẩu GDV để giải ngân
         requestSecurityVerification({
           actionTitle: `Phê duyệt & Giải ngân ${store.formatVND(loan.principalAmount)} cho KH ${loan.customerName} [HĐ: ${loan.contractNo || loan.id}]`,
-          onVerified: () => {
-            const res = TellerService.approveLoan(loanId, 'Thẩm định hồ sơ tín chấp đạt tiêu chuẩn và giải ngân tự động');
+          onVerified: async () => {
+            const res = await TellerService.approveLoanAsync(loanId, 'Thẩm định hồ sơ tín chấp đạt tiêu chuẩn và giải ngân tự động');
             showToast(res.message, res.success ? 'success' : 'danger');
-            renderTellerLoansView(currentTellerLoanFilter);
+            await renderTellerLoansView(currentTellerLoanFilter);
           }
         });
       }
@@ -2857,10 +2956,10 @@ function renderTellerLoansView(filter = currentTellerLoanFilter, search = '') {
       if (reason !== null && reason.trim()) {
         requestSecurityVerification({
           actionTitle: `Từ chối cấp tín dụng cho KH ${loan.customerName} [HĐ: ${loan.contractNo || loan.id}]`,
-          onVerified: () => {
-            const res = TellerService.rejectLoan(loanId, reason.trim());
+          onVerified: async () => {
+            const res = await TellerService.rejectLoanAsync(loanId, reason.trim());
             showToast(res.message, res.success ? 'success' : 'danger');
-            renderTellerLoansView(currentTellerLoanFilter);
+            await renderTellerLoansView(currentTellerLoanFilter);
           }
         });
       }
@@ -2870,26 +2969,26 @@ function renderTellerLoansView(filter = currentTellerLoanFilter, search = '') {
   tbody.querySelectorAll('.btn-teller-view-contract').forEach(btn => {
     btn.onclick = () => openLoanContractModal(btn.getAttribute('data-id'));
   });
-
-  tbody.querySelectorAll('.btn-teller-view-sched').forEach(btn => {
-    btn.onclick = () => openLoanScheduleModal(btn.getAttribute('data-id'));
-  });
 }
 
 /* ==========================================================================
    HÀM HIỂN THỊ DỮ LIỆU CHO PHÂN HỆ QUẢN TRỊ VIÊN (ADMIN VIEWS)
    ========================================================================== */
 
-function renderAdminDashboard() {
-  const metrics = AdminService.getSystemMetrics();
+async function renderAdminDashboard() {
+  const metrics = await AdminService.getSystemMetricsAsync();
 
-  document.getElementById('admin-total-liquidity').textContent = store.formatVND(metrics.totalLiquidity);
-  document.getElementById('admin-total-cust').textContent = metrics.totalCustomers;
-  document.getElementById('admin-total-tellers').textContent = metrics.totalTellers;
+  const totalLiqEl = document.getElementById('admin-total-liquidity');
+  const totalCustEl = document.getElementById('admin-total-cust');
+  const totalTellersEl = document.getElementById('admin-total-tellers');
+
+  if (totalLiqEl) totalLiqEl.textContent = store.formatVND(metrics.totalLiquidity);
+  if (totalCustEl) totalCustEl.textContent = metrics.totalCustomers;
+  if (totalTellersEl) totalTellersEl.textContent = metrics.totalTellers;
 
   // Vẽ biểu đồ thống kê
   setTimeout(() => {
-    ReportService.renderAdminCharts('chart-liquidity', 'chart-transactions');
+    ReportService.renderAdminCharts('chart-liquidity', 'chart-transactions', metrics);
   }, 100);
 }
 
@@ -2903,7 +3002,6 @@ function renderAdminTellersView() {
   const totalStaffEl = document.getElementById('admin-staff-total');
   const activeStaffEl = document.getElementById('admin-staff-active');
   const lockedStaffEl = document.getElementById('admin-staff-locked');
-  const totalPermsEl = document.getElementById('admin-staff-total-perms');
 
   const countTotal = tellers.length;
   const countActive = tellers.filter(t => t.status === 'ACTIVE').length;
@@ -2912,7 +3010,6 @@ function renderAdminTellersView() {
   if (totalStaffEl) totalStaffEl.textContent = countTotal;
   if (activeStaffEl) activeStaffEl.textContent = countActive;
   if (lockedStaffEl) lockedStaffEl.textContent = countLocked;
-  if (totalPermsEl) totalPermsEl.textContent = (store.data.permissionsList || []).length;
 
   // Cập nhật số liệu trên Admin Dashboard nếu có
   const adminTotalTellersEl = document.getElementById('admin-total-tellers');
@@ -2943,7 +3040,7 @@ function renderAdminTellersView() {
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">
           Không tìm thấy giao dịch viên phù hợp với bộ lọc.
         </td>
       </tr>
@@ -2952,7 +3049,6 @@ function renderAdminTellersView() {
   }
 
   filtered.forEach(t => {
-    const permCount = (t.permissions || []).length;
     const isLocked = t.status === 'LOCKED';
 
     const tr = document.createElement('tr');
@@ -2969,23 +3065,20 @@ function renderAdminTellersView() {
         <span style="font-size: 0.82rem; color: var(--text-main);">${t.branch || 'Hội Sở'}</span>
       </td>
       <td>
-        <span style="font-size: 0.82rem; font-weight: 700; color: var(--accent-gold);">${permCount} / 12 Quyền</span>
-      </td>
-      <td>
         <span class="badge ${isLocked ? 'badge-danger' : 'badge-emerald'}" style="font-size: 0.72rem;">
           ${isLocked ? '🔒 TẠM KHÓA' : '✓ HOẠT ĐỘNG'}
         </span>
       </td>
       <td style="text-align: right;">
         <div style="display: flex; gap: 6px; justify-content: flex-end;">
-          <button class="btn btn-secondary btn-sm btn-teller-manage-perms" data-id="${t.id}" title="Thiết lập quyền thao tác" style="padding: 4px 8px; font-size: 0.75rem;">
-            🔑 Phân Quyền
-          </button>
-          <button class="btn btn-secondary btn-sm btn-teller-edit-info" data-id="${t.id}" title="Sửa thông tin giao dịch viên" style="padding: 4px 8px; font-size: 0.75rem;">
+          <button type="button" class="btn btn-secondary btn-sm btn-teller-edit-info" data-id="${t.id}" onclick="openAddEditTellerModal('${t.id}')" title="Sửa thông tin giao dịch viên" style="padding: 4px 8px; font-size: 0.75rem;">
             ✏️ Sửa
           </button>
-          <button class="btn ${isLocked ? 'btn-success' : 'btn-danger'} btn-sm btn-teller-toggle-status" data-id="${t.id}" title="${isLocked ? 'Mở khóa GDV' : 'Khóa tài khoản'}" style="padding: 4px 8px; font-size: 0.75rem;">
+          <button type="button" class="btn ${isLocked ? 'btn-success' : 'btn-danger'} btn-sm btn-teller-toggle-status" data-id="${t.id}" title="${isLocked ? 'Mở khóa GDV' : 'Khóa tài khoản'}" style="padding: 4px 8px; font-size: 0.75rem;">
             ${isLocked ? '🔓 Mở' : '🔒 Khóa'}
+          </button>
+          <button type="button" class="btn btn-danger btn-sm btn-teller-delete" data-id="${t.id}" title="Xóa tài khoản giao dịch viên" style="padding: 4px 8px; font-size: 0.75rem; background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); color: #f87171;">
+            🗑️ Xóa
           </button>
         </div>
       </td>
@@ -2994,27 +3087,51 @@ function renderAdminTellersView() {
   });
 
   // Gán sự kiện cho các nút trong bảng
-  tbody.querySelectorAll('.btn-teller-manage-perms').forEach(btn => {
-    btn.onclick = () => openQuickPermsModal(btn.getAttribute('data-id'));
-  });
-
   tbody.querySelectorAll('.btn-teller-edit-info').forEach(btn => {
-    btn.onclick = () => openAddEditTellerModal(btn.getAttribute('data-id'));
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      openAddEditTellerModal(btn.getAttribute('data-id'));
+    };
   });
 
   tbody.querySelectorAll('.btn-teller-toggle-status').forEach(btn => {
     btn.onclick = () => {
       const id = btn.getAttribute('data-id');
-      const teller = store.data.tellers.find(t => t.id === id);
+      const teller = store.data.tellers.find(t => t.id === id || t.staffCode === id);
       if (!teller) return;
 
       const action = teller.status === 'ACTIVE' ? 'KHÓA' : 'MỞ KHÓA';
       requestSecurityVerification({
-        actionTitle: `${action} tài khoản giao dịch viên [${teller.fullName} - ${teller.staffCode}]`,
+        actionTitle: `${action} tài khoản giao dịch viên [${teller.fullName} - ${teller.staffCode || teller.id}]`,
         onVerified: () => {
           const res = AdminService.toggleTellerStatus(id);
           showToast(res.message, res.success ? 'success' : 'danger');
           renderAdminTellersView();
+        }
+      });
+    };
+  });
+
+  tbody.querySelectorAll('.btn-teller-delete').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.getAttribute('data-id');
+      const teller = store.data.tellers.find(t => t.id === id || t.staffCode === id);
+      if (!teller) return;
+
+      requestSecurityVerification({
+        actionTitle: `Xác nhận XÓA VĨNH VIỄN tài khoản Giao dịch viên [${teller.fullName} - ${teller.staffCode || teller.id}]`,
+        onVerified: async () => {
+          const res = await AdminService.deleteTeller(id);
+          if (res.success) {
+            showSuccessModal({
+              title: 'Xóa Giao Dịch Viên Thành Công!',
+              message: res.message || `Đã xóa tài khoản cán bộ ${teller.fullName} khỏi hệ thống.`,
+              counterparty: teller.fullName
+            });
+            renderAdminTellersView();
+          } else {
+            showToast(res.message, 'danger');
+          }
         }
       });
     };
@@ -3068,7 +3185,6 @@ function renderAdminSystemView() {
   const fAtmExt = document.getElementById('cfg-fee-atm-external');
   const fCardIssue = document.getElementById('cfg-fee-card-issue');
   const fMonthly = document.getElementById('cfg-fee-monthly-acc');
-  const fFreeEkyc = document.getElementById('cfg-fee-free-ekyc');
 
   if (fInternal) fInternal.value = formatCurrencyVNDInput(fees.internalTransferFee ?? 0);
   if (fInterbank) fInterbank.value = formatCurrencyVNDInput(fees.interbankTransferFee ?? 2200);
@@ -3076,7 +3192,6 @@ function renderAdminSystemView() {
   if (fAtmExt) fAtmExt.value = formatCurrencyVNDInput(fees.atmWithdrawExternalFee ?? 3300);
   if (fCardIssue) fCardIssue.value = formatCurrencyVNDInput(fees.cardIssuanceFee ?? 50000);
   if (fMonthly) fMonthly.value = formatCurrencyVNDInput(fees.monthlyAccountFee ?? 0);
-  if (fFreeEkyc) fFreeEkyc.checked = fees.freeTransferForEkyc ?? true;
 
   const formFees = document.getElementById('form-cfg-fees');
   if (formFees && !formFees.dataset.listenerSet) {
@@ -3090,8 +3205,7 @@ function renderAdminSystemView() {
           atmWithdrawInternalFee: parseFloat((fAtmInt.value || '0').replace(/\D/g, '')),
           atmWithdrawExternalFee: parseFloat((fAtmExt.value || '0').replace(/\D/g, '')),
           cardIssuanceFee: parseFloat((fCardIssue.value || '0').replace(/\D/g, '')),
-          monthlyAccountFee: parseFloat((fMonthly.value || '0').replace(/\D/g, '')),
-          freeTransferForEkyc: fFreeEkyc.checked
+          monthlyAccountFee: parseFloat((fMonthly.value || '0').replace(/\D/g, ''))
         }
       });
       showToast('Lưu biểu phí dịch vụ thành công!', 'success');
@@ -3132,12 +3246,14 @@ function renderAdminSystemView() {
     };
   }
 
-  // 3. Populate Tab 3 (Lãi Suất)
-  const r1m = interestRates.find(r => r.term === 1)?.rate ?? 3.5;
-  const r3m = interestRates.find(r => r.term === 3)?.rate ?? 4.2;
-  const r6m = interestRates.find(r => r.term === 6)?.rate ?? 5.5;
-  const r12m = interestRates.find(r => r.term === 12)?.rate ?? 6.8;
-  const r24m = interestRates.find(r => r.term === 24)?.rate ?? 7.2;
+  // 3. Populate Tab 3 (Lãi Suất Tiền Gửi & Cho Vay)
+  const rKkh = interestRates.find(r => r.term === 0)?.rate ?? 0.2;
+  const r1m = interestRates.find(r => r.term === 1)?.rate ?? 4.5;
+  const r3m = interestRates.find(r => r.term === 3)?.rate ?? 5.2;
+  const r6m = interestRates.find(r => r.term === 6)?.rate ?? 6.5;
+  const r12m = interestRates.find(r => r.term === 12)?.rate ?? 7.2;
+  const r24m = interestRates.find(r => r.term === 24)?.rate ?? 7.8;
+  const r36m = interestRates.find(r => r.term === 36)?.rate ?? 8.0;
 
   const elRkkh = document.getElementById('cfg-rate-kkh');
   const elR1m = document.getElementById('cfg-rate-1m');
@@ -3145,13 +3261,65 @@ function renderAdminSystemView() {
   const elR6m = document.getElementById('cfg-rate-6m');
   const elR12m = document.getElementById('cfg-rate-12m');
   const elR24m = document.getElementById('cfg-rate-24m');
+  const elR36m = document.getElementById('cfg-rate-36m');
+  const elREarly = document.getElementById('cfg-rate-early');
 
-  if (elRkkh) elRkkh.value = 0.2;
+  const elLoanMortgage = document.getElementById('cfg-rate-loan-mortgage');
+  const elLoanBusiness = document.getElementById('cfg-rate-loan-business');
+  const elLoanCar = document.getElementById('cfg-rate-loan-car');
+  const elLoanConsumer = document.getElementById('cfg-rate-loan-consumer');
+  const elLoanLending = document.getElementById('cfg-rate-lending');
+
+  if (elRkkh) elRkkh.value = rKkh;
   if (elR1m) elR1m.value = r1m;
   if (elR3m) elR3m.value = r3m;
   if (elR6m) elR6m.value = r6m;
   if (elR12m) elR12m.value = r12m;
   if (elR24m) elR24m.value = r24m;
+  if (elR36m) elR36m.value = r36m;
+  if (elREarly) elREarly.value = sys.earlyWithdrawalRate ?? 0.2;
+
+  const defaultLoanRates = {
+    CONSUMER: { 6: 8.90, 12: 9.50, 24: 10.50, 36: 11.50, 48: 12.00, 60: 12.50 },
+    CAR: { 12: 7.80, 24: 8.20, 36: 8.50, 48: 8.90, 60: 9.20, 84: 9.80 },
+    MORTGAGE: { 36: 6.80, 60: 7.50, 120: 8.20, 180: 8.60, 240: 8.90 },
+    BUSINESS: { 6: 6.80, 12: 7.50, 24: 7.80, 36: 8.00, 60: 8.40, 120: 8.80 }
+  };
+  const curLoanRates = store.data.loanInterestRates || defaultLoanRates;
+
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  const getVal = (id, def) => { const el = document.getElementById(id); return parseFloat(el?.value || def); };
+
+  // 1. Consumer
+  setVal('cfg-rate-consumer-6m', curLoanRates.CONSUMER?.[6] ?? 8.90);
+  setVal('cfg-rate-consumer-12m', curLoanRates.CONSUMER?.[12] ?? 9.50);
+  setVal('cfg-rate-consumer-24m', curLoanRates.CONSUMER?.[24] ?? 10.50);
+  setVal('cfg-rate-consumer-36m', curLoanRates.CONSUMER?.[36] ?? 11.50);
+  setVal('cfg-rate-consumer-48m', curLoanRates.CONSUMER?.[48] ?? 12.00);
+  setVal('cfg-rate-consumer-60m', curLoanRates.CONSUMER?.[60] ?? 12.50);
+
+  // 2. Car
+  setVal('cfg-rate-car-12m', curLoanRates.CAR?.[12] ?? 7.80);
+  setVal('cfg-rate-car-24m', curLoanRates.CAR?.[24] ?? 8.20);
+  setVal('cfg-rate-car-36m', curLoanRates.CAR?.[36] ?? 8.50);
+  setVal('cfg-rate-car-48m', curLoanRates.CAR?.[48] ?? 8.90);
+  setVal('cfg-rate-car-60m', curLoanRates.CAR?.[60] ?? 9.20);
+  setVal('cfg-rate-car-84m', curLoanRates.CAR?.[84] ?? 9.80);
+
+  // 3. Mortgage
+  setVal('cfg-rate-mortgage-36m', curLoanRates.MORTGAGE?.[36] ?? 6.80);
+  setVal('cfg-rate-mortgage-60m', curLoanRates.MORTGAGE?.[60] ?? 7.50);
+  setVal('cfg-rate-mortgage-120m', curLoanRates.MORTGAGE?.[120] ?? 8.20);
+  setVal('cfg-rate-mortgage-180m', curLoanRates.MORTGAGE?.[180] ?? 8.60);
+  setVal('cfg-rate-mortgage-240m', curLoanRates.MORTGAGE?.[240] ?? 8.90);
+
+  // 4. Business
+  setVal('cfg-rate-business-6m', curLoanRates.BUSINESS?.[6] ?? 6.80);
+  setVal('cfg-rate-business-12m', curLoanRates.BUSINESS?.[12] ?? 7.50);
+  setVal('cfg-rate-business-24m', curLoanRates.BUSINESS?.[24] ?? 7.80);
+  setVal('cfg-rate-business-36m', curLoanRates.BUSINESS?.[36] ?? 8.00);
+  setVal('cfg-rate-business-60m', curLoanRates.BUSINESS?.[60] ?? 8.40);
+  setVal('cfg-rate-business-120m', curLoanRates.BUSINESS?.[120] ?? 8.80);
 
   const formRates = document.getElementById('form-cfg-rates');
   if (formRates && !formRates.dataset.listenerSet) {
@@ -3159,18 +3327,83 @@ function renderAdminSystemView() {
     formRates.onsubmit = (e) => {
       e.preventDefault();
       const updatedRates = [
-        { term: 1, label: '1 Tháng', rate: parseFloat(elR1m.value || 3.5) },
-        { term: 3, label: '3 Tháng', rate: parseFloat(elR3m.value || 4.2) },
-        { term: 6, label: '6 Tháng', rate: parseFloat(elR6m.value || 5.5) },
-        { term: 12, label: '12 Tháng', rate: parseFloat(elR12m.value || 6.8) },
-        { term: 24, label: '24 Tháng', rate: parseFloat(elR24m.value || 7.2) }
+        { term: 0, termMonths: 0, label: 'Không Kỳ Hạn', rate: parseFloat(elRkkh?.value || 0.2), annualRate: parseFloat(elRkkh?.value || 0.2), minAmount: 100000 },
+        { term: 1, termMonths: 1, label: '1 Tháng', rate: parseFloat(elR1m?.value || 4.5), annualRate: parseFloat(elR1m?.value || 4.5), minAmount: 1000000 },
+        { term: 3, termMonths: 3, label: '3 Tháng', rate: parseFloat(elR3m?.value || 5.2), annualRate: parseFloat(elR3m?.value || 5.2), minAmount: 1000000 },
+        { term: 6, termMonths: 6, label: '6 Tháng', rate: parseFloat(elR6m?.value || 6.5), annualRate: parseFloat(elR6m?.value || 6.5), minAmount: 1000000 },
+        { term: 12, termMonths: 12, label: '12 Tháng', rate: parseFloat(elR12m?.value || 7.2), annualRate: parseFloat(elR12m?.value || 7.2), minAmount: 1000000 },
+        { term: 24, termMonths: 24, label: '24 Tháng', rate: parseFloat(elR24m?.value || 7.8), annualRate: parseFloat(elR24m?.value || 7.8), minAmount: 1000000 },
+        { term: 36, termMonths: 36, label: '36 Tháng', rate: parseFloat(elR36m?.value || 8.0), annualRate: parseFloat(elR36m?.value || 8.0), minAmount: 5000000 }
       ];
 
+      const updatedLoanRates = {
+        CONSUMER: {
+          6: getVal('cfg-rate-consumer-6m', 8.90),
+          12: getVal('cfg-rate-consumer-12m', 9.50),
+          24: getVal('cfg-rate-consumer-24m', 10.50),
+          36: getVal('cfg-rate-consumer-36m', 11.50),
+          48: getVal('cfg-rate-consumer-48m', 12.00),
+          60: getVal('cfg-rate-consumer-60m', 12.50)
+        },
+        CAR: {
+          12: getVal('cfg-rate-car-12m', 7.80),
+          24: getVal('cfg-rate-car-24m', 8.20),
+          36: getVal('cfg-rate-car-36m', 8.50),
+          48: getVal('cfg-rate-car-48m', 8.90),
+          60: getVal('cfg-rate-car-60m', 9.20),
+          84: getVal('cfg-rate-car-84m', 9.80)
+        },
+        MORTGAGE: {
+          36: getVal('cfg-rate-mortgage-36m', 6.80),
+          60: getVal('cfg-rate-mortgage-60m', 7.50),
+          120: getVal('cfg-rate-mortgage-120m', 8.20),
+          180: getVal('cfg-rate-mortgage-180m', 8.60),
+          240: getVal('cfg-rate-mortgage-240m', 8.90)
+        },
+        BUSINESS: {
+          6: getVal('cfg-rate-business-6m', 6.80),
+          12: getVal('cfg-rate-business-12m', 7.50),
+          24: getVal('cfg-rate-business-24m', 7.80),
+          36: getVal('cfg-rate-business-36m', 8.00),
+          60: getVal('cfg-rate-business-60m', 8.40),
+          120: getVal('cfg-rate-business-120m', 8.80)
+        }
+      };
+
+      if (store.data.loanPackages && Array.isArray(store.data.loanPackages)) {
+        store.data.loanPackages.forEach(pkg => {
+          if (updatedLoanRates[pkg.id]) {
+            const rates = Object.values(updatedLoanRates[pkg.id]).map(Number).filter(v => !isNaN(v) && v > 0);
+            if (rates.length > 0) {
+              pkg.baseRate = Math.min(...rates);
+            }
+          }
+        });
+      }
+
       AdminService.updateSystemSettings({
-        savingsInterestRate: parseFloat(elR6m.value || 5.5),
-        savingsInterestRates: updatedRates
+        savingsInterestRate: parseFloat(elR6m?.value || 6.5),
+        savingsInterestRates: updatedRates,
+        loanInterestRates: updatedLoanRates,
+        earlyWithdrawalRate: parseFloat(elREarly?.value || 0.2)
       });
-      showToast('Cập nhật biểu lãi suất tiết kiệm thành công!', 'success');
+      store.data.savingsInterestRates = updatedRates;
+      store.data.loanInterestRates = updatedLoanRates;
+      store.saveData();
+
+      // Đồng bộ trực tiếp UI phía khách hàng
+      if (typeof renderLoanPackagesGuide === 'function') renderLoanPackagesGuide();
+      if (typeof populateLoanTypeSelect === 'function') populateLoanTypeSelect();
+
+      // Đồng bộ trực tiếp lên Backend Spring Boot
+      BankApiService.updateSavingsInterestRates(updatedRates).catch(err => {
+        console.warn('[Admin] Lỗi đồng bộ biểu lãi suất sang Backend API:', err);
+      });
+      BankApiService.updateLoanInterestRates(updatedLoanRates).catch(err => {
+        console.warn('[Admin] Lỗi đồng bộ biểu lãi suất cho vay sang Backend API:', err);
+      });
+
+      showToast('Cập nhật biểu lãi suất tiền gửi và cho vay thành công!', 'success');
     };
   }
 
@@ -3219,16 +3452,48 @@ function renderAdminSystemView() {
 
   const tbody = document.getElementById('admin-audit-logs-tbody');
   if (tbody) {
-    tbody.innerHTML = '';
-    (store.data.auditLogs || []).slice(0, 20).forEach(log => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td style="font-size: 0.75rem; color: var(--text-dim);">${store.formatDateTime(log.timestamp)}</td>
-        <td><code>${log.user}</code></td>
-        <td style="font-size: 0.85rem;">${log.action}</td>
-      `;
-      tbody.appendChild(tr);
-    });
+    const renderLogRows = (logs) => {
+      tbody.innerHTML = '';
+      if (!logs || logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-dim); padding: 18px;">Chưa có nhật ký hoạt động</td></tr>';
+        return;
+      }
+      logs.slice(0, 50).forEach(log => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-size: 0.75rem; color: var(--text-dim); white-space: nowrap;">${store.formatDateTime(log.timestamp)}</td>
+          <td><code style="background: rgba(56, 189, 248, 0.1); color: var(--accent-cyan); padding: 2px 6px; border-radius: 4px;">${log.user}</code></td>
+          <td style="font-size: 0.85rem;">${log.action}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    };
+
+    renderLogRows(store.data.auditLogs || []);
+
+    if (typeof BankApiService !== 'undefined' && BankApiService.getAuditLogs) {
+      BankApiService.getAuditLogs().then(res => {
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const backendLogs = res.data.map(l => ({
+            id: l.id,
+            user: l.user,
+            action: l.action,
+            timestamp: l.timestamp ? l.timestamp.replace('T', ' ').substring(0, 19) : store.nowGMT7String()
+          }));
+
+          const merged = [...backendLogs];
+          (store.data.auditLogs || []).forEach(localLog => {
+            if (!merged.some(b => b.user === localLog.user && b.action === localLog.action && (b.timestamp === localLog.timestamp || (b.id && b.id === localLog.id)))) {
+              merged.push(localLog);
+            }
+          });
+
+          store.data.auditLogs = merged;
+          store.saveSessionBusinessData();
+          renderLogRows(merged);
+        }
+      }).catch(err => console.warn('Lỗi tải audit logs:', err));
+    }
   }
 
   const btnReset = document.getElementById('btn-admin-reset-data');
@@ -3274,8 +3539,6 @@ function initCurrencyInputFormatting() {
     'transfer-amount',
     'qr-transfer-amount',
     'qr-amount-input',
-    'vnpost-w-amount',
-    'vnpost-t-amount',
     'create-atm-amount',
     'savings-modal-amount',
     'close-partial-amount',
@@ -3385,7 +3648,7 @@ function syncTransferToLocalStore(fromAccNo, toAccNo, amount, content = '', apiT
 
     // 4. Tạo bản ghi nhật ký giao dịch
     const txn = {
-      id: apiTxn?.id || apiTxn?.txnId || ('TXN-' + Math.floor(10000 + Math.random() * 90000)),
+      id: store.formatTxnId(apiTxn?.id || apiTxn?.txnId) || store.generateTxnId(),
       fromAccount: fromAccNo,
       fromName: fromCustName || 'Chủ tài khoản',
       toAccount: toAccNo,
@@ -3414,24 +3677,52 @@ let pendingTransactionCallback = null;
 let otpTimerInterval = null;
 
 /**
- * Yêu cầu xác thực OTP 2FA cho giao dịch tài chính
+ * Yêu cầu xác thực Đa Lớp 2FA (Mã PIN Giao Dịch + Mã OTP SMS) cho tất cả nghiệp vụ Khách hàng
  */
-function requestOtpVerification({ fromAcc, toAcc, amount, onVerified }) {
+function requestTransactionVerification({
+  title = 'Xác Thực Giao Dịch (Mã PIN & OTP 2FA)',
+  actionName = 'Giao dịch tài chính',
+  fromAcc = null,
+  toAcc = null,
+  amount = null,
+  onVerified
+}) {
   pendingTransactionCallback = onVerified;
 
   const { code } = SecurityService.generateOTP();
 
+  const titleEl = document.getElementById('otp-modal-title');
+  if (titleEl) titleEl.textContent = title;
+
   const codeDisplay = document.getElementById('otp-simulated-code-display');
   if (codeDisplay) codeDisplay.textContent = code;
 
+  const actionRow = document.getElementById('otp-summary-action-row');
+  const actionEl = document.getElementById('otp-summary-action');
+  if (actionEl) actionEl.textContent = actionName;
+  if (actionRow) actionRow.style.display = actionName ? 'flex' : 'none';
+
+  const fromRow = document.getElementById('otp-summary-from-row');
   const fromDisplay = document.getElementById('otp-summary-from');
-  if (fromDisplay) fromDisplay.textContent = SecurityService.maskAccountNumber(fromAcc);
+  if (fromDisplay) fromDisplay.textContent = fromAcc || '-';
+  if (fromRow) fromRow.style.display = fromAcc ? 'flex' : 'none';
 
+  const toRow = document.getElementById('otp-summary-to-row');
   const toDisplay = document.getElementById('otp-summary-to');
-  if (toDisplay) toDisplay.textContent = SecurityService.maskAccountNumber(toAcc);
+  if (toDisplay) toDisplay.textContent = toAcc || '-';
+  if (toRow) toRow.style.display = toAcc ? 'flex' : 'none';
 
+  const amountRow = document.getElementById('otp-summary-amount-row');
   const amountDisplay = document.getElementById('otp-summary-amount');
-  if (amountDisplay) amountDisplay.textContent = store.formatVND(amount);
+  if (amountDisplay) {
+    amountDisplay.textContent = (amount !== null && amount !== undefined && !isNaN(amount)) 
+      ? store.formatVND(amount) 
+      : (amount || '-');
+  }
+  if (amountRow) amountRow.style.display = (amount !== null && amount !== undefined && amount !== '') ? 'flex' : 'none';
+
+  const inputPin = document.getElementById('otp-input-pin');
+  if (inputPin) inputPin.value = '';
 
   const inputCode = document.getElementById('otp-input-code');
   if (inputCode) inputCode.value = '';
@@ -3452,7 +3743,15 @@ function requestOtpVerification({ fromAcc, toAcc, amount, onVerified }) {
   otpTimerInterval = setInterval(updateTimer, 1000);
 
   openModal('modal-otp-verification');
+  setTimeout(() => {
+    if (inputPin) inputPin.focus();
+  }, 150);
 }
+
+// Đồng bộ các hàm xác thực cho toàn hệ thống
+window.requestTransactionVerification = requestTransactionVerification;
+window.requestOtpVerification = requestTransactionVerification;
+window.requestPinVerification = requestTransactionVerification;
 
 let pendingPasswordCallback = null;
 let pwdOtpTimerInterval = null;
@@ -3562,10 +3861,119 @@ function setupModalEvents() {
     toInputModal.onblur = performModalLookup;
   }
 
+  function validateTransferModalBalance() {
+    const accounts = CustomerService.getCustomerAccounts();
+    const fromSelect = document.getElementById('transfer-modal-from');
+    const amountInput = document.getElementById('transfer-modal-amount');
+    const alertBox = document.getElementById('transfer-modal-balance-alert');
+    const alertDetail = document.getElementById('transfer-modal-balance-alert-detail');
+    const remainingSpan = document.getElementById('transfer-modal-remaining-balance');
+    const availSpan = document.getElementById('transfer-modal-avail-balance');
+    const submitBtn = document.getElementById('btn-submit-transfer-modal');
+
+    if (!fromSelect) return true;
+    const currentAccNo = fromSelect.value;
+    const currentAcc = accounts.find(a => a.accountNo === currentAccNo);
+    const balance = currentAcc ? currentAcc.balance : 0;
+
+    if (availSpan) {
+      availSpan.textContent = `Số dư: ${store.formatVND(balance)}`;
+    }
+
+    if (!amountInput) return true;
+    const rawDigits = amountInput.value.replace(/\D/g, '');
+    const amount = rawDigits ? parseFloat(rawDigits) : 0;
+
+    if (amount <= 0) {
+      if (alertBox) alertBox.classList.add('hidden');
+      if (remainingSpan) remainingSpan.textContent = '';
+      amountInput.style.borderColor = '';
+      amountInput.style.boxShadow = '';
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
+      }
+      return true;
+    }
+
+    if (amount > balance) {
+      // Vượt quá số dư khả dụng
+      if (alertBox) {
+        alertBox.classList.remove('hidden');
+        if (alertDetail) {
+          alertDetail.textContent = `Tài khoản ${currentAccNo} hiện có ${store.formatVND(balance)}. Bạn còn thiếu ${store.formatVND(amount - balance)}.`;
+        }
+      }
+      amountInput.style.borderColor = 'var(--accent-danger)';
+      amountInput.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.35)';
+      if (remainingSpan) {
+        remainingSpan.innerHTML = `<span style="color: var(--accent-danger); font-weight: 600;">⚠️ Vượt số dư</span>`;
+      }
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.5';
+        submitBtn.style.cursor = 'not-allowed';
+      }
+      return false;
+    } else {
+      // Hợp lệ
+      if (alertBox) alertBox.classList.add('hidden');
+      amountInput.style.borderColor = 'var(--accent-emerald)';
+      amountInput.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.2)';
+      const remaining = balance - amount;
+      if (remainingSpan) {
+        remainingSpan.innerHTML = `<span style="color: var(--accent-emerald);">Còn lại: ${store.formatVND(remaining)}</span>`;
+      }
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
+      }
+      return true;
+    }
+  }
+
   const fromSelectModal = document.getElementById('transfer-modal-from');
   if (fromSelectModal) {
-    fromSelectModal.onchange = performModalLookup;
+    fromSelectModal.onchange = () => {
+      performModalLookup();
+      validateTransferModalBalance();
+    };
   }
+
+  const amountInputModal = document.getElementById('transfer-modal-amount');
+  if (amountInputModal) {
+    amountInputModal.addEventListener('input', () => {
+      validateTransferModalBalance();
+    });
+    amountInputModal.addEventListener('blur', () => {
+      validateTransferModalBalance();
+    });
+  }
+
+  // Xử lý các chip gợi ý chọn nhanh số tiền
+  document.querySelectorAll('#transfer-modal-quick-chips .quick-amount-chip').forEach(btn => {
+    btn.onclick = () => {
+      const val = btn.getAttribute('data-val');
+      const fromSelect = document.getElementById('transfer-modal-from');
+      const accounts = CustomerService.getCustomerAccounts();
+      const currentAcc = accounts.find(a => a.accountNo === (fromSelect ? fromSelect.value : ''));
+      const balance = currentAcc ? currentAcc.balance : 0;
+
+      let targetAmount = 0;
+      if (val === 'ALL') {
+        targetAmount = balance;
+      } else {
+        targetAmount = parseFloat(val) || 0;
+      }
+
+      if (amountInputModal) {
+        amountInputModal.value = targetAmount > 0 ? targetAmount.toLocaleString('vi-VN').replace(/,/g, '.') : '';
+        validateTransferModalBalance();
+      }
+    };
+  });
 
   // Xử lý gửi Form Chuyển khoản trong Modal
   const formModalTransfer = document.getElementById('form-modal-transfer');
@@ -3581,6 +3989,15 @@ function setupModalEvents() {
       if (!toAcc) { showToast('Vui lòng nhập số tài khoản người nhận', 'danger'); return; }
       if (fromAcc === toAcc) { showToast('Tài khoản nhận không được trùng với tài khoản chuyển', 'danger'); return; }
       if (isNaN(amount) || amount <= 0) { showToast('Số tiền giao dịch không hợp lệ', 'danger'); return; }
+
+      // Kiểm tra số dư tài khoản nguồn
+      const accounts = CustomerService.getCustomerAccounts();
+      const currentAcc = accounts.find(a => a.accountNo === fromAcc);
+      if (currentAcc && amount > currentAcc.balance) {
+        validateTransferModalBalance();
+        showToast(`Số dư tài khoản (${store.formatVND(currentAcc.balance)}) không đủ để thực hiện giao dịch!`, 'danger');
+        return;
+      }
 
       // Kiểm tra tài khoản thụ hưởng tồn tại và đang hoạt động trước khi gửi OTP
       const lookup = await CustomerService.lookupAccount(toAcc);
@@ -3601,29 +4018,31 @@ function setupModalEvents() {
 
       const idempotencyKey = BankApiService.generateIdempotencyKey();
 
-      // Yêu cầu xác thực OTP trước khi thực hiện chuyển khoản
-      requestOtpVerification({
+      // Đóng modal chuyển tiền và mở Modal Xác thực 2FA (Mã PIN & OTP)
+      closeModal('modal-transfer');
+
+      requestPinVerification({
+        title: 'Xác Thực PIN Chuyển Tiền',
+        actionName: 'Chuyển tiền nhanh QuangTrung Bank',
         fromAcc,
-        toAcc,
+        toAcc: `${(lookup && lookup.data && lookup.data.fullName) ? lookup.data.fullName : toAcc} (${toAcc})`,
         amount: parseFloat(amount),
         onVerified: async () => {
-          closeModal('modal-transfer');
-
           try {
             const res = await CustomerService.transferMoneyAsync({ fromAccNo: fromAcc, toAccNo: toAcc, amount, content, idempotencyKey });
             if (res.success) {
+              await renderCustomerDashboard();
               showSuccessModal({
                 title: 'Chuyển Tiền Thành Công!',
                 message: res.message || `Đã chuyển thành công số tiền ${store.formatVND(amount)} tới tài khoản ${toAcc}.`,
                 amount: parseFloat(amount),
-                txId: (res.transaction && res.transaction.id) || res.txnId,
+                txId: (res.data && res.data.id) || (res.transaction && res.transaction.id) || res.txnId,
                 accountNo: fromAcc,
                 counterparty: `${(lookup && lookup.data && lookup.data.fullName) ? lookup.data.fullName : toAcc} (${toAcc})`,
                 onClosed: () => {
                   renderCustomerDashboard();
                 }
               });
-              renderCustomerDashboard();
             } else {
               showToast(res.message, 'danger');
             }
@@ -3660,10 +4079,10 @@ function setupModalEvents() {
   }
 
   // Dừng camera khi bấm ra vùng nền ngoài modal
-  const qrScanModal = document.getElementById('modal-qr-scan');
-  if (qrScanModal) {
-    qrScanModal.addEventListener('click', (e) => {
-      if (e.target === qrScanModal) {
+  const modalQrScan = document.getElementById('modal-qr-scan');
+  if (modalQrScan) {
+    modalQrScan.addEventListener('click', (e) => {
+      if (e.target === modalQrScan) {
         closeModal('modal-qr-scan');
         stopQRScanner();
       }
@@ -3744,29 +4163,31 @@ function setupModalEvents() {
 
       const idempotencyKey = BankApiService.generateIdempotencyKey();
 
-      requestOtpVerification({
+      stopQRScanner();
+      closeModal('modal-qr-scan');
+
+      requestPinVerification({
+        title: 'Xác Thực PIN Thanh Toán QR',
+        actionName: 'Thanh toán mã QR QuangTrung Bank',
         fromAcc,
-        toAcc,
+        toAcc: `${(lookup && lookup.data && lookup.data.fullName) ? lookup.data.fullName : toAcc} (${toAcc})`,
         amount: parseFloat(amount),
         onVerified: async () => {
-          stopQRScanner();
-          closeModal('modal-qr-scan');
-
           try {
             const res = await CustomerService.transferMoneyAsync({ fromAccNo: fromAcc, toAccNo: toAcc, amount, content, idempotencyKey });
             if (res.success) {
+              await renderCustomerDashboard();
               showSuccessModal({
                 title: 'Chuyển Tiền QR Thành Công!',
                 message: res.message || `Đã thanh toán thành công ${store.formatVND(amount)} qua mã QR.`,
                 amount: parseFloat(amount),
-                txId: (res.transaction && res.transaction.id) || res.txnId,
+                txId: (res.data && res.data.id) || (res.transaction && res.transaction.id) || res.txnId,
                 accountNo: fromAcc,
                 counterparty: `${(lookup && lookup.data && lookup.data.fullName) ? lookup.data.fullName : toAcc} (${toAcc})`,
                 onClosed: () => {
                   renderCustomerDashboard();
                 }
               });
-              renderCustomerDashboard();
             } else {
               showToast(res.message, 'danger');
             }
@@ -3778,24 +4199,80 @@ function setupModalEvents() {
     };
   }
 
-  // Xử lý gửi Form Xác thực OTP 2FA
-  const formOtpVerify = document.getElementById('form-otp-verify');
-  if (formOtpVerify) {
-    formOtpVerify.onsubmit = async (e) => {
+  // Xử lý gửi Form Xác thực Mã PIN 2FA
+  const formPinVerify = document.getElementById('form-pin-verify');
+  if (formPinVerify) {
+    formPinVerify.onsubmit = async (e) => {
       e.preventDefault();
-      const code = document.getElementById('otp-input-code').value.trim();
-      const verifyRes = SecurityService.verifyOTP(code);
+      const pin = (document.getElementById('pin-input-code')?.value || '').trim();
+      const verifyRes = SecurityService.verifyPIN(pin);
       if (verifyRes.valid) {
-        if (otpTimerInterval) clearInterval(otpTimerInterval);
-        closeModal('modal-otp-verification');
+        closeModal('modal-pin-verification');
         showToast(verifyRes.message, 'success');
-        if (pendingTransactionCallback) {
-          const cb = pendingTransactionCallback;
-          pendingTransactionCallback = null;
+        if (pendingPinCallback) {
+          const cb = pendingPinCallback;
+          pendingPinCallback = null;
           await cb();
         }
       } else {
         showToast(verifyRes.message, 'danger');
+        const inputPin = document.getElementById('pin-input-code');
+        if (inputPin) {
+          inputPin.value = '';
+          inputPin.focus();
+        }
+      }
+    };
+  }
+
+  const btnCancelPin = document.getElementById('btn-cancel-pin');
+  if (btnCancelPin) {
+    btnCancelPin.onclick = () => {
+      closeModal('modal-pin-verification');
+      pendingPinCallback = null;
+    };
+  }
+
+  // Xử lý gửi Form Xác thực Đa Lớp 2FA (Mã PIN & OTP)
+  const formOtpVerify = document.getElementById('form-otp-verify');
+  if (formOtpVerify) {
+    formOtpVerify.onsubmit = async (e) => {
+      e.preventDefault();
+      const pin = (document.getElementById('otp-input-pin')?.value || '').trim();
+      const code = (document.getElementById('otp-input-code')?.value || '').trim();
+
+      // 1. Xác thực Mã PIN Giao Dịch
+      const pinRes = SecurityService.verifyPIN(pin);
+      if (!pinRes.valid) {
+        showToast(pinRes.message, 'danger');
+        const inputPin = document.getElementById('otp-input-pin');
+        if (inputPin) {
+          inputPin.value = '';
+          inputPin.focus();
+        }
+        return;
+      }
+
+      // 2. Xác thực Mã OTP SMS
+      const otpRes = SecurityService.verifyOTP(code);
+      if (!otpRes.valid) {
+        showToast(otpRes.message, 'danger');
+        const inputCode = document.getElementById('otp-input-code');
+        if (inputCode) {
+          inputCode.value = '';
+          inputCode.focus();
+        }
+        return;
+      }
+
+      // 3. Hoàn tất xác minh khi CẢ HAI đều hợp lệ
+      if (otpTimerInterval) clearInterval(otpTimerInterval);
+      closeModal('modal-otp-verification');
+      showToast('Xác thực bảo mật 2FA (Mã PIN & OTP) thành công!', 'success');
+      if (pendingTransactionCallback) {
+        const cb = pendingTransactionCallback;
+        pendingTransactionCallback = null;
+        await cb();
       }
     };
   }
@@ -3807,6 +4284,15 @@ function setupModalEvents() {
       const codeDisplay = document.getElementById('otp-simulated-code-display');
       if (codeDisplay) codeDisplay.textContent = code;
       showToast('Đã gửi lại mã OTP mới qua SMS (Mô phỏng)!', 'info');
+    };
+  }
+
+  const btnCancelOtp = document.getElementById('btn-cancel-otp');
+  if (btnCancelOtp) {
+    btnCancelOtp.onclick = () => {
+      if (otpTimerInterval) clearInterval(otpTimerInterval);
+      closeModal('modal-otp-verification');
+      pendingTransactionCallback = null;
     };
   }
 
@@ -3878,95 +4364,8 @@ function setupModalEvents() {
     };
   }
 
-  // Bộ chuyển đổi Tab dịch vụ VNPOST
-  document.querySelectorAll('.vnpost-tab-btn').forEach(btn => {
-    btn.onclick = (e) => {
-      document.querySelectorAll('.vnpost-tab-btn').forEach(b => {
-        b.classList.remove('active', 'btn-primary');
-        b.classList.add('btn-secondary');
-      });
-      const target = e.currentTarget;
-      target.classList.add('active', 'btn-primary');
-      target.classList.remove('btn-secondary');
 
-      const targetTabId = target.getAttribute('data-tab');
-      document.querySelectorAll('.vnpost-tab-content').forEach(c => c.classList.add('hidden'));
-      const activeContent = document.getElementById(targetTabId);
-      if (activeContent) activeContent.classList.remove('hidden');
 
-      const resultBox = document.getElementById('vnpost-result-box');
-      if (resultBox) resultBox.classList.add('hidden');
-    };
-  });
-
-  // Xử lý gửi Form Rút tiền VNPOST
-  const formVnpostW = document.getElementById('form-vnpost-withdraw');
-  if (formVnpostW) {
-    formVnpostW.onsubmit = async (e) => {
-      e.preventDefault();
-      const accountNo = document.getElementById('vnpost-w-acc').value;
-      const amountStr = document.getElementById('vnpost-w-amount').value;
-      const amount = parseFloat(amountStr.replace(/\D/g, ''));
-
-      const res = await CustomerService.vnpostCashWithdrawalAsync({ accountNo, amount });
-      if (res.success) {
-        showSuccessModal({
-          title: 'Tạo Mã Rút Tiền VNPOST Thành Công!',
-          message: `Mã rút tiền mặt của bạn là ${res.code}. Mang mã này kèm CCCD ra bưu cục VNPOST để nhận tiền mặt.`,
-          amount: parseFloat(amount),
-          txId: res.code,
-          accountNo: accountNo,
-          counterparty: 'Bưu cục VNPOST'
-        });
-        const box = document.getElementById('vnpost-result-box');
-        if (box) {
-          document.getElementById('vnpost-result-title').textContent = 'Mã rút tiền mặt tại bưu cục VNPOST:';
-          document.getElementById('vnpost-result-code').textContent = res.code;
-          document.getElementById('vnpost-result-desc').textContent = `Đã trừ ${store.formatVND(res.amount)} từ TK ${res.accountNo}. Mang mã này + CCCD ra bưu cục VNPOST để nhận tiền mặt.`;
-          box.classList.remove('hidden');
-        }
-        renderCustomerDashboard();
-      } else {
-        showToast(res.message, 'danger');
-      }
-    };
-  }
-
-  // Xử lý gửi Form Chuyển tiền mặt VNPOST
-  const formVnpostT = document.getElementById('form-vnpost-transfer');
-  if (formVnpostT) {
-    formVnpostT.onsubmit = async (e) => {
-      e.preventDefault();
-      const accountNo = document.getElementById('vnpost-t-acc').value;
-      const amountStr = document.getElementById('vnpost-t-amount').value;
-      const amount = parseFloat(amountStr.replace(/\D/g, ''));
-      const receiverName = document.getElementById('vnpost-t-rec-name').value.trim();
-      const receiverIdCard = document.getElementById('vnpost-t-rec-id').value.trim();
-      const receiverPhone = document.getElementById('vnpost-t-rec-phone').value.trim();
-
-      const res = await CustomerService.vnpostCashTransferAsync({ accountNo, amount, receiverName, receiverIdCard, receiverPhone });
-      if (res.success) {
-        showSuccessModal({
-          title: 'Tạo Mã Chuyển Tiền VNPOST Thành Công!',
-          message: `Mã nhận tiền mặt của ${res.receiverName} là ${res.code}. Người nhận mang mã này và CCCD ra bưu cục để nhận.`,
-          amount: parseFloat(amount),
-          txId: res.code,
-          accountNo: accountNo,
-          counterparty: `${res.receiverName} (Bưu cục VNPOST)`
-        });
-        const box = document.getElementById('vnpost-result-box');
-        if (box) {
-          document.getElementById('vnpost-result-title').textContent = `Mã nhận tiền mặt VNPOST của ${res.receiverName}:`;
-          document.getElementById('vnpost-result-code').textContent = res.code;
-          document.getElementById('vnpost-result-desc').textContent = `Gửi mã này cho ${res.receiverName} (CCCD: ${res.receiverIdCard}) mang ra bất kỳ bưu cục VNPOST nào để nhận tiền mặt.`;
-          box.classList.remove('hidden');
-        }
-        renderCustomerDashboard();
-      } else {
-        showToast(res.message, 'danger');
-      }
-    };
-  }
 
   // Xử lý gửi Form Tạo mã ATM không dùng thẻ
   const formCreateAtmCode = document.getElementById('form-create-atm-code');
@@ -3977,40 +4376,76 @@ function setupModalEvents() {
       const type = document.getElementById('create-atm-type').value;
       const amountStr = document.getElementById('create-atm-amount').value;
       const amount = parseFloat(amountStr.replace(/\D/g, ''));
-      const pin = document.getElementById('create-atm-pin').value;
+      const pin = '1234';
 
-      const res = await CustomerService.createAtmCodeAsync({ accountNo, type, amount, pin });
-      if (res.success) {
-        showSuccessModal({
-          title: 'Tạo Mã Rút/Nạp ATM Thành Công!',
-          message: `Mã ATM ${res.atmCode.code} đã sẵn sàng. Mang mã này cùng mã PIN ${pin} ra cây ATM để thực hiện!`,
-          amount: parseFloat(amount),
-          txId: res.atmCode.code,
-          accountNo: accountNo,
-          counterparty: 'Cây ATM QuangTrung Bank'
-        });
-        const box = document.getElementById('atm-created-result-box');
-        if (box) {
-          document.getElementById('created-atm-code-display').textContent = res.atmCode.code;
-          document.getElementById('created-atm-code-desc').textContent = `Mã ${type === 'WITHDRAW' ? 'Rút' : 'Nạp'} tiền ${store.formatVND(amount)} từ TK ${accountNo}. Mang mã này cùng PIN ${pin} ra máy ATM để thực hiện!`;
-          box.classList.remove('hidden');
-        }
-
-        // Thao tác nút sao chép mã ATM
-        const btnCopyAtm = document.getElementById('btn-copy-atm-code');
-        if (btnCopyAtm) {
-          btnCopyAtm.onclick = () => {
-            if (navigator.clipboard) navigator.clipboard.writeText(res.atmCode.code);
-            showToast(`Đã sao chép mã ATM: ${res.atmCode.code}`, 'success');
-          };
-        }
-      } else {
-        showToast(res.message, 'danger');
+      if (!accountNo) {
+        showToast('Vui lòng chọn tài khoản giao dịch', 'danger');
+        return;
       }
+
+      if (isNaN(amount) || amount <= 0) {
+        showToast('Vui lòng nhập số tiền giao dịch hợp lệ', 'danger');
+        return;
+      }
+
+      if (amount < 10000) {
+        showToast('Số tiền tối thiểu để tạo mã ATM là 10.000 VNĐ', 'danger');
+        return;
+      }
+
+      if (amount % 10000 !== 0) {
+        showToast('Số tiền giao dịch tại ATM phải là bội số của 10.000 VNĐ (Ví dụ: 50.000, 100.000, 1.000.000 VNĐ)', 'danger');
+        return;
+      }
+
+      if (type === 'WITHDRAW') {
+        const freshCust = CustomerService.findCustomer();
+        const acc = freshCust?.accounts.find(a => a.accountNo === accountNo);
+        if (acc && acc.balance < amount) {
+          showToast(`Số dư khả dụng không đủ để rút tiền (Số dư hiện tại: ${store.formatVND(acc.balance)})`, 'danger');
+          return;
+        }
+      }
+
+      requestPinVerification({
+        title: 'Xác Thực PIN Tạo Mã ATM',
+        actionName: `Tạo mã ${type === 'DEPOSIT' ? 'Nạp tiền' : 'Rút tiền'} ATM không thẻ`,
+        fromAcc: accountNo,
+        amount: parseFloat(amount),
+        onVerified: async () => {
+          const res = await CustomerService.createAtmCodeAsync({ accountNo, type, amount, pin });
+          if (res.success) {
+            showSuccessModal({
+              title: 'Tạo Mã Rút/Nạp ATM Thành Công!',
+              message: `Mã ATM ${res.atmCode.code} đã sẵn sàng. Mang mã này ra cây ATM để thực hiện!`,
+              amount: parseFloat(amount),
+              txId: res.atmCode.code,
+              accountNo: accountNo,
+              counterparty: 'Cây ATM QuangTrung Bank'
+            });
+            const box = document.getElementById('atm-created-result-box');
+            if (box) {
+              document.getElementById('created-atm-code-display').textContent = res.atmCode.code;
+              document.getElementById('created-atm-code-desc').textContent = `Mã ${type === 'WITHDRAW' ? 'Rút' : 'Nạp'} tiền ${store.formatVND(amount)} từ TK ${accountNo}. Mang mã này ra máy ATM để thực hiện!`;
+              box.classList.remove('hidden');
+            }
+            // Thao tác nút sao chép mã ATM
+            const btnCopyAtm = document.getElementById('btn-copy-atm-code');
+            if (btnCopyAtm) {
+              btnCopyAtm.onclick = () => {
+                if (navigator.clipboard) navigator.clipboard.writeText(res.atmCode.code);
+                showToast(`Đã sao chép mã ATM: ${res.atmCode.code}`, 'success');
+              };
+            }
+          } else {
+            showToast(res.message, 'danger');
+          }
+        }
+      });
     };
   }
 
-  // Nút mở Modal Tạo mã mới từ Modal Quản lý mã
+  // Nút mở Modal Tạo mã mới từ Modal Quản lý mã ATM
   const btnOpenCreateCodeModal = document.getElementById('btn-open-create-code-modal');
   if (btnOpenCreateCodeModal) {
     btnOpenCreateCodeModal.onclick = () => {
@@ -4018,6 +4453,49 @@ function setupModalEvents() {
       openCreateAtmCodeModal();
     };
   }
+
+  // Nút đóng Modal Hướng dẫn ATM
+  const btnCloseAtmGuide = document.getElementById('btn-close-atm-guide');
+  const btnAtmGuideGotIt = document.getElementById('btn-atm-guide-got-it');
+  if (btnCloseAtmGuide) btnCloseAtmGuide.onclick = () => closeModal('modal-atm-guide');
+  if (btnAtmGuideGotIt) btnAtmGuideGotIt.onclick = () => closeModal('modal-atm-guide');
+
+  // Các nút chọn nhanh số tiền ATM
+  document.querySelectorAll('.btn-quick-atm-amt').forEach(btn => {
+    btn.onclick = () => {
+      const val = btn.getAttribute('data-val');
+      const input = document.getElementById('create-atm-amount');
+      if (input) {
+        input.value = store.formatVND(parseFloat(val)).replace(' VNĐ', '');
+        input.dispatchEvent(new Event('input'));
+      }
+    };
+  });
+
+  // Cảnh báo thời gian thực khi nhập số tiền tạo mã ATM
+  const inputAtmAmt = document.getElementById('create-atm-amount');
+  const hintAtmAmt = document.getElementById('create-atm-amount-hint');
+  const hintTextAtmAmt = document.getElementById('create-atm-amount-hint-text');
+  if (inputAtmAmt && hintAtmAmt && hintTextAtmAmt) {
+    inputAtmAmt.addEventListener('input', () => {
+      const val = parseFloat(inputAtmAmt.value.replace(/\D/g, ''));
+      if (!val) {
+        hintAtmAmt.style.color = 'var(--accent-gold)';
+        hintTextAtmAmt.textContent = 'Lưu ý: Số tiền tối thiểu là 10.000 VNĐ và phải là bội số của 10.000 VNĐ.';
+      } else if (val < 10000) {
+        hintAtmAmt.style.color = 'var(--accent-red, #ef4444)';
+        hintTextAtmAmt.textContent = 'Số tiền tối thiểu phải từ 10.000 VNĐ trở lên.';
+      } else if (val % 10000 !== 0) {
+        hintAtmAmt.style.color = 'var(--accent-red, #ef4444)';
+        hintTextAtmAmt.textContent = `Số tiền ${store.formatVND(val)} chưa phải bội số của 10.000 VNĐ.`;
+      } else {
+        hintAtmAmt.style.color = 'var(--accent-emerald, #10b981)';
+        hintTextAtmAmt.textContent = `Số tiền hợp lệ: ${store.formatVND(val)}`;
+      }
+    });
+  }
+
+
 
   // Xử lý dự phòng cho Form Chuyển khoản dạng cũ
   const formCustTransfer = document.getElementById('form-cust-transfer');
@@ -4044,18 +4522,18 @@ function setupModalEvents() {
           try {
             const res = await CustomerService.transferMoneyAsync({ fromAccNo: fromAcc, toAccNo: toAcc, amount, content, idempotencyKey });
             if (res.success) {
+              await renderCustomerDashboard();
               showSuccessModal({
                 title: 'Chuyển Tiền Thành Công!',
                 message: res.message || `Đã chuyển ${store.formatVND(amount)} đến ${toAcc}.`,
                 amount: parseFloat(amount),
-                txId: (res.transaction && res.transaction.id) || res.txnId,
+                txId: (res.data && res.data.id) || (res.transaction && res.transaction.id) || res.txnId,
                 accountNo: fromAcc,
                 counterparty: toAcc,
                 onClosed: () => {
                   renderCustomerDashboard();
                 }
               });
-              renderCustomerDashboard();
             } else {
               showToast(res.message, 'danger');
             }
@@ -4073,13 +4551,14 @@ function setupModalEvents() {
     formCustProfile.onsubmit = async (e) => {
       e.preventDefault();
       const email = document.getElementById('profile-email').value;
+      const contactAddress = document.getElementById('profile-contact-address')?.value || '';
 
-      const res = await CustomerService.updateProfileAsync({ email });
+      const res = await CustomerService.updateProfileAsync({ email, contactAddress });
       if (res.success) {
         showSuccessModal({
           title: 'Cập Nhật Hồ Sơ Thành Công!',
-          message: res.message || 'Thông tin email liên hệ của bạn đã được lưu thành công.',
-          counterparty: email
+          message: res.message || 'Thông tin liên hệ (Email & Địa chỉ) của bạn đã được lưu thành công.',
+          counterparty: `${email} • ${contactAddress}`
         });
         renderCustomerProfileView();
       } else {
@@ -4121,7 +4600,26 @@ function setupModalEvents() {
         return;
       }
 
-      // Mở modal xác nhận 2FA OTP trước khi đổi mật khẩu
+      // 1. Kiểm tra xác minh Mật khẩu hiện tại trước khi cho phép bước OTP
+      const submitBtn = formCustChangePwd.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang kiểm tra...'; }
+
+      try {
+        const verifyPassRes = await CustomerService.verifyCurrentPasswordAsync(currentPassword);
+        if (!verifyPassRes.success) {
+          showToast(verifyPassRes.message || 'Mật khẩu hiện tại không chính xác. Vui lòng kiểm tra lại.', 'danger');
+          const currentPwdInput = document.getElementById('change-pwd-current');
+          if (currentPwdInput) {
+            currentPwdInput.focus();
+            currentPwdInput.select();
+          }
+          return;
+        }
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Bắt Đầu Xác Thực OTP & Đổi Mật Khẩu'; }
+      }
+
+      // 2. Mật khẩu hiện tại đã chính xác -> Mở modal xác nhận 2FA OTP
       requestPasswordOtpVerification({
         onVerified: async () => {
           const btn = formCustChangePwd.querySelector('button[type="submit"]');
@@ -4146,110 +4644,23 @@ function setupModalEvents() {
     };
   }
 
-  // Xử lý gửi Form Gửi yêu cầu khiếu nại / hỗ trợ
-  const formCustTicket = document.getElementById('form-cust-ticket');
-  if (formCustTicket) {
-    formCustTicket.onsubmit = async (e) => {
-      e.preventDefault();
-      const subject = document.getElementById('ticket-subject')?.value || '';
-      const accountNo = document.getElementById('ticket-account')?.value || '';
-      const content = document.getElementById('ticket-content')?.value || '';
-
-      const res = await CustomerService.createTicketAsync({ subject, accountNo, content });
-      if (res.success) {
-        showSuccessModal({
-          title: 'Gửi Yêu Cầu Hỗ Trợ Thành Công!',
-          message: res.message || 'Yêu cầu của bạn đã được chuyển tới bộ phận Chăm sóc khách hàng.',
-          txId: (res.ticket && res.ticket.id) || '',
-          accountNo: accountNo,
-          counterparty: 'Bộ phận CSKH 24/7'
-        });
-        formCustTicket.reset();
-        renderCustomerSupportView();
-      } else {
-        showToast(res.message, 'danger');
-      }
-    };
-  }
-
-  // 1. Bật Camera Quét Mặt (GDV)
-  const btnStartCam = document.getElementById('btn-teller-start-cam');
-  if (btnStartCam) {
-    btnStartCam.onclick = () => startTellerWebcam();
-  }
-
-  // 2. Chụp & Thu thập Khuôn Mặt
-  const btnCaptureFace = document.getElementById('btn-teller-capture-face');
-  if (btnCaptureFace) {
-    btnCaptureFace.onclick = () => {
-      const video = document.getElementById('teller-webcam-video');
-      const canvas = document.getElementById('teller-snapshot-canvas');
-      const preview = document.getElementById('teller-preview-face');
-      const badge = document.getElementById('teller-face-status-badge');
-      const overlay = document.getElementById('teller-oval-overlay');
-
-      let photoData = null;
-      if (tellerWebcamStream && video && video.readyState === 4) {
-        canvas.width = video.videoWidth || 400;
-        canvas.height = video.videoHeight || 300;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        photoData = canvas.toDataURL('image/png');
-      } else {
-        photoData = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%230f172a"/><circle cx="150" cy="110" r="50" fill="%2338bdf8"/><path d="M70 250 c0 -50 40 -80 80 -80 s80 30 80 80" fill="%2338bdf8"/></svg>`;
-      }
-
-      tellerCapturedFaceData = photoData;
-      if (preview) {
-        preview.src = photoData;
-        preview.style.display = 'block';
-      }
-      if (video) video.style.display = 'none';
-      if (overlay) overlay.style.display = 'none';
-      stopTellerWebcam();
-
-      if (badge) {
-        badge.style.background = 'rgba(16,185,129,0.15)';
-        badge.style.borderColor = 'rgba(16,185,129,0.4)';
-        badge.style.color = '#34d399';
-        badge.innerHTML = '<i class="fas fa-check-circle"></i> <span>✓ Đã thu thập và mã hóa dữ liệu khuôn mặt sinh trắc học (128D Embedding) thành công!</span>';
-      }
-      showToast('Đã thu thập dữ liệu khuôn mặt sinh trắc học thành công!', 'success');
-    };
-  }
-
-  // 3. Dùng Ảnh Mẫu Sinh Trắc Học AI
-  const btnSampleFace = document.getElementById('btn-teller-sample-face');
-  if (btnSampleFace) {
-    btnSampleFace.onclick = () => {
-      const sampleFace = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%230f172a"/><circle cx="150" cy="110" r="50" fill="%2338bdf8"/><path d="M70 250 c0 -50 40 -80 80 -80 s80 30 80 80" fill="%2338bdf8"/></svg>`;
-      tellerCapturedFaceData = sampleFace;
-      const preview = document.getElementById('teller-preview-face');
-      const video = document.getElementById('teller-webcam-video');
-      const overlay = document.getElementById('teller-oval-overlay');
-      const badge = document.getElementById('teller-face-status-badge');
-
-      if (preview) {
-        preview.src = sampleFace;
-        preview.style.display = 'block';
-      }
-      if (video) video.style.display = 'none';
-      if (overlay) overlay.style.display = 'none';
-      stopTellerWebcam();
-
-      if (badge) {
-        badge.style.background = 'rgba(16,185,129,0.15)';
-        badge.style.borderColor = 'rgba(16,185,129,0.4)';
-        badge.style.color = '#34d399';
-        badge.innerHTML = '<i class="fas fa-check-circle"></i> <span>✓ Đã nạp dữ liệu khuôn mặt sinh trắc học AI chuẩn (128D Vector) sẵn sàng!</span>';
-      }
-      showToast('Đã nạp dữ liệu khuôn mặt sinh trắc học AI thành công!', 'success');
-    };
-  }
-
   // Xử lý gửi Form Thêm mới hồ sơ KH (GDV)
   const formCreateCust = document.getElementById('form-teller-create-cust');
   if (formCreateCust) {
+    // Xóa cảnh báo lỗi khi người dùng gõ vào các ô input
+    ['new-cust-fullname', 'new-cust-idcard', 'new-cust-phone', 'new-cust-email'].forEach(fieldId => {
+      const el = document.getElementById(fieldId);
+      if (el) {
+        el.addEventListener('input', () => {
+          el.style.borderColor = '';
+          const errEl = document.getElementById('err-' + fieldId);
+          if (errEl) errEl.style.display = 'none';
+          const alertEl = document.getElementById('teller-create-cust-error-alert');
+          if (alertEl) alertEl.style.display = 'none';
+        });
+      }
+    });
+
     formCreateCust.onsubmit = async (e) => {
       e.preventDefault();
       const fullName = document.getElementById('new-cust-fullname').value.trim();
@@ -4261,8 +4672,18 @@ function setupModalEvents() {
       const initialBalance = parseFloat(depositStr.replace(/\D/g, '')) || 0;
       const password = document.getElementById('new-cust-password')?.value.trim() || 'Abc@1234';
 
-      if (!tellerCapturedFaceData) {
-        showToast('Bắt buộc phải quét hoặc thu thập khuôn mặt khách hàng để làm dữ liệu sinh trắc học ban đầu!', 'danger');
+      // Reset các thông báo lỗi cũ
+      const alertEl = document.getElementById('teller-create-cust-error-alert');
+      if (alertEl) { alertEl.style.display = 'none'; alertEl.innerHTML = ''; }
+      ['new-cust-fullname', 'new-cust-idcard', 'new-cust-phone', 'new-cust-email'].forEach(id => {
+        const inputEl = document.getElementById(id);
+        if (inputEl) inputEl.style.borderColor = '';
+        const errEl = document.getElementById('err-' + id);
+        if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+      });
+
+      if (!fullName || !idCard || !phone) {
+        showToast('Vui lòng điền đầy đủ Họ tên, CCCD/CMND và Số điện thoại', 'danger');
         return;
       }
 
@@ -4277,55 +4698,63 @@ function setupModalEvents() {
           email,
           address,
           initialBalance,
-          faceData: tellerCapturedFaceData,
+          faceData: null,
           password
         });
 
         if (res.success) {
-          showToast(res.message, 'success');
           formCreateCust.reset();
-          tellerCapturedFaceData = null;
-          const preview = document.getElementById('teller-preview-face');
-          if (preview) preview.style.display = 'none';
-          const badge = document.getElementById('teller-face-status-badge');
-          if (badge) {
-            badge.style.background = 'rgba(239,68,68,0.1)';
-            badge.style.borderColor = 'rgba(239,68,68,0.3)';
-            badge.style.color = '#f87171';
-            badge.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Chưa thu thập dữ liệu khuôn mặt (Bắt buộc quét mặt để lưu hồ sơ).</span>';
-          }
 
-          // Hiển thị Modal Bàn Giao Thông Tin & Mật Khẩu Khách Hàng
+          // Đồng bộ ngầm danh sách khách hàng mới ngay lập tức để khi chuyển màn hình hiển thị tức thì
+          renderTellerCustomersView();
+
           const cust = res.customer || {};
-          const accNo = cust.accounts && cust.accounts[0] ? cust.accounts[0].accountNo : '1000...';
-          document.getElementById('created-cust-name').textContent = fullName;
-          document.getElementById('created-cust-phone').textContent = phone;
-          document.getElementById('created-cust-pwd').textContent = password;
-          document.getElementById('created-cust-idcard').textContent = idCard;
-          document.getElementById('created-cust-acc').textContent = accNo;
-          document.getElementById('created-cust-balance').textContent = store.formatVND(initialBalance);
+          const accNo = cust.accounts && cust.accounts[0] ? cust.accounts[0].accountNo : ('1000' + Math.floor(100000 + Math.random() * 900000));
 
-          const btnCopy = document.getElementById('btn-copy-created-cust-info');
-          if (btnCopy) {
-            btnCopy.onclick = () => {
-              const text = `NGÂN HÀNG QUANGTRUNG BANK - BÀN GIAO TÀI KHOẢN:\n• Khách hàng: ${fullName}\n• Tên đăng nhập (Số ĐT): ${phone}\n• Mật khẩu khởi tạo: ${password}\n• Số CCCD: ${idCard}\n• Số Tài Khoản: ${accNo}\n• Số dư ban đầu: ${store.formatVND(initialBalance)}\n• Đăng nhập tại: http://localhost:8080/index.html`;
-              navigator.clipboard?.writeText(text);
-              showToast('Đã sao chép thông tin tài khoản và mật khẩu vào Clipboard!', 'success');
-            };
-          }
-
-          const btnCloseModal = document.getElementById('btn-close-created-cust-modal');
-          if (btnCloseModal) {
-            btnCloseModal.onclick = () => {
-              closeModal('modal-customer-created-success');
-              switchNavView('view-teller-customers');
-            };
-          }
-
-          openModal('modal-customer-created-success');
+          // Hiển thị Popup Modal Bàn Giao Thành Công chuẩn của hệ thống
+          showSuccessModal({
+            title: 'Mở Hồ Sơ & Tài Khoản Thành Công!',
+            message: `Hồ sơ khách hàng ${fullName} đã được ghi nhận vào CSDL. Mật khẩu khởi tạo: ${password}`,
+            amount: initialBalance > 0 ? initialBalance : undefined,
+            customDetails: [
+              { label: 'Khách hàng', value: fullName, color: 'var(--text-main)' },
+              { label: 'Tên đăng nhập (SĐT)', value: phone, color: 'var(--accent-cyan)' },
+              { label: 'Mật khẩu khởi tạo', value: password, color: 'var(--accent-gold)' },
+              { label: 'Số CCCD/CMND', value: idCard },
+              { label: 'Số tài khoản', value: accNo, color: 'var(--accent-cyan)' }
+            ]
+          });
         } else {
-          showToast(res.message, 'danger');
+          // Xử lý hiển thị phản hồi lỗi chi tiết khi trùng lặp thông tin định danh
+          const errMsg = res.message || 'Lỗi khi lưu hồ sơ khách hàng vào CSDL';
+          showToast(errMsg, 'danger', 6000);
+
+          if (alertEl) {
+            alertEl.innerHTML = `<strong>⚠️ Không thể lưu hồ sơ:</strong> ${errMsg}`;
+            alertEl.style.display = 'block';
+            alertEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+
+          if (errMsg.includes('CCCD') || errMsg.includes('CMND')) {
+            const idCardEl = document.getElementById('new-cust-idcard');
+            const errIdCard = document.getElementById('err-new-cust-idcard');
+            if (idCardEl) { idCardEl.style.borderColor = 'var(--accent-danger)'; idCardEl.focus(); }
+            if (errIdCard) { errIdCard.textContent = errMsg; errIdCard.style.display = 'block'; }
+          } else if (errMsg.includes('điện thoại') || errMsg.includes('SĐT')) {
+            const phoneEl = document.getElementById('new-cust-phone');
+            const errPhone = document.getElementById('err-new-cust-phone');
+            if (phoneEl) { phoneEl.style.borderColor = 'var(--accent-danger)'; phoneEl.focus(); }
+            if (errPhone) { errPhone.textContent = errMsg; errPhone.style.display = 'block'; }
+          } else if (errMsg.includes('Email') || errMsg.includes('email')) {
+            const emailEl = document.getElementById('new-cust-email');
+            const errEmail = document.getElementById('err-new-cust-email');
+            if (emailEl) { emailEl.style.borderColor = 'var(--accent-danger)'; emailEl.focus(); }
+            if (errEmail) { errEmail.textContent = errMsg; errEmail.style.display = 'block'; }
+          }
         }
+      } catch (err) {
+        console.error('Lỗi lưu hồ sơ KH:', err);
+        showToast('Đã xảy ra lỗi khi tạo hồ sơ khách hàng: ' + err.message, 'danger');
       } finally {
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '✓ Lưu Hồ Sơ & Phát Hành Tài Khoản'; }
       }
@@ -4355,48 +4784,18 @@ function setupModalEvents() {
     }
   };
 
-  // Xử lý gửi Form Phản hồi & Xử lý khiếu nại (GDV)
-  document.getElementById('form-modal-resolve-ticket').onsubmit = async (e) => {
-    e.preventDefault();
-    const tid = document.getElementById('modal-ticket-id').value;
-    const resp = document.getElementById('modal-ticket-response-input').value;
+  // Nút mở modal Mở thêm tài khoản tại tab Quản lý tài khoản
 
-    const res = await TellerService.resolveTicketAsync(tid, resp, 'RESOLVED');
-    if (res.success) {
-      closeModal('modal-resolve-ticket');
-      showSuccessModal({
-        title: 'Xử Lý Đơn Hỗ Trợ Thành Công!',
-        message: res.message || 'Đã gửi phản hồi và xử lý thành công yêu cầu của khách hàng.',
-        txId: tid
-      });
-      renderTellerTicketsView();
-    } else {
-      showToast(res.message, 'danger');
-    }
-  };
 
-  // Xử lý gửi Form Thêm mới Giao dịch viên (Admin)
-  document.getElementById('form-modal-add-teller').onsubmit = (e) => {
-    e.preventDefault();
-    const staffCode = document.getElementById('modal-teller-code').value.trim();
-    const fullName = document.getElementById('modal-teller-fullname').value.trim();
-    const branch = document.getElementById('modal-teller-branch').value.trim();
-    const phone = document.getElementById('modal-teller-phone').value.trim();
-    const email = document.getElementById('modal-teller-email').value.trim();
 
-    const res = AdminService.createTeller({ staffCode, fullName, branch, phone, email });
-    if (res.success) {
-      closeModal('modal-add-teller');
-      showSuccessModal({
-        title: 'Thêm Giao Dịch Viên Thành Công!',
-        message: `Đã tạo tài khoản GDV ${fullName} (${staffCode}) tại chi nhánh ${branch}.`,
-        counterparty: fullName
-      });
-      renderAdminTellersView();
-    } else {
-      showToast(res.message, 'danger');
-    }
-  };
+
+
+
+  // Nút Mở Tài Khoản Tiết Kiệm Mới
+  const btnOpenSavModalGlobal = document.getElementById('btn-open-modal-savings');
+  if (btnOpenSavModalGlobal) {
+    btnOpenSavModalGlobal.onclick = () => openOpenSavingsModal();
+  }
 
   // Xử lý gửi Form Mở Tài Khoản Tiết Kiệm
   const formSavings = document.getElementById('form-modal-open-savings');
@@ -4462,38 +4861,47 @@ function setupModalEvents() {
       const termMonths = isDemand ? 0 : parseInt(document.getElementById('savings-modal-term').value, 10);
       const renewType = isDemand ? 'PAY_TO_PAYMENT_ACC' : document.getElementById('savings-modal-renew').value;
 
-      const submitBtn = formSavings.querySelector('button[type="submit"]');
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang xử lý...'; }
+      // Đóng modal mở tiết kiệm và mở modal xác thực 2FA (Mã PIN & OTP)
+      closeModal('modal-open-savings');
 
-      try {
-        const idempotencyKey = BankApiService.generateIdempotencyKey();
-        const res = await CustomerService.openSavingsAccountAsync({
-          sourceAccountNo,
-          amount,
-          termMonths,
-          savingsType,
-          renewType,
-          idempotencyKey
-        });
+      requestPinVerification({
+        title: 'Xác Thực PIN Mở Tiết Kiệm',
+        actionName: `Mở sổ tiết kiệm (${termMonths > 0 ? termMonths + ' Tháng' : 'Không kỳ hạn'})`,
+        fromAcc: sourceAccountNo,
+        amount: parseFloat(amount),
+        onVerified: async () => {
+          const submitBtn = formSavings.querySelector('button[type="submit"]');
+          if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang xử lý...'; }
 
-        if (res.success) {
-          closeModal('modal-open-savings');
-          showSuccessModal({
-            title: 'Mở Tài Khoản Tiết Kiệm Thành Công!',
-            message: res.message || `Đã mở sổ tiết kiệm thành công với số tiền gửi ${store.formatVND(amount)}.`,
-            amount: parseFloat(amount),
-            txId: (res.data && (res.data.savingsNo || res.data.savings_no)) || (res.savings && res.savings.savingsNo) || '',
-            accountNo: sourceAccountNo,
-            counterparty: `Sổ tiết kiệm (${termMonths > 0 ? termMonths + ' Tháng' : 'Không kỳ hạn'})`
-          });
-          await renderCustomerSavingsView();
-          renderCustomerDashboard();
-        } else {
-          showToast(res.message, 'danger');
+          try {
+            const idempotencyKey = BankApiService.generateIdempotencyKey();
+            const res = await CustomerService.openSavingsAccountAsync({
+              sourceAccountNo,
+              amount,
+              termMonths,
+              savingsType,
+              renewType,
+              idempotencyKey
+            });
+
+            if (res.success) {
+              showSuccessModal({
+                title: 'Mở Tài Khoản Tiết Kiệm Thành Công!',
+                message: res.message || `Đã mở sổ tiết kiệm thành công với số tiền gửi ${store.formatVND(amount)}.`,
+                amount: parseFloat(amount),
+                txId: (res.data && (res.data.savingsNo || res.data.savings_no)) || (res.savings && res.savings.savingsNo) || '',
+                accountNo: sourceAccountNo,
+                counterparty: `Sổ tiết kiệm (${termMonths > 0 ? termMonths + ' Tháng' : 'Không kỳ hạn'})`
+              });
+              await renderCustomerSavingsView();
+            } else {
+              showToast(res.message, 'danger');
+            }
+          } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Xác Nhận Mở Tài Khoản Tiết Kiệm Ngay'; }
+          }
         }
-      } finally {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Xác Nhận Mở Tài Khoản Tiết Kiệm Ngay'; }
-      }
+      });
     };
   }
 
@@ -4504,6 +4912,62 @@ function setupModalEvents() {
     const actionPartialRadio = document.getElementById('close-action-partial');
     const partialGroup = document.getElementById('close-partial-amount-group');
     const partialInput = document.getElementById('close-partial-amount');
+    const partialHint = document.getElementById('close-partial-hint');
+    const previewPrincipal = document.getElementById('close-preview-principal');
+    const previewAmountLabel = document.getElementById('close-preview-amount-label');
+    const previewRemaining = document.getElementById('close-preview-remaining');
+    const remainingBox = document.getElementById('close-remaining-preview-box');
+    const partialInfo = document.getElementById('close-partial-info');
+    const submitBtn = document.getElementById('btn-confirm-close-savings');
+
+    // Tự động định dạng tiền khi nhập vào partialInput
+    if (partialInput) {
+      partialInput.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '');
+        if (val) {
+          e.target.value = parseInt(val, 10).toLocaleString('vi-VN');
+        } else {
+          e.target.value = '';
+        }
+        updateCloseSavingsPreview();
+      });
+    }
+
+    // Các nút chọn nhanh % số tiền rút
+    const quickPctBtns = formCloseSavings.querySelectorAll('.btn-quick-withdraw-pct');
+    quickPctBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sid = document.getElementById('close-sav-id').value;
+        const allSavings = CustomerService.getAllSavingsAccounts();
+        const savings = allSavings.find(s => s.id === sid || s.savingsNo === sid);
+        if (!savings) return;
+
+        const pct = parseFloat(btn.getAttribute('data-pct')) || 0;
+        const calcAmt = Math.floor(savings.depositAmount * pct);
+        if (partialInput) {
+          partialInput.value = calcAmt.toLocaleString('vi-VN');
+          updateCloseSavingsPreview();
+        }
+      });
+    });
+
+    const quickMaxBtn = formCloseSavings.querySelector('.btn-quick-withdraw-max');
+    if (quickMaxBtn) {
+      quickMaxBtn.addEventListener('click', () => {
+        const sid = document.getElementById('close-sav-id').value;
+        const allSavings = CustomerService.getAllSavingsAccounts();
+        const savings = allSavings.find(s => s.id === sid || s.savingsNo === sid);
+        if (!savings) return;
+
+        const isDemand = savings.savingsType === 'DEMAND' || savings.termMonths === 0;
+        const minKeep = isDemand ? 100000 : 1000000;
+        const maxWithdraw = Math.max(0, savings.depositAmount - minKeep);
+        if (partialInput) {
+          partialInput.value = maxWithdraw > 0 ? maxWithdraw.toLocaleString('vi-VN') : '';
+          updateCloseSavingsPreview();
+        }
+      });
+    }
 
     const updateCloseSavingsPreview = () => {
       const isPartial = actionPartialRadio && actionPartialRadio.checked;
@@ -4513,29 +4977,57 @@ function setupModalEvents() {
       }
 
       const sid = document.getElementById('close-sav-id').value;
-      const savings = (store.data.savingsAccounts || []).find(s => s.id === sid || s.savingsNo === sid);
+      const allSavings = CustomerService.getAllSavingsAccounts();
+      const savings = allSavings.find(s => s.id === sid || s.savingsNo === sid);
       if (!savings) return;
 
       const isDemand = savings.savingsType === 'DEMAND' || savings.termMonths === 0;
       const now = new Date();
       const created = new Date(savings.createdAt || now);
-      const daysActive = Math.max(1, Math.ceil(Math.abs(now - created) / (1000 * 60 * 60 * 24)));
+      const startDay = new Date(created.getFullYear(), created.getMonth(), created.getDate()).getTime();
+      const currentDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const daysActive = Math.max(0, Math.floor((currentDay - startDay) / (1000 * 60 * 60 * 24)));
       const isMatured = savings.maturityDate && new Date(savings.maturityDate) <= now;
       const isEarly = !isDemand && !isMatured;
+      const minKeep = isDemand ? 100000 : 1000000;
+
+      if (partialHint) {
+        partialHint.textContent = `Số dư tối thiểu còn lại phải >= ${store.formatVND(minKeep)} (Tối đa rút: ${store.formatVND(Math.max(0, savings.depositAmount - minKeep))})`;
+      }
 
       const warnEl = document.getElementById('close-early-warning');
-      if (warnEl) warnEl.style.display = (isEarly && !isPartial) ? 'block' : 'none';
 
       let appliedRate = 0.2;
       let interest = 0;
       let totalPayout = 0;
 
       if (isPartial) {
-        const withdrawAmt = parseFloat(partialInput ? partialInput.value : 0) || 0;
+        if (warnEl) warnEl.style.display = 'none';
+        if (partialInfo) partialInfo.style.display = 'block';
+        if (remainingBox) remainingBox.style.display = 'flex';
+
+        const rawAmt = partialInput ? partialInput.value.replace(/\D/g, '') : '';
+        const withdrawAmt = parseFloat(rawAmt) || 0;
         appliedRate = savings.earlyWithdrawalRate || 0.2;
         interest = Math.round((withdrawAmt * appliedRate * daysActive) / 36500);
         totalPayout = withdrawAmt + interest;
+
+        const remaining = Math.max(0, savings.depositAmount - withdrawAmt);
+
+        if (previewAmountLabel) previewAmountLabel.textContent = 'Gốc rút một phần:';
+        if (previewPrincipal) previewPrincipal.textContent = store.formatVND(withdrawAmt);
+        if (previewRemaining) {
+          previewRemaining.textContent = `${store.formatVND(remaining)} (${isDemand ? 'Lãi KKH 0.2%/năm' : `Giữ nguyên ${(savings.interestRate || 0).toFixed(2)}%/năm`})`;
+        }
+        if (submitBtn) submitBtn.textContent = 'Xác Nhận Rút Tiền Tiết Kiệm';
       } else {
+        if (warnEl) warnEl.style.display = isEarly ? 'block' : 'none';
+        if (partialInfo) partialInfo.style.display = 'none';
+        if (remainingBox) remainingBox.style.display = 'none';
+
+        if (previewAmountLabel) previewAmountLabel.textContent = 'Tiền gốc tất toán:';
+        if (previewPrincipal) previewPrincipal.textContent = store.formatVND(savings.depositAmount);
+
         if (isDemand) {
           appliedRate = savings.interestRate || 0.2;
           interest = Math.round((savings.depositAmount * appliedRate * daysActive) / 36500);
@@ -4547,20 +5039,22 @@ function setupModalEvents() {
           interest = savings.expectedInterest || 0;
         }
         totalPayout = savings.depositAmount + interest;
+        if (submitBtn) submitBtn.textContent = 'Xác Nhận Tất Toán Toàn Bộ';
       }
 
       const previewRate = document.getElementById('close-preview-rate');
       const previewInterest = document.getElementById('close-preview-interest');
       const previewTotal = document.getElementById('close-preview-total');
 
-      if (previewRate) previewRate.textContent = `${appliedRate.toFixed(2)}%/năm (${isDemand ? 'Không kỳ hạn' : (isEarly || isPartial ? 'Lãi KKH do trước hạn' : 'Đúng hạn')})`;
+      if (previewRate) {
+        previewRate.textContent = `${appliedRate.toFixed(2)}%/năm (${isDemand ? 'Không kỳ hạn' : (isEarly || isPartial ? 'Lãi KKH theo số ngày' : 'Đúng hạn')})`;
+      }
       if (previewInterest) previewInterest.textContent = `+${store.formatVND(interest)}`;
       if (previewTotal) previewTotal.textContent = store.formatVND(totalPayout);
     };
 
     if (actionFullRadio) actionFullRadio.onchange = updateCloseSavingsPreview;
     if (actionPartialRadio) actionPartialRadio.onchange = updateCloseSavingsPreview;
-    if (partialInput) partialInput.oninput = updateCloseSavingsPreview;
 
     formCloseSavings.onsubmit = async (e) => {
       e.preventDefault();
@@ -4569,38 +5063,71 @@ function setupModalEvents() {
       const partialAmountStr = isPartial ? document.getElementById('close-partial-amount').value : null;
       const partialAmount = partialAmountStr ? parseFloat(partialAmountStr.replace(/\D/g, '')) : null;
 
-      const savings = (store.data.savingsAccounts || []).find(s => s.id === savingsId || s.savingsNo === savingsId);
+      const allSavings = CustomerService.getAllSavingsAccounts();
+      const savings = allSavings.find(s => s.id === savingsId || s.savingsNo === savingsId);
+      if (!savings) {
+        showToast('Không tìm thấy tài khoản tiết kiệm', 'danger');
+        return;
+      }
+
+      const isDemand = savings.savingsType === 'DEMAND' || savings.termMonths === 0;
+      const minKeep = isDemand ? 100000 : 1000000;
+
+      if (isPartial) {
+        if (!partialAmount || isNaN(partialAmount) || partialAmount <= 0) {
+          showToast('Vui lòng nhập số tiền hợp lệ muốn rút', 'warning');
+          return;
+        }
+        if (partialAmount >= savings.depositAmount) {
+          showToast('Số tiền rút một phần phải nhỏ hơn số dư hiện tại. Để rút toàn bộ, vui lòng chọn "Tất toán toàn bộ tài khoản"', 'warning');
+          return;
+        }
+        if (savings.depositAmount - partialAmount < minKeep) {
+          showToast(`Số dư còn lại trong sổ sau khi rút phải đạt tối thiểu ${store.formatVND(minKeep)}`, 'warning');
+          return;
+        }
+      }
+
       const isEarly = savings && savings.maturityDate && new Date(savings.maturityDate) > new Date();
 
-      const submitBtn = document.getElementById('btn-confirm-close-savings');
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang tất toán...'; }
+      closeModal('modal-close-savings');
 
-      try {
-        const idempotencyKey = BankApiService.generateIdempotencyKey();
-        const res = await CustomerService.closeSavingsAccountAsync({
-          savingsId,
-          isEarly,
-          partialAmount,
-          idempotencyKey
-        });
+      requestPinVerification({
+        title: isPartial ? 'Xác Thực PIN Rút Tiền Tiết Kiệm' : 'Xác Thực PIN Tất Toán Tiết Kiệm',
+        actionName: isPartial ? `Rút một phần sổ tiết kiệm ${savingsId}` : `Tất toán toàn bộ sổ tiết kiệm ${savingsId}`,
+        fromAcc: savingsId,
+        amount: isPartial ? partialAmount : (savings ? savings.depositAmount : null),
+        onVerified: async () => {
+          const confBtn = document.getElementById('btn-confirm-close-savings');
+          if (confBtn) { confBtn.disabled = true; confBtn.textContent = 'Đang xử lý...'; }
 
-        if (res.success) {
-          closeModal('modal-close-savings');
-          showSuccessModal({
-            title: isPartial ? 'Rút Tiền Tiết Kiệm Thành Công!' : 'Tất Toán Sổ Tiết Kiệm Thành Công!',
-            message: res.message || 'Giao dịch tất toán sổ tiết kiệm đã hoàn thành.',
-            amount: partialAmount || (savings ? savings.depositAmount : null),
-            txId: savingsId,
-            counterparty: 'Tài khoản thanh toán'
-          });
-          await renderCustomerSavingsView();
-          renderCustomerDashboard();
-        } else {
-          showToast(res.message, 'danger');
+          try {
+            const idempotencyKey = BankApiService.generateIdempotencyKey();
+            const res = await CustomerService.closeSavingsAccountAsync({
+              savingsId,
+              isEarly,
+              partialAmount,
+              idempotencyKey
+            });
+
+            if (res.success) {
+              showSuccessModal({
+                title: isPartial ? 'Rút Tiền Tiết Kiệm Thành Công!' : 'Tất Toán Sổ Tiết Kiệm Thành Công!',
+                message: res.message || 'Giao dịch tất toán sổ tiết kiệm đã hoàn thành.',
+                amount: partialAmount || (savings ? savings.depositAmount : null),
+                txId: savingsId,
+                counterparty: 'Tài khoản thanh toán'
+              });
+              await renderCustomerSavingsView();
+              renderCustomerDashboard();
+            } else {
+              showToast(res.message, 'danger');
+            }
+          } finally {
+            if (confBtn) { confBtn.disabled = false; confBtn.textContent = isPartial ? 'Xác Nhận Rút Tiền Tiết Kiệm' : 'Xác Nhận Tất Toán'; }
+          }
         }
-      } finally {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Xác Nhận Tất Toán'; }
-      }
+      });
     };
   }
 
@@ -4614,70 +5141,50 @@ function setupModalEvents() {
       const amountStr = document.getElementById('topup-sav-amount').value;
       const amount = parseFloat(amountStr.replace(/\D/g, '')) || 0;
 
-      const submitBtn = formTopUpSavings.querySelector('button[type="submit"]');
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang nộp tiền...'; }
+      closeModal('modal-topup-savings');
 
-      try {
-        const idempotencyKey = BankApiService.generateIdempotencyKey();
-        const res = await CustomerService.topUpSavingsAsync({
-          savingsId,
-          sourceAccountNo,
-          amount,
-          idempotencyKey
-        });
+      requestPinVerification({
+        title: 'Xác Thực PIN Nộp Thêm Tiết Kiệm',
+        actionName: `Nộp thêm tiền vào sổ KKH ${savingsId}`,
+        fromAcc: sourceAccountNo,
+        toAcc: savingsId,
+        amount: parseFloat(amount),
+        onVerified: async () => {
+          const submitBtn = formTopUpSavings.querySelector('button[type="submit"]');
+          if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang nộp tiền...'; }
 
-        if (res.success) {
-          closeModal('modal-topup-savings');
-          showSuccessModal({
-            title: 'Nộp Tiền Tiết Kiệm Thành Công!',
-            message: res.message || `Đã nộp thêm ${store.formatVND(amount)} vào sổ tiết kiệm.`,
-            amount: parseFloat(amount),
-            txId: savingsId,
-            accountNo: sourceAccountNo,
-            counterparty: `Sổ tiết kiệm KKH ${savingsId}`
-          });
-          await renderCustomerSavingsView();
-          renderCustomerDashboard();
-        } else {
-          showToast(res.message, 'danger');
+          try {
+            const idempotencyKey = BankApiService.generateIdempotencyKey();
+            const res = await CustomerService.topUpSavingsAsync({
+              savingsId,
+              sourceAccountNo,
+              amount,
+              idempotencyKey
+            });
+
+            if (res.success) {
+              showSuccessModal({
+                title: 'Nộp Tiền Tiết Kiệm Thành Công!',
+                message: res.message || `Đã nộp thêm ${store.formatVND(amount)} vào sổ tiết kiệm.`,
+                amount: parseFloat(amount),
+                txId: savingsId,
+                accountNo: sourceAccountNo,
+                counterparty: `Sổ tiết kiệm KKH ${savingsId}`
+              });
+              await renderCustomerSavingsView();
+              renderCustomerDashboard();
+            } else {
+              showToast(res.message, 'danger');
+            }
+          } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Xác Nhận Nộp Thêm Tiền'; }
+          }
         }
-      } finally {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Xác Nhận Nộp Thêm Tiền'; }
-      }
+      });
     };
   }
 
-  // Xử lý nộp hồ sơ xin vay vốn online
-  const formLoan = document.getElementById('form-modal-apply-loan');
-  if (formLoan) {
-    formLoan.onsubmit = (e) => {
-      e.preventDefault();
-      const accountNo = document.getElementById('loan-modal-acc').value;
-      const loanType = document.getElementById('loan-modal-type').value;
-      const title = document.getElementById('loan-modal-title').value.trim();
-      const amountStr = document.getElementById('loan-modal-amount').value;
-      const amount = parseFloat(amountStr.replace(/\D/g, '')) || 0;
-      const termMonths = document.getElementById('loan-modal-term').value;
-      const incomeStr = document.getElementById('loan-modal-income').value;
-      const income = parseFloat(incomeStr.replace(/\D/g, '')) || 0;
 
-      const res = CustomerService.applyLoan({ accountNo, loanType, title, amount, termMonths, income });
-      if (res.success) {
-        closeModal('modal-apply-loan');
-        showSuccessModal({
-          title: 'Nộp Hồ Sơ Vay Vốn Thành Công!',
-          message: res.message || 'Hồ sơ vay vốn của bạn đã được gửi và đang chờ phê duyệt.',
-          amount: parseFloat(amount),
-          txId: (res.loan && res.loan.id) || '',
-          accountNo: accountNo,
-          counterparty: `Gói vay: ${loanType}`
-        });
-        renderCustomerLoansView();
-      } else {
-        showToast(res.message, 'danger');
-      }
-    };
-  }
 
   // Xử lý cấu hình Hạn mức & PIN Thẻ
   const formCardSet = document.getElementById('form-modal-card-settings');
@@ -4691,22 +5198,29 @@ function setupModalEvents() {
       const perTxnLimit = perTxnLimitStr ? (parseFloat(perTxnLimitStr.replace(/\D/g, '')) || 0) : undefined;
       const newPin = document.getElementById('card-setting-pin').value;
 
-      const res = CustomerService.updateCardLimitsAndPin({ cardNumber, dailyLimit, perTxnLimit, newPin });
-      if (res.success) {
-        closeModal('modal-card-settings');
-        showSuccessModal({
-          title: 'Cập Nhật Cài Đặt Thẻ Thành Công!',
-          message: res.message || 'Hạn mức và mã PIN thẻ đã được cập nhật an toàn.',
-          counterparty: `Thẻ ${cardNumber}`
-        });
-        renderCustomerAccounts();
-      } else {
-        showToast(res.message, 'danger');
-      }
+      closeModal('modal-card-settings');
+
+      requestPinVerification({
+        title: 'Xác Thực PIN Cập Nhật Thẻ',
+        actionName: `Cấu hình hạn mức & PIN thẻ ${cardNumber}`,
+        onVerified: () => {
+          const res = CustomerService.updateCardLimitsAndPin({ cardNumber, dailyLimit, perTxnLimit, newPin });
+          if (res.success) {
+            showSuccessModal({
+              title: 'Cập Nhật Cài Đặt Thẻ Thành Công!',
+              message: res.message || 'Hạn mức và mã PIN thẻ đã được cập nhật an toàn.',
+              counterparty: `Thẻ ${cardNumber}`
+            });
+            renderCustomerAccounts();
+          } else {
+            showToast(res.message, 'danger');
+          }
+        }
+      });
     };
   }
 
-  // Xử lý Thêm mới / Cập nhật Giao Dịch Viên & Phân quyền phía Admin
+  // Xử lý Thêm mới / Cập nhật Giao Dịch Viên phía Admin
   const formAdminTeller = document.getElementById('form-admin-add-edit-teller');
   if (formAdminTeller) {
     formAdminTeller.onsubmit = (e) => {
@@ -4718,25 +5232,13 @@ function setupModalEvents() {
       const phone = document.getElementById('admin-teller-phone')?.value.trim();
       const email = document.getElementById('admin-teller-email')?.value.trim();
 
-      // Collect selected permissions
-      const checkedPerms = [];
-      document.querySelectorAll('#modal-teller-perms-grid .modal-perm-item-chk:checked').forEach(chk => {
-        checkedPerms.push(chk.value);
-      });
-
-      if (checkedPerms.length === 0) {
-        showToast('Vui lòng chọn ít nhất 01 quyền hạn cho giao dịch viên', 'warning');
-        return;
-      }
-
       if (editId) {
         // Cập nhật
         const res = AdminService.updateTeller(editId, {
           fullName,
           branch,
           phone,
-          email,
-          permissions: checkedPerms
+          email
         });
         if (res.success) {
           closeModal('modal-add-edit-teller');
@@ -4756,8 +5258,7 @@ function setupModalEvents() {
           staffCode,
           branch,
           phone,
-          email,
-          permissions: checkedPerms
+          email
         });
         if (res.success) {
           closeModal('modal-add-edit-teller');
@@ -4774,33 +5275,6 @@ function setupModalEvents() {
     };
   }
 
-  // Xử lý Lưu phân quyền nhanh từ Modal Quick Perms
-  const btnSaveQuickPerms = document.getElementById('btn-save-quick-perms');
-  if (btnSaveQuickPerms) {
-    btnSaveQuickPerms.onclick = () => {
-      const tellerId = document.getElementById('quick-perm-teller-id')?.value;
-      if (!tellerId) return;
-
-      const checkedPerms = [];
-      document.querySelectorAll('#quick-perms-list-container .quick-perm-chk:checked').forEach(chk => {
-        checkedPerms.push(chk.value);
-      });
-
-      const res = AdminService.updateTellerPermissions(tellerId, checkedPerms);
-      if (res.success) {
-        closeModal('modal-edit-teller-perms');
-        showSuccessModal({
-          title: 'Phân Quyền Thành Công!',
-          message: 'Quyền hạn giao dịch viên đã được áp dụng ngay lập tức.',
-          counterparty: `GDV ID: ${tellerId}`
-        });
-        renderAdminTellersView();
-      } else {
-        showToast(res.message, 'danger');
-      }
-    };
-  }
-
   // Xử lý phát hành thẻ mới / thẻ ảo online
   const formIssueCard = document.getElementById('form-modal-issue-card');
   if (formIssueCard) {
@@ -4812,20 +5286,28 @@ function setupModalEvents() {
       const dailyLimit = parseFloat(dailyLimitStr.replace(/\D/g, '')) || 50000000;
       const cardPin = document.getElementById('issue-card-pin').value;
 
-      const res = CustomerService.issueNewCard({ cardType, linkedAccountNo, dailyLimit, cardPin });
-      if (res.success) {
-        closeModal('modal-issue-card');
-        showSuccessModal({
-          title: 'Phát Hành Thẻ Thành Công!',
-          message: res.message || `Đã mở thẻ ${cardType} thành công liên kết với TK ${linkedAccountNo}.`,
-          accountNo: linkedAccountNo,
-          counterparty: cardType
-        });
-        window.selectedCardIndex = 0;
-        renderCustomerAccounts();
-      } else {
-        showToast(res.message, 'danger');
-      }
+      closeModal('modal-issue-card');
+
+      requestPinVerification({
+        title: 'Xác Thực PIN Phát Hành Thẻ',
+        actionName: `Mở thẻ mới (${cardType}) liên kết TK ${linkedAccountNo}`,
+        fromAcc: linkedAccountNo,
+        onVerified: () => {
+          const res = CustomerService.issueNewCard({ cardType, linkedAccountNo, dailyLimit, cardPin });
+          if (res.success) {
+            showSuccessModal({
+              title: 'Phát Hành Thẻ Thành Công!',
+              message: res.message || `Đã mở thẻ ${cardType} thành công liên kết với TK ${linkedAccountNo}.`,
+              accountNo: linkedAccountNo,
+              counterparty: cardType
+            });
+            window.selectedCardIndex = 0;
+            renderCustomerAccounts();
+          } else {
+            showToast(res.message, 'danger');
+          }
+        }
+      });
     };
   }
 
@@ -4940,16 +5422,15 @@ function setupModalEvents() {
       const packageNames = {
         MORTGAGE: 'Vay Bất Động Sản',
         CAR: 'Vay Mua Ô Tô',
-        CONSUMER: 'Vay Tiêu Dùng Tín Chấp',
-        BUSINESS: 'Vay Sản Xuất Kinh Doanh',
-        OVERDRAFT: 'Thấu Chi Tài Khoản'
+        CONSUMER: 'Vay Tiêu Dùng',
+        BUSINESS: 'Vay Sản Xuất Kinh Doanh'
       };
       const pkgTitle = packageNames[loanType] || 'Vay Vốn';
 
       requestSecurityVerification({
         actionTitle: `Nộp hồ sơ vay [${pkgTitle} - ${store.formatVND(amount)}] & Ký thỏa thuận tín dụng`,
-        onVerified: () => {
-          const res = CustomerService.applyLoan({
+        onVerified: async () => {
+          const res = await CustomerService.applyLoanAsync({
             accountNo,
             loanType,
             title,
@@ -4971,8 +5452,21 @@ function setupModalEvents() {
               accountNo: accountNo,
               counterparty: pkgTitle
             });
-            renderCustomerLoansView('PENDING');
-            renderCustomerDashboard();
+            await renderCustomerLoansView('ALL');
+            if (window.updateNotificationBadge) window.updateNotificationBadge();
+
+            if (typeof BroadcastChannel !== 'undefined') {
+              try {
+                const bc = new BroadcastChannel('bank_realtime_events');
+                bc.postMessage({
+                  type: 'NEW_LOAN_APPLICATION',
+                  loanId: (res.loan && (res.loan.contractNo || res.loan.id)) || '',
+                  customerName: (res.loan && res.loan.customerName) || store.data.currentUser?.fullName || 'Khách hàng',
+                  amount: parseFloat(amount),
+                  title: pkgTitle
+                });
+              } catch (e) {}
+            }
           } else {
             showToast(res.message, 'danger');
           }
@@ -5012,8 +5506,8 @@ function setupModalEvents() {
       // Chuyển sang bước xác thực mật khẩu GDV để giải ngân
       requestSecurityVerification({
         actionTitle: `Phê duyệt & Giải ngân ${store.formatVND(loan.principalAmount)} cho KH ${loan.customerName} [HĐ: ${loan.contractNo || loan.id} - Đã thu giữ TSBĐ gốc: ${handoverCode}]`,
-        onVerified: () => {
-          const res = TellerService.approveLoan(loanId, officerNote, handoverCode);
+        onVerified: async () => {
+          const res = await TellerService.approveLoanAsync(loanId, officerNote, handoverCode);
           if (res.success) {
             showSuccessModal({
               title: 'Phê Duyệt & Giải Ngân Thành Công!',
@@ -5025,7 +5519,7 @@ function setupModalEvents() {
           } else {
             showToast(res.message, 'danger');
           }
-          renderTellerLoansView(currentTellerLoanFilter);
+          await renderTellerLoansView(currentTellerLoanFilter);
         }
       });
     };
@@ -5067,20 +5561,16 @@ function setupModalEvents() {
   }
 }
 
-function openModal(id) {
-  const el = document.getElementById(id);
-  if (el) {
-    el.classList.add('active');
-    initCurrencyInputFormatting();
+// Lắng nghe sự kiện click nền mờ và nút đóng để tránh đơ giao diện
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal-overlay')) {
+    e.target.classList.remove('active');
   }
-}
-
-function closeModal(id) {
-  const el = document.getElementById(id);
-  if (el) {
-    el.classList.remove('active');
+  if (e.target.classList.contains('btn-close') || e.target.closest('.btn-close')) {
+    const overlay = e.target.closest('.modal-overlay');
+    if (overlay) overlay.classList.remove('active');
   }
-}
+});
 
 /* ==========================================================================
    CÁC HÀM HIỂN THỊ DỮ LIỆU NGHIỆP VỤ MỞ RỘNG (SAVINGS, LOANS, STATEMENTS)
@@ -5240,6 +5730,200 @@ async function renderCustomerSavingsView(filter = activeSavingsFilter) {
   if (btnOpenModal) btnOpenModal.onclick = () => openOpenSavingsModal();
 }
 
+/**
+ * Mở modal Mở Tài Khoản Tiết Kiệm Mới
+ */
+function openOpenSavingsModal() {
+  const accounts = CustomerService.getCustomerAccounts();
+  const paymentAccs = accounts.filter(a => a.type === 'PAYMENT' || a.type === 'CHECKING' || a.type === 'DEFAULT');
+  const availableAccs = paymentAccs.length > 0 ? paymentAccs : accounts;
+
+  const select = document.getElementById('savings-modal-source');
+  if (select) {
+    if (availableAccs.length === 0) {
+      select.innerHTML = '<option value="">Không có tài khoản thanh toán khả dụng</option>';
+    } else {
+      select.innerHTML = availableAccs.map(a => `<option value="${a.accountNo}">${a.accountNo} - Số dư: ${store.formatVND(a.balance)}</option>`).join('');
+    }
+  }
+
+  const termSelect = document.getElementById('savings-modal-term');
+  const curRates = store.data.savingsInterestRates || [];
+  if (termSelect && curRates.length > 0) {
+    termSelect.innerHTML = curRates
+      .filter(r => (r.termMonths !== undefined ? r.termMonths : r.term) > 0)
+      .map(r => {
+        const m = r.termMonths !== undefined ? r.termMonths : r.term;
+        const rate = r.rate !== undefined ? r.rate : r.annualRate;
+        const isSel = m === 6 ? 'selected' : '';
+        return `<option value="${m}" ${isSel}>${m} Tháng (${Number(rate).toFixed(2)}%/năm)</option>`;
+      }).join('');
+  }
+
+  const amountInput = document.getElementById('savings-modal-amount');
+  if (amountInput) amountInput.value = '';
+
+  const typeTermRadio = document.getElementById('sav-type-term');
+  if (typeTermRadio) typeTermRadio.checked = true;
+
+  const termGroup = document.getElementById('sav-term-group');
+  const renewGroup = document.getElementById('sav-renew-group');
+  const amountHint = document.getElementById('sav-amount-hint');
+  if (termGroup) termGroup.style.display = 'block';
+  if (renewGroup) renewGroup.style.display = 'block';
+  if (amountHint) amountHint.textContent = 'Tối thiểu: 1.000.000 VNĐ cho tài khoản có kỳ hạn';
+
+  const rate6m = CustomerService.getSavingsInterestRate(6);
+  const rateEl = document.getElementById('sav-preview-rate');
+  const maturityEl = document.getElementById('sav-preview-maturity');
+  const interestEl = document.getElementById('sav-preview-interest');
+  if (rateEl) rateEl.textContent = `${rate6m.toFixed(2)}%/năm`;
+  if (maturityEl) {
+    const mat = new Date();
+    mat.setMonth(mat.getMonth() + 6);
+    maturityEl.textContent = mat.toLocaleDateString('vi-VN');
+  }
+  if (interestEl) interestEl.textContent = '0 VNĐ';
+
+  openModal('modal-open-savings');
+  setTimeout(() => {
+    if (amountInput) amountInput.focus();
+  }, 150);
+}
+
+/**
+ * Mở modal Tất Toán / Rút Một Phần Sổ Tiết Kiệm
+ */
+function openCloseSavingsModal(savingsIdOrNo) {
+  const allSavings = CustomerService.getAllSavingsAccounts();
+  const sav = allSavings.find(s => s.savingsNo === savingsIdOrNo || s.id === savingsIdOrNo);
+  if (!sav) {
+    showToast('Không tìm thấy thông tin sổ tiết kiệm', 'danger');
+    return;
+  }
+
+  const isDemand = sav.savingsType === 'DEMAND' || sav.termMonths === 0;
+  const now = new Date();
+  const created = new Date(sav.createdAt || now);
+  const startDay = new Date(created.getFullYear(), created.getMonth(), created.getDate()).getTime();
+  const currentDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const daysActive = Math.max(0, Math.floor((currentDay - startDay) / (1000 * 60 * 60 * 24)));
+  const isMatured = sav.maturityDate && new Date(sav.maturityDate) <= now;
+  const isEarly = !isDemand && !isMatured;
+  const minKeep = isDemand ? 100000 : 1000000;
+
+  const hiddenId = document.getElementById('close-sav-id');
+  if (hiddenId) hiddenId.value = sav.id || sav.savingsNo;
+
+  const noEl = document.getElementById('close-sav-no');
+  if (noEl) noEl.textContent = sav.savingsNo || sav.id;
+
+  const princEl = document.getElementById('close-sav-principal');
+  if (princEl) princEl.textContent = store.formatVND(sav.depositAmount);
+
+  const termRateEl = document.getElementById('close-sav-term-rate');
+  if (termRateEl) termRateEl.textContent = isDemand ? 'Không kỳ hạn (0.20%/năm)' : `${sav.termMonths} Tháng (${(sav.interestRate || 0).toFixed(2)}%/năm)`;
+
+  const datesEl = document.getElementById('close-sav-dates');
+  if (datesEl) datesEl.textContent = `${store.formatDate(sav.createdAt)} / ${isDemand ? 'Linh hoạt' : store.formatDate(sav.maturityDate)}`;
+
+  const daysEl = document.getElementById('close-sav-days-active');
+  if (daysEl) daysEl.textContent = `${daysActive} ngày`;
+
+  const fullRadio = document.getElementById('close-action-full');
+  if (fullRadio) fullRadio.checked = true;
+
+  // Luôn hiển thị lựa chọn rút một phần cho cả tiết kiệm có kỳ hạn và không kỳ hạn
+  const partialWrapper = document.getElementById('close-action-partial-wrapper');
+  if (partialWrapper) partialWrapper.style.display = 'flex';
+
+  const partialGroup = document.getElementById('close-partial-amount-group');
+  if (partialGroup) partialGroup.classList.add('hidden');
+
+  const partialInput = document.getElementById('close-partial-amount');
+  if (partialInput) partialInput.value = '';
+
+  const partialHint = document.getElementById('close-partial-hint');
+  if (partialHint) {
+    partialHint.textContent = `Số dư tối thiểu còn lại phải >= ${store.formatVND(minKeep)} (Tối đa rút: ${store.formatVND(Math.max(0, sav.depositAmount - minKeep))})`;
+  }
+
+  const warnEl = document.getElementById('close-early-warning');
+  if (warnEl) warnEl.style.display = isEarly ? 'block' : 'none';
+
+  const partialInfo = document.getElementById('close-partial-info');
+  if (partialInfo) partialInfo.style.display = 'none';
+
+  const remainingBox = document.getElementById('close-remaining-preview-box');
+  if (remainingBox) remainingBox.style.display = 'none';
+
+  const previewAmountLabel = document.getElementById('close-preview-amount-label');
+  if (previewAmountLabel) previewAmountLabel.textContent = 'Tiền gốc tất toán:';
+
+  const previewPrincipal = document.getElementById('close-preview-principal');
+  if (previewPrincipal) previewPrincipal.textContent = store.formatVND(sav.depositAmount);
+
+  let appliedRate = isDemand ? (sav.interestRate || 0.2) : (isEarly ? (sav.earlyWithdrawalRate || 0.2) : (sav.interestRate || 6.5));
+  let interest = Math.round((sav.depositAmount * appliedRate * (isEarly || isDemand ? daysActive : (sav.termMonths * 30))) / 36500);
+  if (!isEarly && !isDemand) interest = sav.expectedInterest || interest;
+
+  const rateEl = document.getElementById('close-preview-rate');
+  if (rateEl) rateEl.textContent = `${appliedRate.toFixed(2)}%/năm (${isDemand ? 'Không kỳ hạn' : (isEarly ? 'Lãi KKH theo số ngày' : 'Đúng hạn')})`;
+
+  const intEl = document.getElementById('close-preview-interest');
+  if (intEl) intEl.textContent = `+${store.formatVND(interest)}`;
+
+  const totalEl = document.getElementById('close-preview-total');
+  if (totalEl) totalEl.textContent = store.formatVND(sav.depositAmount + interest);
+
+  const submitBtn = document.getElementById('btn-confirm-close-savings');
+  if (submitBtn) submitBtn.textContent = 'Xác Nhận Tất Toán Toàn Bộ';
+
+  openModal('modal-close-savings');
+}
+
+/**
+ * Mở modal Nộp Thêm Tiền Vào Sổ KKH
+ */
+function openTopUpSavingsModal(savingsIdOrNo) {
+  const allSavings = CustomerService.getAllSavingsAccounts();
+  const sav = allSavings.find(s => s.savingsNo === savingsIdOrNo || s.id === savingsIdOrNo);
+  if (!sav) {
+    showToast('Không tìm thấy thông tin sổ tiết kiệm', 'danger');
+    return;
+  }
+
+  const hiddenId = document.getElementById('topup-sav-id');
+  if (hiddenId) hiddenId.value = sav.id || sav.savingsNo;
+
+  const noEl = document.getElementById('topup-sav-no');
+  if (noEl) noEl.textContent = sav.savingsNo || sav.id;
+
+  const balEl = document.getElementById('topup-sav-current-balance');
+  if (balEl) balEl.textContent = store.formatVND(sav.depositAmount);
+
+  const accounts = CustomerService.getCustomerAccounts();
+  const paymentAccs = accounts.filter(a => a.type === 'PAYMENT' || a.type === 'CHECKING' || a.type === 'DEFAULT');
+  const availableAccs = paymentAccs.length > 0 ? paymentAccs : accounts;
+
+  const select = document.getElementById('topup-sav-source');
+  if (select) {
+    select.innerHTML = availableAccs.map(a => `<option value="${a.accountNo}">${a.accountNo} - Số dư: ${store.formatVND(a.balance)}</option>`).join('');
+  }
+
+  const amountInput = document.getElementById('topup-sav-amount');
+  if (amountInput) amountInput.value = '';
+
+  openModal('modal-topup-savings');
+  setTimeout(() => {
+    if (amountInput) amountInput.focus();
+  }, 150);
+}
+
+window.openOpenSavingsModal = openOpenSavingsModal;
+window.openCloseSavingsModal = openCloseSavingsModal;
+window.openTopUpSavingsModal = openTopUpSavingsModal;
+
 function openSavingsDetailModal(savingsIdOrNo) {
   const allSavings = CustomerService.getAllSavingsAccounts();
   const sav = allSavings.find(s => s.savingsNo === savingsIdOrNo || s.id === savingsIdOrNo);
@@ -5263,12 +5947,23 @@ function openSavingsDetailModal(savingsIdOrNo) {
   if (sav.status === 'MATURED') statusBadge = '<span class="user-role-badge badge-teller">ĐÃ ĐÁO HẠN</span>';
   else if (sav.status === 'CLOSED_EARLY') statusBadge = '<span class="user-role-badge badge-admin">TẤT TOÁN SỚM</span>';
 
+  const lookupCode = sav.lookupCode || sav.certCode || (function() {
+    const raw = String(sav.id || '') + String(sav.createdAt || '') + String(sav.savingsNo || '') + 'SAVCERT';
+    let h = 0;
+    for (let i = 0; i < raw.length; i++) {
+      h = ((h << 5) - h) + raw.charCodeAt(i);
+      h |= 0;
+    }
+    const num = (Math.abs(h) % 90000000) + 10000000;
+    return String(num);
+  })();
+
   container.innerHTML = `
     <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; font-size: 0.88rem; line-height: 1.7;">
       <div style="text-align: center; border-bottom: 2px dashed rgba(255,255,255,0.15); padding-bottom: 14px; margin-bottom: 16px;">
         <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">NGÂN HÀNG THƯƠNG MẠI CỔ PHẦN QUANGTRUNG</div>
         <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--accent-gold); margin: 4px 0;">CHỨNG NHẬN TIỀN GỬI TIẾT KIỆM ĐIỆN TỬ</h3>
-        <div style="font-family: var(--font-mono); color: var(--accent-cyan); font-weight: 700;">Số Sổ: ${(sav.savingsNo || '').replace(/^STK-?/i, '')}</div>
+        <div style="font-family: var(--font-mono); color: var(--accent-cyan); font-weight: 700;">Số Tài Khoản: ${(sav.savingsNo || '').replace(/^STK-?/i, '')}</div>
         <div style="margin-top: 8px;">${statusBadge}</div>
       </div>
 
@@ -5313,9 +6008,8 @@ function openSavingsDetailModal(savingsIdOrNo) {
         </tbody>
       </table>
 
-      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 10px; font-size: 0.75rem; color: var(--text-dim);">
-        <div>Mã tra cứu: <span style="font-family: var(--font-mono);">${sav.idempotencyKey || ('CERT-' + (sav.savingsNo || 'QTB'))}</span></div>
-        <div>Xác thực điện tử lúc: ${store.nowGMT7String()}</div>
+      <div style="border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 10px; font-size: 0.75rem; color: var(--text-dim); text-align: left;">
+        <div>Mã tra cứu: <span style="font-family: var(--font-mono); color: var(--accent-gold); font-weight: 700;">${lookupCode}</span></div>
       </div>
     </div>
   `;
@@ -5356,130 +6050,23 @@ function renderBeneficiaries() {
   }
 }
 
-async function renderCustomerAnalyticsView() {
-  const user = AuthService.getCurrentUser();
-  const freshCust = CustomerService.findCustomer(user);
-  if (!freshCust) return;
 
-  const accounts = CustomerService.getCustomerAccounts();
-  const selectAcc = document.getElementById('analytics-select-acc');
-  const periodSelect = document.getElementById('analytics-period-select');
-
-  if (selectAcc && selectAcc.children.length === 0) {
-    selectAcc.innerHTML = '';
-    accounts.forEach(acc => {
-      const opt = document.createElement('option');
-      opt.value = acc.accountNo;
-      opt.textContent = `${acc.accountNo} (${acc.type === 'PAYMENT' ? 'Thanh toán' : acc.type})`;
-      selectAcc.appendChild(opt);
-    });
-
-    selectAcc.onchange = () => renderCustomerAnalyticsView();
-  }
-
-  if (periodSelect && !periodSelect.dataset.listenerSet) {
-    periodSelect.dataset.listenerSet = 'true';
-    periodSelect.onchange = () => renderCustomerAnalyticsView();
-  }
-
-  const selectedAccNo = selectAcc?.value || accounts[0]?.accountNo;
-  const selectedPeriod = periodSelect?.value || 'this-month';
-
-  if (!selectedAccNo) return;
-
-  // Lấy lịch sử giao dịch mới nhất
-  let txns = CustomerService.getTransactionHistory();
-  if (backendOnline && BankApiService.hasToken()) {
-    try {
-      const res = await BankApiService.getHistoryFiltered({ accountNo: selectedAccNo, size: 100 });
-      if (res && res.success && res.data && res.data.content) {
-        txns = res.data.content.map(t => ({
-          ...t,
-          amount: parseFloat(t.amount)
-        }));
-      }
-    } catch (e) {
-      console.warn('[Analytics] Fallback transaction history sang LocalStore', e);
-    }
-  }
-
-  const result = ReportService.renderSpendAnalyticsChart('chart-spend-analytics', 'chart-spend-bar', txns, selectedAccNo, selectedPeriod);
-  if (!result) return;
-
-  // Cập nhật 4 thẻ KPI
-  const totalInEl = document.getElementById('analytics-total-in');
-  const totalOutEl = document.getElementById('analytics-total-out');
-  const netChangeEl = document.getElementById('analytics-net-change');
-  const topCatEl = document.getElementById('analytics-top-category');
-  const topCatSubEl = document.getElementById('analytics-top-category-sub');
-
-  if (totalInEl) totalInEl.textContent = `+${store.formatVND(result.totalIn)}`;
-  if (totalOutEl) totalOutEl.textContent = `-${store.formatVND(result.totalOut)}`;
-  if (netChangeEl) {
-    netChangeEl.textContent = `${result.netChange >= 0 ? '+' : ''}${store.formatVND(result.netChange)}`;
-    netChangeEl.className = result.netChange >= 0 ? 'stat-value text-emerald' : 'stat-value text-danger';
-  }
-
-  if (topCatEl) {
-    if (result.topCategory) {
-      topCatEl.textContent = `${result.topCategory.icon} ${result.topCategory.name}`;
-      if (topCatSubEl) topCatSubEl.textContent = `Chi ${store.formatVND(result.topCategory.amount)} (${result.totalOut > 0 ? Math.round((result.topCategory.amount / result.totalOut) * 100) : 0}%)`;
-    } else {
-      topCatEl.textContent = '-';
-      if (topCatSubEl) topCatSubEl.textContent = 'Chưa có chi tiêu trong kỳ';
-    }
-  }
-
-  // Render bảng danh mục chi tiêu
-  const tbody = document.getElementById('analytics-category-tbody');
-  if (tbody) {
-    tbody.innerHTML = '';
-    if (result.categories.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-dim); padding: 20px;">Không có giao dịch chi tiêu nào trong khoảng thời gian đã chọn.</td></tr>`;
-    } else {
-      result.categories.forEach(c => {
-        const percent = result.totalOut > 0 ? Math.round((c.amount / result.totalOut) * 100) : 0;
-        const avgPerTxn = c.count > 0 ? Math.round(c.amount / c.count) : 0;
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>
-            <strong style="color: ${c.color}; display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 1.1rem;">${c.icon}</span> ${c.name}
-            </strong>
-          </td>
-          <td>
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="font-weight: 700; width: 36px; font-size: 0.85rem;">${percent}%</span>
-              <div style="flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;">
-                <div style="width: ${percent}%; height: 100%; background: ${c.color}; border-radius: 4px; transition: width 0.4s ease;"></div>
-              </div>
-            </div>
-          </td>
-          <td style="text-align: right; font-weight: 700; color: var(--text-main); font-family: var(--font-mono);">
-            ${store.formatVND(c.amount)}
-          </td>
-          <td style="text-align: center; font-weight: 600;">
-            ${c.count} GD
-          </td>
-          <td style="text-align: right; color: var(--text-muted); font-size: 0.84rem; font-family: var(--font-mono);">
-            ${store.formatVND(avgPerTxn)}
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-  }
-
-  const btnOpenStmt = document.getElementById('btn-open-modal-statement');
-  if (btnOpenStmt) btnOpenStmt.onclick = () => openStatementModal();
-}
 
 
 // Biến lưu trữ hành động chờ xác minh bảo mật
 let pendingSecurityAction = null;
 
 function requestSecurityVerification({ actionTitle, onVerified }) {
+  const user = store.data.currentUser;
+  if (user && user.role === 'CUSTOMER') {
+    requestPinVerification({
+      title: 'Xác Thực PIN Bảo Mật',
+      actionName: actionTitle || 'Thao tác bảo mật tài khoản/thẻ',
+      onVerified: onVerified
+    });
+    return;
+  }
+
   pendingSecurityAction = onVerified;
 
   const descEl = document.getElementById('sec-verify-action-desc');
@@ -5498,250 +6085,88 @@ function requestSecurityVerification({ actionTitle, onVerified }) {
 }
 
 /**
- * Mở modal Thêm mới / Chỉnh sửa Giao Dịch Viên & Phân quyền
+ * Mở modal Thêm mới / Chỉnh sửa Giao Dịch Viên
  */
 function openAddEditTellerModal(tellerId = null) {
-  const perms = store.data.permissionsList || [];
-  const form = document.getElementById('form-admin-add-edit-teller');
-  const titleEl = document.getElementById('modal-teller-form-title');
-  const editIdInput = document.getElementById('admin-teller-edit-id');
-  const codeInput = document.getElementById('admin-teller-staff-code');
-  const nameInput = document.getElementById('admin-teller-fullname');
-  const positionSelect = document.getElementById('admin-teller-position-role');
-  const branchSelect = document.getElementById('admin-teller-branch');
-  const phoneInput = document.getElementById('admin-teller-phone');
-  const emailInput = document.getElementById('admin-teller-email');
-  const permsGrid = document.getElementById('modal-teller-perms-grid');
+  try {
+    const form = document.getElementById('form-admin-add-edit-teller');
+    const titleEl = document.getElementById('modal-teller-form-title');
+    const editIdInput = document.getElementById('admin-teller-edit-id');
+    const codeInput = document.getElementById('admin-teller-staff-code');
+    const nameInput = document.getElementById('admin-teller-fullname');
+    const branchSelect = document.getElementById('admin-teller-branch');
+    const phoneInput = document.getElementById('admin-teller-phone');
+    const emailInput = document.getElementById('admin-teller-email');
 
-  if (form) form.reset();
+    if (form) form.reset();
 
-  let targetTeller = null;
-  if (tellerId) {
-    targetTeller = store.data.tellers.find(t => t.id === tellerId);
-  }
-
-  const tellerPermPreset = ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_HANDLE_TICKETS'];
-  const creditPermPreset = ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_REVIEW_LOANS', 'PERM_VERIFY_COLLATERAL'];
-  const supervisorPermPreset = ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_VERIFY_EKYC', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_REVIEW_LOANS', 'PERM_VERIFY_COLLATERAL', 'PERM_APPROVE_LOANS', 'PERM_HANDLE_TICKETS', 'PERM_VIEW_REPORTS'];
-  const allPermIds = store.data.permissionsList.map(p => p.id);
-
-  if (targetTeller) {
-    if (titleEl) titleEl.innerHTML = `✏️ Chỉnh Sửa Giao Dịch Viên [${targetTeller.fullName}]`;
-    if (editIdInput) editIdInput.value = targetTeller.id;
-    if (codeInput) {
-      codeInput.value = targetTeller.staffCode || '';
-      codeInput.disabled = true;
+    const tellers = (store && store.data && Array.isArray(store.data.tellers)) ? store.data.tellers : [];
+    let targetTeller = null;
+    if (tellerId) {
+      targetTeller = tellers.find(t => 
+        t.id === tellerId || 
+        t.staffCode === tellerId || 
+        t.username === tellerId || 
+        String(t.id) === String(tellerId) || 
+        t.phone === tellerId
+      );
     }
-    if (nameInput) nameInput.value = targetTeller.fullName || '';
-    if (branchSelect) branchSelect.value = targetTeller.branch || 'Hội Sở - Hà Nội';
-    if (phoneInput) phoneInput.value = targetTeller.phone || '';
-    if (emailInput) emailInput.value = targetTeller.email || '';
-  } else {
-    if (titleEl) titleEl.innerHTML = `➕ Thêm Mới Giao Dịch Viên`;
-    if (editIdInput) editIdInput.value = '';
-    if (codeInput) {
-      const nextNum = store.data.tellers.length + 1;
-      codeInput.value = `GDV00${nextNum}`;
-      codeInput.disabled = false;
-    }
-    if (branchSelect) branchSelect.value = 'Hội Sở - Hà Nội';
-  }
 
-  // Render checkbox list
-  const activePerms = targetTeller ? (targetTeller.permissions || []) : tellerPermPreset;
-  renderModalPermsCheckboxes(permsGrid, perms, activePerms);
+    const btnDeleteModal = document.getElementById('btn-admin-delete-teller-modal');
 
-  // Position select change
-  if (positionSelect) {
-    positionSelect.onchange = () => {
-      const pos = positionSelect.value;
-      if (pos === 'FRONT_TELLER') setModalPermsCheckboxes(tellerPermPreset);
-      else if (pos === 'CREDIT_OFFICER') setModalPermsCheckboxes(creditPermPreset);
-      else if (pos === 'SUPERVISOR') setModalPermsCheckboxes(supervisorPermPreset);
-      else if (pos === 'ALL') setModalPermsCheckboxes(allPermIds);
-    };
-  }
-
-  // Preset Buttons in Add/Edit Modal
-  const btnPresetTeller = document.getElementById('btn-apply-preset-teller');
-  if (btnPresetTeller) btnPresetTeller.onclick = () => setModalPermsCheckboxes(tellerPermPreset);
-
-  const btnPresetCredit = document.getElementById('btn-apply-preset-credit');
-  if (btnPresetCredit) btnPresetCredit.onclick = () => setModalPermsCheckboxes(creditPermPreset);
-
-  const btnPresetSupervisor = document.getElementById('btn-apply-preset-supervisor');
-  if (btnPresetSupervisor) btnPresetSupervisor.onclick = () => setModalPermsCheckboxes(supervisorPermPreset);
-
-  const btnPresetAll = document.getElementById('btn-apply-preset-all') || document.getElementById('btn-modal-select-all-perms');
-  if (btnPresetAll) btnPresetAll.onclick = () => setModalPermsCheckboxes(allPermIds);
-
-  const btnPresetNone = document.getElementById('btn-apply-preset-none') || document.getElementById('btn-modal-deselect-all-perms');
-  if (btnPresetNone) btnPresetNone.onclick = () => setModalPermsCheckboxes([]);
-
-  openModal('modal-add-edit-teller');
-}
-
-function renderModalPermsCheckboxes(container, allPerms, selectedPermIds = []) {
-  if (!container) return;
-  container.innerHTML = '';
-
-  allPerms.forEach(p => {
-    const isChecked = selectedPermIds.includes(p.id);
-    const item = document.createElement('label');
-    item.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; font-size: 0.78rem; padding: 6px 8px; background: rgba(255,255,255,0.03); border-radius: 6px; cursor: pointer; border: 1px solid rgba(255,255,255,0.06);';
-    item.innerHTML = `
-      <input type="checkbox" class="modal-perm-item-chk" value="${p.id}" ${isChecked ? 'checked' : ''} style="margin-top: 2px; cursor: pointer; accent-color: var(--accent-cyan);">
-      <div>
-        <div style="font-weight: 600; color: #fff;">${p.name}</div>
-        <div style="font-size: 0.68rem; color: var(--text-muted);">${p.category}</div>
-      </div>
-    `;
-    container.appendChild(item);
-  });
-
-  updateModalPermsCount();
-
-  container.querySelectorAll('.modal-perm-item-chk').forEach(chk => {
-    chk.addEventListener('change', () => updateModalPermsCount());
-  });
-}
-
-function setModalPermsCheckboxes(permIds = []) {
-  const container = document.getElementById('modal-teller-perms-grid');
-  if (!container) return;
-  container.querySelectorAll('.modal-perm-item-chk').forEach(chk => {
-    chk.checked = permIds.includes(chk.value);
-  });
-  updateModalPermsCount();
-}
-
-function updateModalPermsCount() {
-  const countEl = document.getElementById('modal-selected-perms-count');
-  const checked = document.querySelectorAll('.modal-perm-item-chk:checked');
-  if (countEl) countEl.textContent = checked.length;
-}
-
-/**
- * Mở modal Phân quyền nhanh chuyên sâu cho 1 Cán bộ
- */
-function openQuickPermsModal(tellerId) {
-  const teller = store.data.tellers.find(t => t.id === tellerId);
-  if (!teller) return;
-
-  const idInput = document.getElementById('quick-perm-teller-id');
-  const nameEl = document.getElementById('quick-perm-staff-name');
-  const metaEl = document.getElementById('quick-perm-staff-meta');
-  const badgeEl = document.getElementById('quick-perm-staff-badge');
-  const listContainer = document.getElementById('quick-perms-list-container');
-  const countEl = document.getElementById('quick-perm-selected-count');
-
-  if (idInput) idInput.value = teller.id;
-  if (nameEl) nameEl.textContent = teller.fullName;
-  if (metaEl) metaEl.textContent = `${teller.staffCode || teller.id} • ${teller.branch || 'Hội Sở'} • ${teller.phone || ''} • ${teller.email || ''}`;
-
-  if (badgeEl) {
-    badgeEl.textContent = 'Giao Dịch Viên';
-    badgeEl.className = 'badge badge-teller';
-  }
-
-  const updateCount = () => {
-    if (countEl && listContainer) {
-      countEl.textContent = listContainer.querySelectorAll('.quick-perm-chk:checked').length;
-    }
-  };
-
-  const tellerPermPreset = ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_HANDLE_TICKETS'];
-  const creditPermPreset = ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_REVIEW_LOANS', 'PERM_VERIFY_COLLATERAL'];
-  const supervisorPermPreset = ['PERM_CREATE_CUSTOMER', 'PERM_EDIT_CUSTOMER', 'PERM_VERIFY_EKYC', 'PERM_MANAGE_ACCOUNT', 'PERM_OPEN_SAVINGS', 'PERM_MANAGE_CARDS', 'PERM_REVIEW_LOANS', 'PERM_VERIFY_COLLATERAL', 'PERM_APPROVE_LOANS', 'PERM_HANDLE_TICKETS', 'PERM_VIEW_REPORTS'];
-
-  // Render grouped permissions
-  const perms = store.data.permissionsList || [];
-  const currentPerms = teller.permissions || [];
-
-  // Group by category
-  const categories = {};
-  perms.forEach(p => {
-    if (!categories[p.category]) categories[p.category] = [];
-    categories[p.category].push(p);
-  });
-
-  if (listContainer) {
-    listContainer.innerHTML = '';
-    Object.keys(categories).forEach(cat => {
-      const catBox = document.createElement('div');
-      catBox.style.cssText = 'background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px 14px;';
-      
-      let html = `<div style="font-weight: 700; font-size: 0.82rem; color: var(--accent-gold); margin-bottom: 8px;">📂 ${cat}</div>`;
-      html += `<div style="display: flex; flex-direction: column; gap: 8px;">`;
-      categories[cat].forEach(p => {
-        const has = currentPerms.includes(p.id);
-        html += `
-          <label style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; padding: 8px 10px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.04); border-radius: 6px; cursor: pointer; transition: background 0.15s ease;">
-            <div>
-              <div style="font-weight: 600; color: #fff;">${p.name}</div>
-              <div style="font-size: 0.7rem; color: var(--text-muted);">${p.desc || ''}</div>
-            </div>
-            <input type="checkbox" class="quick-perm-chk" value="${p.id}" ${has ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-cyan); margin-left: 12px;">
-          </label>
-        `;
-      });
-      html += `</div>`;
-      catBox.innerHTML = html;
-      listContainer.appendChild(catBox);
-    });
-
-    listContainer.querySelectorAll('.quick-perm-chk').forEach(chk => {
-      chk.addEventListener('change', updateCount);
-    });
-  }
-
-  updateCount();
-
-  const applyQuickList = (allowedIds) => {
-    if (!listContainer) return;
-    listContainer.querySelectorAll('.quick-perm-chk').forEach(chk => {
-      chk.checked = allowedIds.includes(chk.value);
-    });
-    updateCount();
-  };
-
-  // Quick preset buttons
-  const btnQuickTeller = document.getElementById('btn-quick-preset-teller');
-  if (btnQuickTeller) btnQuickTeller.onclick = () => applyQuickList(tellerPermPreset);
-
-  const btnQuickCredit = document.getElementById('btn-quick-preset-credit');
-  if (btnQuickCredit) btnQuickCredit.onclick = () => applyQuickList(creditPermPreset);
-
-  const btnQuickSupervisor = document.getElementById('btn-quick-preset-supervisor');
-  if (btnQuickSupervisor) btnQuickSupervisor.onclick = () => applyQuickList(supervisorPermPreset);
-
-  // Quick select / deselect all buttons
-  const btnSelectAll = document.getElementById('btn-quick-select-all');
-  if (btnSelectAll) {
-    btnSelectAll.onclick = () => {
-      if (listContainer) {
-        listContainer.querySelectorAll('.quick-perm-chk').forEach(chk => {
-          chk.checked = true;
-        });
-        updateCount();
+    if (targetTeller) {
+      if (titleEl) titleEl.innerHTML = `✏️ Chỉnh Sửa Giao Dịch Viên [${targetTeller.fullName}]`;
+      if (editIdInput) editIdInput.value = targetTeller.id;
+      if (codeInput) {
+        codeInput.value = targetTeller.staffCode || '';
+        codeInput.disabled = true;
       }
-    };
-  }
+      if (nameInput) nameInput.value = targetTeller.fullName || '';
+      if (branchSelect) branchSelect.value = targetTeller.branch || 'Hội Sở - Hà Nội';
+      if (phoneInput) phoneInput.value = targetTeller.phone || '';
+      if (emailInput) emailInput.value = targetTeller.email || '';
 
-  const btnDeselectAll = document.getElementById('btn-quick-deselect-all');
-  if (btnDeselectAll) {
-    btnDeselectAll.onclick = () => {
-      if (listContainer) {
-        listContainer.querySelectorAll('.quick-perm-chk').forEach(chk => {
-          chk.checked = false;
-        });
-        updateCount();
+      if (btnDeleteModal) {
+        btnDeleteModal.classList.remove('hidden');
+        btnDeleteModal.onclick = () => {
+          closeModal('modal-add-edit-teller');
+          requestSecurityVerification({
+            actionTitle: `Xác nhận XÓA VĨNH VIỄN tài khoản Giao dịch viên [${targetTeller.fullName} - ${targetTeller.staffCode || targetTeller.id}]`,
+            onVerified: async () => {
+              const res = await AdminService.deleteTeller(targetTeller.id);
+              if (res.success) {
+                showSuccessModal({
+                  title: 'Xóa Giao Dịch Viên Thành Công!',
+                  message: res.message || `Đã xóa tài khoản cán bộ ${targetTeller.fullName} khỏi hệ thống.`,
+                  counterparty: targetTeller.fullName
+                });
+                renderAdminTellersView();
+              } else {
+                showToast(res.message, 'danger');
+              }
+            }
+          });
+        };
       }
-    };
-  }
+    } else {
+      if (titleEl) titleEl.innerHTML = `➕ Thêm Mới Giao Dịch Viên`;
+      if (editIdInput) editIdInput.value = '';
+      if (codeInput) {
+        const nextNum = tellers.length + 1;
+        codeInput.value = `GDV00${nextNum}`;
+        codeInput.disabled = false;
+      }
+      if (branchSelect) branchSelect.value = 'Hội Sở - Hà Nội';
+      if (btnDeleteModal) btnDeleteModal.classList.add('hidden');
+    }
 
-  openModal('modal-edit-teller-perms');
+    openModal('modal-add-edit-teller');
+  } catch (err) {
+    console.error('Lỗi khi mở modal Giao dịch viên:', err);
+    openModal('modal-add-edit-teller');
+  }
 }
+window.openAddEditTellerModal = openAddEditTellerModal;
 
 /**
  * Kiểm tra xem khoản vay có phải là Vay Thế Chấp (Có tài sản bảo đảm) hay không
@@ -5764,9 +6189,8 @@ function openVerifyCollateralModal(loan) {
   const packageNames = {
     MORTGAGE: 'Vay Mua Nhà / Bất Động Sản',
     CAR: 'Vay Mua Ô Tô Trả Góp',
-    CONSUMER: 'Vay Tiêu Dùng Tín Chấp',
-    BUSINESS: 'Vay Sản Xuất Kinh Doanh',
-    OVERDRAFT: 'Cấp Hạn Mức Thấu Chi'
+    CONSUMER: 'Vay Tiêu Dùng',
+    BUSINESS: 'Vay Sản Xuất Kinh Doanh'
   };
 
   const idEl = document.getElementById('collateral-loan-id');
@@ -5808,13 +6232,135 @@ function openVerifyCollateralModal(loan) {
   openModal('modal-verify-collateral');
 }
 
-function openApplyLoanModal() {
+function renderLoanPackagesGuide() {
+  const container = document.getElementById('cust-loan-packages-guide-list');
+  if (!container) return;
+  const defaultLoanRates = {
+    CONSUMER: { 6: 8.90, 12: 9.50, 24: 10.50, 36: 11.50, 48: 12.00, 60: 12.50 },
+    CAR: { 12: 7.80, 24: 8.20, 36: 8.50, 48: 8.90, 60: 9.20, 84: 9.80 },
+    MORTGAGE: { 36: 6.80, 60: 7.50, 120: 8.20, 180: 8.60, 240: 8.90 },
+    BUSINESS: { 6: 6.80, 12: 7.50, 24: 7.80, 36: 8.00, 60: 8.40, 120: 8.80 }
+  };
+  const curRates = store.data.loanInterestRates || defaultLoanRates;
+
+  const getMinRate = (pkgId, fallback) => {
+    const pkg = curRates[pkgId];
+    if (!pkg) return fallback;
+    const vals = Object.values(pkg).map(Number).filter(v => !isNaN(v) && v > 0);
+    return vals.length > 0 ? Math.min(...vals) : fallback;
+  };
+
+  const mortgageMin = getMinRate('MORTGAGE', 6.80);
+  const carMin = getMinRate('CAR', 7.80);
+  const consumerMin = getMinRate('CONSUMER', 8.90);
+  const businessMin = getMinRate('BUSINESS', 6.80);
+
+  container.innerHTML = `
+    <div style="padding: 12px; background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.15); border-radius: 8px;">
+      <div style="font-weight: 700; color: var(--accent-cyan); display: flex; justify-content: space-between;">
+        <span>🏠 Vay Bất Động Sản</span>
+        <span>Từ ${mortgageMin.toFixed(2)}%/năm</span>
+      </div>
+      <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">Thời hạn lên tới 20 năm, hạn mức 10 tỷ VNĐ. Hỗ trợ 80% giá trị HĐMB.</div>
+    </div>
+
+    <div style="padding: 12px; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: 8px;">
+      <div style="font-weight: 700; color: var(--accent-gold); display: flex; justify-content: space-between;">
+        <span>🚗 Vay Mua Ô Tô</span>
+        <span>Từ ${carMin.toFixed(2)}%/năm</span>
+      </div>
+      <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">Tài trợ 85% giá trị xe mới/cũ, duyệt hồ sơ nhanh chóng trong 4 giờ.</div>
+    </div>
+
+    <div style="padding: 12px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 8px;">
+      <div style="font-weight: 700; color: var(--accent-emerald); display: flex; justify-content: space-between;">
+        <span>💼 Vay Tiêu Dùng</span>
+        <span>Từ ${consumerMin.toFixed(2)}%/năm</span>
+      </div>
+      <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">Không cần thế chấp tài sản, giải ngân tức thì sau thẩm định.</div>
+    </div>
+
+    <div style="padding: 12px; background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.15); border-radius: 8px;">
+      <div style="font-weight: 700; color: var(--accent-purple); display: flex; justify-content: space-between;">
+        <span>📈 Vay Sản Xuất Kinh Doanh</span>
+        <span>Từ ${businessMin.toFixed(2)}%/năm</span>
+      </div>
+      <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">Thời hạn vay linh hoạt đến 10 năm, bổ sung vốn lưu động kịp thời.</div>
+    </div>
+  `;
+}
+
+function populateLoanTypeSelect(selectedVal = null) {
+  const select = document.getElementById('loan-modal-type');
+  if (!select) return;
+  const currentVal = selectedVal || select.value || 'CONSUMER';
+  const defaultLoanRates = {
+    CONSUMER: { 6: 8.90, 12: 9.50, 24: 10.50, 36: 11.50, 48: 12.00, 60: 12.50 },
+    CAR: { 12: 7.80, 24: 8.20, 36: 8.50, 48: 8.90, 60: 9.20, 84: 9.80 },
+    MORTGAGE: { 36: 6.80, 60: 7.50, 120: 8.20, 180: 8.60, 240: 8.90 },
+    BUSINESS: { 6: 6.80, 12: 7.50, 24: 7.80, 36: 8.00, 60: 8.40, 120: 8.80 }
+  };
+  const curRates = store.data.loanInterestRates || defaultLoanRates;
+
+  const getMinRate = (pkgId, fallback) => {
+    const pkg = curRates[pkgId];
+    if (!pkg) return fallback;
+    const vals = Object.values(pkg).map(Number).filter(v => !isNaN(v) && v > 0);
+    return vals.length > 0 ? Math.min(...vals) : fallback;
+  };
+
+  const mortgageMin = getMinRate('MORTGAGE', 6.80);
+  const carMin = getMinRate('CAR', 7.80);
+  const consumerMin = getMinRate('CONSUMER', 8.90);
+  const businessMin = getMinRate('BUSINESS', 6.80);
+
+  select.innerHTML = `
+    <option value="MORTGAGE">🏠 Vay Mua Nhà / Bất Động Sản (Từ ${mortgageMin.toFixed(2)}%/năm - Tối đa 20 năm)</option>
+    <option value="CAR">🚗 Vay Mua Ô Tô Trả Góp (Từ ${carMin.toFixed(2)}%/năm - Tối đa 7 năm)</option>
+    <option value="CONSUMER">💼 Vay Tiêu Dùng (Từ ${consumerMin.toFixed(2)}%/năm - Tối đa 5 năm)</option>
+    <option value="BUSINESS">📈 Vay Sản Xuất Kinh Doanh (Từ ${businessMin.toFixed(2)}%/năm - Tối đa 10 năm)</option>
+  `;
+  select.value = currentVal;
+}
+
+const loanTermOptions = {
+  CONSUMER: [6, 12, 24, 36, 48, 60],
+  CAR: [12, 24, 36, 48, 60, 84],
+  MORTGAGE: [36, 60, 120, 180, 240],
+  BUSINESS: [6, 12, 24, 36, 60, 120]
+};
+
+function populateLoanTermSelect(loanType) {
+  const termSelect = document.getElementById('loan-modal-term');
+  if (!termSelect) return;
+  const terms = loanTermOptions[loanType] || loanTermOptions.CONSUMER;
+  termSelect.innerHTML = '';
+  terms.forEach((term, idx) => {
+    const rate = CustomerService.getLoanInterestRate(loanType, term);
+    const opt = document.createElement('option');
+    opt.value = term;
+    let label = `Kỳ hạn ${term} Tháng - Lãi suất ${rate.toFixed(2)}%/năm`;
+    if (term >= 12 && term % 12 === 0) {
+      label = `Kỳ hạn ${term} Tháng (${term / 12} Năm) - Lãi suất ${rate.toFixed(2)}%/năm`;
+    }
+    opt.textContent = label;
+    if ((loanType === 'CONSUMER' && term === 24) || (loanType === 'CAR' && term === 36) || (loanType === 'MORTGAGE' && term === 120) || idx === 1) {
+      opt.selected = true;
+    }
+    termSelect.appendChild(opt);
+  });
+}
+
+async function openApplyLoanModal() {
   const user = store.data.currentUser;
   const freshCust = CustomerService.findCustomer(user);
   if (!freshCust) {
     showToast('Vui lòng đăng nhập tài khoản khách hàng để thực hiện đăng ký vay', 'warning');
     return;
   }
+
+  // Tải biểu lãi suất cho vay mới nhất từ Backend API
+  await CustomerService.getLoanInterestRatesAsync();
 
   const accSelect = document.getElementById('loan-modal-acc');
   if (accSelect) {
@@ -5832,6 +6378,42 @@ function openApplyLoanModal() {
     }
   }
 
+  // Tải danh sách gói vay kèm biểu lãi suất sàn mới nhất
+  populateLoanTypeSelect();
+
+  const typeSelect = document.getElementById('loan-modal-type');
+  if (typeSelect) {
+    populateLoanTermSelect(typeSelect.value || 'CONSUMER');
+    if (!typeSelect.dataset.listenerSet) {
+      typeSelect.dataset.listenerSet = 'true';
+      typeSelect.onchange = () => {
+        populateLoanTermSelect(typeSelect.value);
+        updateApplyLoanLivePreview();
+      };
+    }
+  }
+
+  const inputs = ['loan-modal-term', 'loan-modal-method'];
+  inputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.dataset.listenerSet) {
+      el.dataset.listenerSet = 'true';
+      el.onchange = updateApplyLoanLivePreview;
+    }
+  });
+
+  const textInputs = ['loan-modal-amount', 'loan-modal-income'];
+  textInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.dataset.listenerSet) {
+      el.dataset.listenerSet = 'true';
+      el.oninput = (e) => {
+        formatCurrencyInput(e);
+        updateApplyLoanLivePreview();
+      };
+    }
+  });
+
   updateApplyLoanLivePreview();
   openModal('modal-apply-loan');
 }
@@ -5839,16 +6421,29 @@ function openApplyLoanModal() {
 function updateApplyLoanLivePreview() {
   const amountStr = document.getElementById('loan-modal-amount')?.value || '100.000.000';
   const amount = parseFloat(amountStr.replace(/\D/g, '')) || 100000000;
-  const termMonths = parseInt(document.getElementById('loan-modal-term')?.value, 10) || 24;
+  const termMonths = parseInt(document.getElementById('loan-modal-term')?.value, 10) || 12;
   const loanType = document.getElementById('loan-modal-type')?.value || 'CONSUMER';
   const method = document.getElementById('loan-modal-method')?.value || 'REDUCING_BALANCE';
+  const incomeStr = document.getElementById('loan-modal-income')?.value || '35.000.000';
+  const income = parseFloat(incomeStr.replace(/\D/g, '')) || 35000000;
 
-  const rates = { MORTGAGE: 7.5, CAR: 8.5, CONSUMER: 10.5, BUSINESS: 8.0, OVERDRAFT: 11.0 };
-  const rate = rates[loanType] || 8.5;
-
+  const rate = CustomerService.getLoanInterestRate(loanType, termMonths);
   const calc = CustomerService.calculateLoanSchedule(amount, termMonths, rate, method);
+
+  const rateEl = document.getElementById('loan-modal-preview-rate');
+  if (rateEl) rateEl.textContent = `Lãi suất: ${rate.toFixed(2)}%/năm`;
+
+  const prinEl = document.getElementById('loan-modal-preview-principal');
+  if (prinEl) prinEl.textContent = store.formatVND(calc.schedule[0]?.principal || Math.round(amount / termMonths));
+
+  const intEl = document.getElementById('loan-modal-preview-interest');
+  if (intEl) intEl.textContent = store.formatVND(calc.schedule[0]?.interest || 0);
+
   const firstEl = document.getElementById('loan-modal-preview-first');
   if (firstEl) firstEl.textContent = store.formatVND(calc.firstMonthPayment);
+
+  const totIntEl = document.getElementById('loan-modal-preview-total-interest');
+  if (totIntEl) totIntEl.textContent = store.formatVND(calc.totalInterest);
 }
 
 function openLoanContractModal(loanId) {
@@ -5868,9 +6463,8 @@ function openLoanContractModal(loanId) {
   const packageNames = {
     MORTGAGE: 'Vay Mua Nhà / Bất Động Sản',
     CAR: 'Vay Mua Ô Tô Trả Góp',
-    CONSUMER: 'Vay Tiêu Dùng Tín Chấp',
-    BUSINESS: 'Vay Sản Xuất Kinh Doanh',
-    OVERDRAFT: 'Cấp Hạn Mức Thấu Chi Tài Khoản'
+    CONSUMER: 'Vay Tiêu Dùng',
+    BUSINESS: 'Vay Sản Xuất Kinh Doanh'
   };
   const pkgName = packageNames[loan.loanType] || loan.title || 'Vay Vốn Tiêu Dùng';
 
@@ -5880,17 +6474,8 @@ function openLoanContractModal(loanId) {
   };
   const methodDesc = methodNames[loan.repaymentMethod] || methodNames.REDUCING_BALANCE;
 
-  // Xác định quy định lãi suất cụ thể cho hợp đồng (Cố định hay Điều chỉnh thả nổi)
-  let interestRatePolicyText = '';
-  if (loan.loanType === 'CONSUMER' || loan.termMonths <= 12) {
-    interestRatePolicyText = `<strong style="color: var(--accent-emerald); font-family: var(--font-mono);">${loan.interestRate}%/năm</strong> (Lãi suất <strong>CỐ ĐỊNH</strong> trong toàn bộ thời hạn vay ${loan.termMonths} tháng).`;
-  } else if (loan.loanType === 'OVERDRAFT') {
-    interestRatePolicyText = `<strong style="color: var(--accent-emerald); font-family: var(--font-mono);">${loan.interestRate}%/năm</strong> (Lãi suất <strong>CỐ ĐỊNH</strong> áp dụng trên dư nợ thấu chi thực tế hàng ngày, hiệu lực trong 12 tháng).`;
-  } else if (loan.loanType === 'MORTGAGE' || loan.loanType === 'CAR' || loan.loanType === 'BUSINESS') {
-    interestRatePolicyText = `<strong style="color: var(--accent-emerald); font-family: var(--font-mono);">${loan.interestRate}%/năm</strong> (Lãi suất <strong>ƯU ĐÃI CỐ ĐỊNH trong 12 tháng đầu</strong>; Sau thời gian ưu đãi, lãi suất được <strong>ĐIỀU CHỈNH ĐỊNH KỲ 03 tháng/lần</strong> theo chính sách QTB: <em>Lãi suất cơ sở tiền gửi 12 tháng + Biên độ 3.5%/năm</em>).`;
-  } else {
-    interestRatePolicyText = `<strong style="color: var(--accent-emerald); font-family: var(--font-mono);">${loan.interestRate}%/năm</strong> (Lãi suất <strong>CỐ ĐỊNH</strong> theo thỏa thuận hợp đồng tín dụng).`;
-  }
+  // Xác định quy định lãi suất cụ thể cho hợp đồng
+  let interestRatePolicyText = `<strong style="color: var(--accent-emerald); font-family: var(--font-mono);">${loan.interestRate}%/năm</strong> (Lãi suất áp dụng theo phân mức kỳ hạn ${loan.termMonths} tháng của hợp đồng tín dụng).`;
 
   const monthlyPrincipalShare = Math.round(loan.principalAmount / (loan.termMonths || 12));
   const repaymentScheduleClause = loan.repaymentMethod === 'ANNUITY' 
@@ -6034,7 +6619,7 @@ function openLoanContractModal(loanId) {
 
         <div>
           <div style="font-weight: 700; color: var(--accent-cyan); font-size: 0.85rem;">ĐẠI DIỆN BÊN VAY VỐN (BÊN B)</div>
-          <div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 20px;">(Khách hàng đã ký số bảo mật eKYC)</div>
+          <div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 20px;">(Khách hàng đã ký số bảo mật điện tử)</div>
           <div style="display: inline-block; border: 2px dashed rgba(16, 185, 129, 0.4); padding: 8px 16px; border-radius: 8px; background: rgba(16, 185, 129, 0.05);">
             <div style="font-size: 0.75rem; color: var(--accent-emerald); font-weight: 700;">✓ CHỮ KÝ SỐ KHÁCH HÀNG: ${loan.customerName || cust.fullName}</div>
             <div style="font-size: 0.7rem; color: var(--text-dim);">Ký lúc: ${loan.appliedAt || 'Đã ký qua Smart Banking'}</div>
@@ -6136,12 +6721,12 @@ function openLoanScheduleModal(loanIdOrParams) {
   const tbody = document.getElementById('loan-schedule-tbody');
   if (tbody) {
     tbody.innerHTML = '';
-    const now = new Date();
+    const baseDisburseDate = (loan && (loan.approvedAt || loan.appliedAt)) ? (loan.approvedAt || loan.appliedAt) : store.nowGMT7String();
 
     schedule.forEach((item, index) => {
       const monthNum = item.month || (index + 1);
-      const dueDate = new Date(now.getFullYear(), now.getMonth() + monthNum, 5);
-      const dueStr = dueDate.toISOString().split('T')[0];
+      const rawDueIso = store.getLoanInstallmentDueDate(baseDisburseDate, monthNum);
+      const dueStr = store.formatDate(rawDueIso);
 
       let rowStatusBadge = '';
       if (status === 'PAID_OFF' || monthNum <= paidCount) {
@@ -6171,6 +6756,244 @@ function openLoanScheduleModal(loanIdOrParams) {
   }
 
   openModal('modal-loan-schedule');
+}
+
+function openPayLoanModal(loanId, isPayOffAll = false) {
+  const loan = (store.data.loans || []).find(l => l.id === loanId || l.contractNo === loanId);
+  if (!loan) {
+    showToast('Không tìm thấy thông tin khoản vay', 'danger');
+    return;
+  }
+
+  const user = store.data.currentUser;
+  const cust = CustomerService.findCustomer(user) || (store.data.customers || []).find(c => c.id === loan.customerId);
+  const payAcc = (cust?.accounts || []).find(a => a.accountNo === loan.accountNo) || (cust?.accounts || []).find(a => a.type === 'PAYMENT') || cust?.accounts?.[0];
+
+  const packageNames = {
+    MORTGAGE: '🏠 Vay Mua Nhà / Bất Động Sản',
+    CAR: '🚗 Vay Mua Ô Tô Trả Góp',
+    CONSUMER: '💼 Vay Vốn Tiêu Dùng',
+    BUSINESS: '📈 Vay Sản Xuất Kinh Doanh'
+  };
+  const pkgName = packageNames[loan.loanType] || loan.title || 'Khoản Vay Vốn';
+
+  const modalTitleEl = document.getElementById('pay-loan-modal-title');
+  const modalBodyEl = document.getElementById('pay-loan-modal-body');
+  if (!modalTitleEl || !modalBodyEl) return;
+
+  const currentBalance = payAcc ? payAcc.balance : 0;
+  const remaining = loan.remainingBalance != null ? loan.remainingBalance : (loan.principalAmount || 0);
+  const termMonths = loan.termMonths || 12;
+  const paidCount = loan.installmentPaidCount || 0;
+  const currentInstallment = paidCount + 1;
+
+  let totalPay = 0;
+  let principalPart = 0;
+  let interestPart = 0;
+  let penaltyFee = 0;
+  let isEarlyPayoff = isPayOffAll;
+
+  if (isEarlyPayoff) {
+    penaltyFee = Math.round(remaining * 0.015);
+    totalPay = remaining + penaltyFee;
+    principalPart = remaining;
+    interestPart = 0;
+  } else {
+    // Thanh toán kỳ nợ thông thường
+    totalPay = Math.min(loan.monthlyPayment || 0, remaining);
+    const monthlyPrincipal = Math.round(loan.principalAmount / termMonths);
+    principalPart = Math.min(monthlyPrincipal, remaining);
+    interestPart = Math.max(0, totalPay - principalPart);
+  }
+
+  const isBalanceSufficient = currentBalance >= totalPay;
+  const balanceShortfall = totalPay - currentBalance;
+
+  modalTitleEl.innerHTML = isEarlyPayoff
+    ? `<span style="font-size: 1.3rem;">🏆</span> Tất Toán Khoản Vay Trước Hạn`
+    : `<span style="font-size: 1.3rem;">💵</span> Thanh Toán Kỳ Nợ Định Kỳ`;
+
+  modalBodyEl.innerHTML = `
+    <!-- Top banner notice -->
+    <div style="background: ${isEarlyPayoff ? 'rgba(245, 158, 11, 0.1)' : 'rgba(0, 242, 254, 0.08)'}; border: 1px solid ${isEarlyPayoff ? 'rgba(245, 158, 11, 0.3)' : 'rgba(0, 242, 254, 0.2)'}; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;">
+      <div style="font-size: 1.4rem;">${isEarlyPayoff ? '⚡' : 'ℹ️'}</div>
+      <div style="font-size: 0.83rem; line-height: 1.5; color: var(--text-main);">
+        ${isEarlyPayoff 
+          ? `<strong>Tất toán toàn bộ trước hạn:</strong> Bạn đang thực hiện tất toán toàn bộ hợp đồng tín dụng trước thời hạn. Sau khi thanh toán thành công, dư nợ gốc sẽ về <strong>0 VNĐ</strong> và hợp đồng được chuyển sang trạng thái <strong>ĐÃ TẤT TOÁN</strong>.`
+          : `<strong>Thanh toán kỳ nợ số ${currentInstallment}/${termMonths}:</strong> Số tiền sẽ được trích từ tài khoản thanh toán để giảm trừ trực tiếp vào dư nợ gốc và gia hạn chu kỳ thanh toán tiếp theo.`}
+      </div>
+    </div>
+
+    <!-- Loan Info Summary Card -->
+    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; margin-bottom: 10px;">
+        <div>
+          <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Mã Hợp Đồng Tín Dụng</div>
+          <strong style="color: var(--accent-cyan); font-family: var(--font-mono); font-size: 1.05rem;">${loan.contractNo || loan.id}</strong>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Gói Tín Dụng</div>
+          <strong style="color: #fff; font-size: 0.88rem;">${pkgName}</strong>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 0.82rem;">
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Số tiền vay gốc:</span>
+          <strong style="font-family: var(--font-mono);">${store.formatVND(loan.principalAmount)}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Kỳ hạn & Lãi suất:</span>
+          <strong style="color: var(--accent-emerald);">${termMonths} tháng (${loan.interestRate}%/năm)</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Tiến độ thanh toán:</span>
+          <strong style="color: var(--accent-gold);">${paidCount} / ${termMonths} kỳ đã trả</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Dư nợ gốc hiện tại:</span>
+          <strong style="font-family: var(--font-mono); color: var(--accent-gold); font-weight: 700;">${store.formatVND(remaining)}</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Financial Breakdown Card -->
+    <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+      <div style="font-weight: 700; font-size: 0.86rem; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+        <span>🧾</span> Chi Tiết Khoản Tiền Thanh Toán
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.83rem;">
+        ${isEarlyPayoff ? `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--text-muted);">1. Tiền gốc tất toán toàn bộ:</span>
+            <strong style="font-family: var(--font-mono); color: #fff;">${store.formatVND(principalPart)}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--text-muted);">2. Phí tất toán trước hạn (1.5% dư nợ gốc):</span>
+            <strong style="font-family: var(--font-mono); color: var(--accent-gold);">${store.formatVND(penaltyFee)}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; color: var(--accent-emerald);">
+            <span>✓ Miễn thu toàn bộ tiền lãi của ${Math.max(0, termMonths - paidCount)} kỳ còn lại</span>
+            <span>Tiết kiệm lãi suất</span>
+          </div>
+        ` : `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--text-muted);">1. Tiền gốc kỳ ${currentInstallment}:</span>
+            <strong style="font-family: var(--font-mono); color: #fff;">${store.formatVND(principalPart)}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--text-muted);">2. Tiền lãi tính theo dư nợ thực tế:</span>
+            <strong style="font-family: var(--font-mono); color: var(--accent-cyan);">${store.formatVND(interestPart)}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--text-muted);">3. Phí quản lý / Phí phát sinh:</span>
+            <strong style="font-family: var(--font-mono); color: var(--accent-emerald);">0 VNĐ (Miễn phí)</strong>
+          </div>
+        `}
+
+        <div style="border-top: 2px dashed rgba(255, 255, 255, 0.15); margin-top: 6px; padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong style="font-size: 0.95rem; color: ${isEarlyPayoff ? 'var(--accent-gold)' : 'var(--accent-cyan)'};">TỔNG TIỀN CẦN THANH TOÁN:</strong>
+            <div style="font-size: 0.72rem; color: var(--text-dim);">Đã bao gồm tiền gốc, tiền lãi và phí tất toán (nếu có)</div>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-family: var(--font-mono); font-size: 1.25rem; font-weight: 800; color: var(--accent-gold); text-shadow: 0 0 12px rgba(245, 158, 11, 0.3);">
+              ${store.formatVND(totalPay)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Source Account Card -->
+    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid ${isBalanceSufficient ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.4)'}; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="font-weight: 700; font-size: 0.85rem; color: #fff; display: flex; align-items: center; gap: 6px;">
+          <span>💳</span> Tài Khoản Nguồn Trích Nợ Tự Động
+        </div>
+        <span class="user-role-badge ${isBalanceSufficient ? 'badge-customer' : 'badge-admin'}" style="font-size: 0.72rem;">
+          ${isBalanceSufficient ? '✓ Đủ Số Dư Thanh Toán' : '⚠️ Không Đủ Số Dư'}
+        </span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem;">
+        <div>
+          <div style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-cyan); font-size: 0.95rem;">${payAcc ? payAcc.accountNo : loan.accountNo}</div>
+          <div style="font-size: 0.75rem; color: var(--text-dim);">Chủ TK: ${cust?.fullName || loan.customerName || 'Khách hàng'}</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 0.72rem; color: var(--text-dim);">Số dư khả dụng hiện tại</div>
+          <div style="font-family: var(--font-mono); font-weight: 700; color: ${isBalanceSufficient ? '#fff' : '#f87171'}; font-size: 0.95rem;">
+            ${store.formatVND(currentBalance)}
+          </div>
+        </div>
+      </div>
+
+      ${!isBalanceSufficient ? `
+        <div style="margin-top: 10px; padding: 8px 10px; background: rgba(239, 68, 68, 0.15); border-radius: 6px; font-size: 0.78rem; color: #fca5a5; display: flex; align-items: center; gap: 6px;">
+          <span>⚠️</span> Tài khoản còn thiếu <strong>${store.formatVND(balanceShortfall)}</strong> để thanh toán. Vui lòng nạp thêm tiền vào tài khoản trước khi thực hiện.
+        </div>
+      ` : `
+        <div style="margin-top: 8px; font-size: 0.75rem; color: var(--text-dim);">
+          Số dư sau thanh toán: <strong style="font-family: var(--font-mono); color: var(--accent-emerald);">${store.formatVND(currentBalance - totalPay)}</strong>
+        </div>
+      `}
+    </div>
+
+    <!-- Modal Action Buttons -->
+    <div style="display: flex; gap: 10px; margin-top: 16px;">
+      <button type="button" class="btn btn-secondary btn-close" style="flex: 1;">Hủy Bỏ</button>
+      <button type="button" id="btn-confirm-pay-loan-modal" class="btn ${isEarlyPayoff ? 'btn-gold' : 'btn-primary'}" style="flex: 2; font-weight: 700;" ${!isBalanceSufficient ? 'disabled' : ''}>
+        ${isEarlyPayoff ? '🏆 Xác Nhận Tất Toán Hợp Đồng' : `💵 Xác Nhận Trả Nợ Kỳ ${currentInstallment}`}
+      </button>
+    </div>
+  `;
+
+  openModal('modal-pay-loan');
+
+  const modalOverlay = document.getElementById('modal-pay-loan');
+  if (modalOverlay) {
+    modalOverlay.querySelectorAll('.btn-close').forEach(btn => {
+      btn.onclick = () => closeModal('modal-pay-loan');
+    });
+  }
+
+  const confirmBtn = document.getElementById('btn-confirm-pay-loan-modal');
+  if (confirmBtn) {
+    confirmBtn.onclick = () => {
+      closeModal('modal-pay-loan');
+      requestSecurityVerification({
+        actionTitle: isEarlyPayoff
+          ? `Tất toán toàn bộ hợp đồng tín dụng [${loan.contractNo || loan.id}] - Tổng tiền: ${store.formatVND(totalPay)}`
+          : `Thanh toán kỳ nợ số ${currentInstallment} [${loan.contractNo || loan.id}] - Số tiền: ${store.formatVND(totalPay)}`,
+        onVerified: async () => {
+          const idempotencyKey = BankApiService.generateIdempotencyKey();
+          const res = await CustomerService.payLoanInstallmentAsync({
+            loanId: loan.id || loanId,
+            isPayOffAll: isEarlyPayoff,
+            idempotencyKey
+          });
+
+          if (res.success) {
+            showSuccessModal({
+              title: isEarlyPayoff ? 'Tất Toán Khoản Vay Thành Công! 🎉' : 'Thanh Toán Kỳ Nợ Thành Công! 🎉',
+              message: res.message || (isEarlyPayoff 
+                ? `Đã tất toán toàn bộ dư nợ hợp đồng tín dụng ${loan.contractNo || loan.id}.`
+                : `Đã thanh toán thành công kỳ nợ ${store.formatVND(totalPay)} cho hợp đồng ${loan.contractNo || loan.id}.`),
+              amount: parseFloat(totalPay),
+              txId: loan.contractNo || loan.id,
+              counterparty: 'QuangTrung Bank Credit'
+            });
+            await renderCustomerLoansView();
+            await renderCustomerDashboard();
+          } else {
+            showToast(res.message, 'danger');
+          }
+        }
+      });
+    };
+  }
 }
 
 function openCardSettingsModal(cardNumber) {
@@ -6456,7 +7279,7 @@ function renderCardTransactionsList(cardNumber) {
     return `
       <tr>
         <td>
-          <div style="font-family: var(--font-mono); font-weight: 600; font-size: 0.85rem;">${t.id}</div>
+          <div style="font-family: var(--font-mono); font-weight: 600; font-size: 0.85rem;">${store.formatTxnId(t.id)}</div>
           <div style="margin-top: 2px;">${channelBadge}</div>
         </td>
         <td>
@@ -6468,7 +7291,7 @@ function renderCardTransactionsList(cardNumber) {
           -${store.formatVND(t.amount)}
         </td>
         <td style="text-align: center;">
-          <button type="button" class="btn btn-secondary btn-sm btn-view-card-receipt" data-txid="${t.id}" style="font-size: 0.75rem; padding: 2px 8px;" title="Xem biên lai điện tử">
+          <button type="button" class="btn btn-secondary btn-sm btn-view-card-receipt" data-txid="${store.formatTxnId(t.id)}" style="font-size: 0.75rem; padding: 2px 8px;" title="Xem biên lai điện tử">
             Biên Lai
           </button>
         </td>
@@ -6582,37 +7405,42 @@ function openIssueCardModal() {
 
 let lastStatementData = null;
 
-function openStatementModal() {
+function openStatementModal(preselectedAcc = null, preselectedPeriod = null) {
   const accounts = CustomerService.getCustomerAccounts();
   const select = document.getElementById('stmt-select-acc');
   if (!select) return;
 
   select.innerHTML = '';
-  accounts.forEach(acc => {
+  const paymentAccounts = (accounts || []).filter(acc => acc.type === 'PAYMENT' || !acc.type || acc.type !== 'SAVINGS');
+  paymentAccounts.forEach(acc => {
     const opt = document.createElement('option');
     opt.value = acc.accountNo;
     opt.textContent = `${acc.accountNo} (${acc.type === 'PAYMENT' ? 'Thanh toán' : acc.type})`;
     select.appendChild(opt);
   });
 
-  // Tự động thêm sổ tiết kiệm nếu có
-  const savings = store.data.savingsAccounts || [];
-  const user = store.data.currentUser;
-  const cust = CustomerService.findCustomer(user);
-  if (cust) {
-    savings.filter(s => s.customerId === cust.id).forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s.savingsNo;
-      opt.textContent = `${(s.savingsNo || '').replace(/^STK-?/i, '')} (Tiết kiệm ${s.termMonths > 0 ? s.termMonths + 'T' : 'KKH'})`;
-      select.appendChild(opt);
-    });
+  if (preselectedAcc && preselectedAcc !== 'ALL') {
+    select.value = preselectedAcc;
   }
 
   const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const today = now.toISOString().split('T')[0];
-  document.getElementById('stmt-from-date').value = firstDay;
-  document.getElementById('stmt-to-date').value = today;
+  const todayStr = now.toISOString().split('T')[0];
+  let firstDayStr = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  let toDateStr = todayStr;
+
+  if (preselectedPeriod === 'last-month') {
+    firstDayStr = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+    toDateStr = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+  } else if (preselectedPeriod === '3-months') {
+    const d = new Date();
+    d.setDate(d.getDate() - 90);
+    firstDayStr = d.toISOString().split('T')[0];
+  } else if (preselectedPeriod === 'all') {
+    firstDayStr = '';
+  }
+
+  document.getElementById('stmt-from-date').value = firstDayStr;
+  document.getElementById('stmt-to-date').value = toDateStr;
 
   // Bắt sự kiện phím tắt chọn nhanh khoảng thời gian
   document.querySelectorAll('.btn-stmt-shortcut').forEach(btn => {
@@ -6678,7 +7506,6 @@ async function renderStatementPreview() {
 
   lastStatementData = data;
 
-  document.getElementById('stmt-ref-no').textContent = `Mã tra cứu: ${data.statementRef}`;
   document.getElementById('stmt-cust-name').textContent = data.customer.fullName || data.customer.customerName;
   document.getElementById('stmt-cust-idcard').textContent = data.customer.idCard || '-';
   document.getElementById('stmt-cust-phone').textContent = data.customer.phone || '-';
@@ -6709,488 +7536,17 @@ async function renderStatementPreview() {
       const isOut = t.fromAccount === accNo;
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="padding: 8px 10px; border: 1px solid #e2e8f0; color: #0f172a; white-space: nowrap; font-size: 0.82rem;">${store.formatDateTime(t.timestamp)}</td>
-        <td style="padding: 8px 10px; border: 1px solid #e2e8f0; color: #0f172a; white-space: nowrap; font-family: var(--font-mono); font-weight: 600; font-size: 0.82rem;">${t.id}</td>
-        <td style="padding: 8px 10px; border: 1px solid #e2e8f0; color: #0f172a; font-size: 0.84rem;">
-          ${t.content} <span style="color: #475569; font-size: 0.82em;">(${isOut ? 'Tới: ' + (t.toName || t.toAccount) : 'Từ: ' + (t.fromName || t.fromAccount)})</span>
+        <td style="padding: 10px 12px; border: 1px solid #e2e8f0; color: #0f172a; white-space: nowrap; font-size: 0.82rem;">${store.formatDateTime(t.timestamp)}</td>
+        <td style="padding: 10px 12px; border: 1px solid #e2e8f0; color: #0f172a; white-space: nowrap; font-family: var(--font-mono); font-weight: 600; font-size: 0.82rem;">${t.id}</td>
+        <td style="padding: 10px 12px; border: 1px solid #e2e8f0; color: #0f172a; font-size: 0.84rem; max-width: 320px; word-break: break-word;">
+          ${t.content} <span style="color: #475569; font-size: 0.82em; display: block; margin-top: 2px;">(${isOut ? 'Tới: ' + (t.toName || t.toAccount) : 'Từ: ' + (t.fromName || t.fromAccount)})</span>
         </td>
-        <td style="padding: 8px 10px; border: 1px solid #e2e8f0; font-weight: 700; text-align: right; white-space: nowrap; font-size: 0.84rem; color: ${isOut ? '#dc2626' : '#059669'};">
+        <td style="padding: 10px 12px; border: 1px solid #e2e8f0; font-weight: 700; text-align: right; white-space: nowrap; font-size: 0.84rem; color: ${isOut ? '#dc2626' : '#059669'};">
           ${isOut ? '-' : '+'}${store.formatVND(t.amount)}
         </td>
       `;
       tbody.appendChild(tr);
     });
-  }
-}
-
-/* ==========================================================================
-   XỬ LÝ ĐỊNH DANH EKYC (EKYC VERIFICATION WIZARD)
-   ========================================================================== */
-
-let currentEkycStep = 1;
-let ekycWebcamStream = null;
-let ekycData = { idCardFront: null, idCardBack: null, selfiePhoto: null };
-
-function openEkycModal() {
-  currentEkycStep = 1;
-  ekycData = { idCardFront: null, idCardBack: null, selfiePhoto: null };
-  const user = store.data.currentUser;
-  const cust = CustomerService.findCustomer(user);
-
-  document.getElementById('ekyc-preview-front').style.display = 'none';
-  document.getElementById('ekyc-placeholder-front').style.display = 'block';
-  document.getElementById('ekyc-preview-back').style.display = 'none';
-  document.getElementById('ekyc-placeholder-back').style.display = 'block';
-  document.getElementById('ekyc-preview-selfie').style.display = 'none';
-  document.getElementById('ekyc-webcam-video').style.display = 'block';
-  document.getElementById('btn-ekyc-next-3').disabled = true;
-
-  if (cust) {
-    document.getElementById('ekyc-ocr-name').textContent = cust.fullName || user.fullName;
-    document.getElementById('ekyc-ocr-idcard').textContent = cust.idCard || '001098123456';
-  }
-
-  showEkycStep(1);
-  openModal('modal-ekyc');
-}
-
-function showEkycStep(step) {
-  currentEkycStep = step;
-
-  document.querySelectorAll('.ekyc-step-node').forEach(node => {
-    const s = parseInt(node.getAttribute('data-step'));
-    const box = node.querySelector('.step-num-box');
-    if (s < step) {
-      box.style.background = 'var(--accent-emerald)';
-      box.style.color = '#0b0f19';
-    } else if (s === step) {
-      box.style.background = 'var(--accent-cyan)';
-      box.style.color = '#0b0f19';
-    } else {
-      box.style.background = 'rgba(255,255,255,0.1)';
-      box.style.color = 'var(--text-muted)';
-    }
-  });
-
-  const percent = ((step - 1) / 3) * 100;
-  document.getElementById('ekyc-line-progress').style.width = percent + '%';
-
-  document.querySelectorAll('.ekyc-panel').forEach(panel => panel.classList.add('hidden'));
-  document.getElementById(`ekyc-panel-step-${step}`).classList.remove('hidden');
-
-  if (step === 3) {
-    startEkycWebcam();
-  } else {
-    stopEkycWebcam();
-  }
-}
-
-async function startEkycWebcam() {
-  const video = document.getElementById('ekyc-webcam-video');
-  if (!video) return;
-
-  startFaceLandmarksAnimation('ekyc-landmarks-canvas');
-
-  try {
-    ekycWebcamStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-    video.srcObject = ekycWebcamStream;
-  } catch (err) {
-    console.warn('Webcam access error:', err);
-    const hint = document.getElementById('ekyc-liveness-hint');
-    if (hint) hint.textContent = 'Ảnh mô phỏng Liveness (Bật webcam để chụp mặt)';
-  }
-}
-
-function stopEkycWebcam() {
-  stopFaceLandmarksAnimation('ekyc-landmarks-canvas');
-  if (ekycWebcamStream) {
-    ekycWebcamStream.getTracks().forEach(t => t.stop());
-    ekycWebcamStream = null;
-  }
-}
-
-function setupEkycEvents() {
-  const btnNext1 = document.getElementById('btn-ekyc-next-1');
-  const btnNext2 = document.getElementById('btn-ekyc-next-2');
-  const btnNext3 = document.getElementById('btn-ekyc-next-3');
-  const btnBack2 = document.getElementById('btn-ekyc-back-2');
-  const btnBack3 = document.getElementById('btn-ekyc-back-3');
-  const btnBack4 = document.getElementById('btn-ekyc-back-4');
-  const btnFinal = document.getElementById('btn-ekyc-submit-final');
-
-  if (btnNext1) btnNext1.onclick = () => showEkycStep(2);
-  if (btnNext2) btnNext2.onclick = () => showEkycStep(3);
-  if (btnNext3) btnNext3.onclick = () => {
-    const score = (95.0 + Math.random() * 4.5).toFixed(1);
-    document.getElementById('ekyc-match-percentage').textContent = score + '%';
-    const user = store.data.currentUser;
-    const cust = CustomerService.findCustomer(user);
-    if (cust) {
-      document.getElementById('ekyc-ocr-name').textContent = cust.fullName || user.fullName;
-      document.getElementById('ekyc-ocr-idcard').textContent = cust.idCard || '001098123456';
-    }
-    showEkycStep(4);
-  };
-
-  if (btnBack2) btnBack2.onclick = () => showEkycStep(1);
-  if (btnBack3) btnBack3.onclick = () => showEkycStep(2);
-  if (btnBack4) btnBack4.onclick = () => showEkycStep(3);
-
-  const fileFront = document.getElementById('input-ekyc-file-front');
-  if (fileFront) {
-    fileFront.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          ekycData.idCardFront = ev.target.result;
-          document.getElementById('ekyc-preview-front').src = ev.target.result;
-          document.getElementById('ekyc-preview-front').style.display = 'block';
-          document.getElementById('ekyc-placeholder-front').style.display = 'none';
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-  }
-  const btnUploadFront = document.getElementById('btn-upload-front');
-  if (btnUploadFront && fileFront) {
-    btnUploadFront.onclick = () => fileFront.click();
-  }
-
-  const fileBack = document.getElementById('input-ekyc-file-back');
-  if (fileBack) {
-    fileBack.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          ekycData.idCardBack = ev.target.result;
-          document.getElementById('ekyc-preview-back').src = ev.target.result;
-          document.getElementById('ekyc-preview-back').style.display = 'block';
-          document.getElementById('ekyc-placeholder-back').style.display = 'none';
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-  }
-  const btnUploadBack = document.getElementById('btn-upload-back');
-  if (btnUploadBack && fileBack) {
-    btnUploadBack.onclick = () => fileBack.click();
-  }
-
-  const btnCamFront = document.getElementById('btn-cam-front');
-  if (btnCamFront) {
-    btnCamFront.onclick = () => {
-      const svgFront = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250" viewBox="0 0 400 250"><rect width="400" height="250" rx="12" fill="%23f8fafc" stroke="%230284c7" stroke-width="3"/><text x="140" y="40" font-family="sans-serif" font-weight="bold" font-size="16" fill="%230369a1">CĂN CƯỚC CÔNG DÂN</text><text x="140" y="60" font-family="sans-serif" font-size="11" fill="%2364748b">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</text><circle cx="65" cy="130" r="40" fill="%23cbd5e1" stroke="%230284c7" stroke-width="2"/><text x="130" y="110" font-family="sans-serif" font-size="12" fill="%23334155">Số / No.: <tspan font-weight="bold" fill="%230f172a">001098123456</tspan></text><text x="130" y="135" font-family="sans-serif" font-size="12" fill="%23334155">Họ và tên: <tspan font-weight="bold" fill="%230f172a">NGUYỄN VĂN AN</tspan></text><text x="130" y="160" font-family="sans-serif" font-size="12" fill="%23334155">Ngày sinh: <tspan font-weight="bold" fill="%230f172a">15/08/1995</tspan></text><text x="130" y="185" font-family="sans-serif" font-size="12" fill="%23334155">Giới tính: Nam   Quốc tịch: Việt Nam</text></svg>`;
-      ekycData.idCardFront = svgFront;
-      document.getElementById('ekyc-preview-front').src = svgFront;
-      document.getElementById('ekyc-preview-front').style.display = 'block';
-      document.getElementById('ekyc-placeholder-front').style.display = 'none';
-      showToast('Đã tải ảnh mẫu mặt trước CCCD thành công', 'success');
-    };
-  }
-
-  const btnCamBack = document.getElementById('btn-cam-back');
-  if (btnCamBack) {
-    btnCamBack.onclick = () => {
-      const svgBack = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250" viewBox="0 0 400 250"><rect width="400" height="250" rx="12" fill="%23f8fafc" stroke="%230284c7" stroke-width="3"/><text x="20" y="40" font-family="sans-serif" font-weight="bold" font-size="13" fill="%230369a1">ĐẶC ĐIỂM NHÂN DẠNG & DẤU VÂN TAY</text><rect x="20" y="60" width="80" height="100" fill="%23e2e8f0" rx="4"/><rect x="110" y="60" width="80" height="100" fill="%23e2e8f0" rx="4"/><text x="200" y="90" font-family="sans-serif" font-size="11" fill="%23334155">Ngày cấp: 20/01/2022</text><text x="200" y="115" font-family="sans-serif" font-size="11" fill="%23334155">Nơi cấp: CỤC CẢNH SÁT QLHC</text></svg>`;
-      ekycData.idCardBack = svgBack;
-      document.getElementById('ekyc-preview-back').src = svgBack;
-      document.getElementById('ekyc-preview-back').style.display = 'block';
-      document.getElementById('ekyc-placeholder-back').style.display = 'none';
-      showToast('Đã tải ảnh mẫu mặt sau CCCD thành công', 'success');
-    };
-  }
-
-  const btnCaptureSelfie = document.getElementById('btn-ekyc-capture-selfie');
-  if (btnCaptureSelfie) {
-    btnCaptureSelfie.onclick = () => {
-      const video = document.getElementById('ekyc-webcam-video');
-      const canvas = document.getElementById('ekyc-snapshot-canvas');
-      const preview = document.getElementById('ekyc-preview-selfie');
-
-      let photoData = null;
-      if (ekycWebcamStream && video.readyState === 4) {
-        canvas.width = video.videoWidth || 400;
-        canvas.height = video.videoHeight || 300;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        photoData = canvas.toDataURL('image/png');
-      } else {
-        photoData = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%230f172a"/><circle cx="150" cy="110" r="50" fill="%2338bdf8"/><path d="M70 250 c0 -50 40 -80 80 -80 s80 30 80 80" fill="%2338bdf8"/></svg>`;
-      }
-
-      ekycData.selfiePhoto = photoData;
-      preview.src = photoData;
-      preview.style.display = 'block';
-      video.style.display = 'none';
-      stopEkycWebcam();
-
-      showToast('Đã chụp ảnh chân dung Liveness thành công!', 'success');
-      document.getElementById('btn-ekyc-next-3').disabled = false;
-    };
-  }
-
-  if (btnFinal) {
-    btnFinal.onclick = async () => {
-      btnFinal.disabled = true;
-      btnFinal.textContent = 'Đang xử lý eKYC...';
-      try {
-        const res = CustomerService.submitEKyc(ekycData);
-        if (res.success) {
-          showToast(res.message, 'success');
-          closeModal('modal-ekyc');
-          updateEkycHeaderBadge();
-        } else {
-          showToast(res.message, 'danger');
-        }
-      } finally {
-        btnFinal.disabled = false;
-        btnFinal.textContent = 'Hoàn Tất Định Danh eKYC';
-      }
-    };
-  }
-}
-
-/* ==========================================================================
-   XỬ LÝ GIAO DIỆN VIEW EKYC TRỰC TIẾP TRÊN TRANG (VIEW-CUSTOMER-EKYC)
-   ========================================================================== */
-
-let currentViewEkycStep = 1;
-let viewEkycWebcamStream = null;
-let viewEkycData = { idCardFront: null, idCardBack: null, selfiePhoto: null };
-
-function renderCustomerEkycView() {
-  currentViewEkycStep = 1;
-  viewEkycData = { idCardFront: null, idCardBack: null, selfiePhoto: null };
-  const user = store.data.currentUser;
-  const cust = CustomerService.findCustomer(user);
-
-  const prevFront = document.getElementById('view-ekyc-preview-front');
-  const phFront = document.getElementById('view-ekyc-placeholder-front');
-  const prevBack = document.getElementById('view-ekyc-preview-back');
-  const phBack = document.getElementById('view-ekyc-placeholder-back');
-  const prevSelfie = document.getElementById('view-ekyc-preview-selfie');
-  const video = document.getElementById('view-ekyc-webcam-video');
-  const btnNext3 = document.getElementById('view-btn-ekyc-next-3');
-
-  if (prevFront) prevFront.style.display = 'none';
-  if (phFront) phFront.style.display = 'block';
-  if (prevBack) prevBack.style.display = 'none';
-  if (phBack) phBack.style.display = 'block';
-  if (prevSelfie) prevSelfie.style.display = 'none';
-  if (video) video.style.display = 'block';
-  if (btnNext3) btnNext3.disabled = true;
-
-  if (cust) {
-    const ocrName = document.getElementById('view-ekyc-ocr-name');
-    const ocrId = document.getElementById('view-ekyc-ocr-idcard');
-    if (ocrName) ocrName.textContent = cust.fullName || (user ? user.fullName : 'Khách hàng');
-    if (ocrId) ocrId.textContent = cust.idCard || '001098123456';
-  }
-
-  showViewEkycStep(1);
-}
-
-function showViewEkycStep(step) {
-  currentViewEkycStep = step;
-
-  document.querySelectorAll('.view-ekyc-step-node').forEach(node => {
-    const s = parseInt(node.getAttribute('data-step'));
-    const box = node.querySelector('.step-num-box');
-    if (!box) return;
-    if (s < step) {
-      box.style.background = 'var(--accent-emerald)';
-      box.style.color = '#0b0f19';
-    } else if (s === step) {
-      box.style.background = 'var(--accent-cyan)';
-      box.style.color = '#0b0f19';
-    } else {
-      box.style.background = 'rgba(255,255,255,0.1)';
-      box.style.color = 'var(--text-muted)';
-    }
-  });
-
-  const percent = ((step - 1) / 3) * 100;
-  const line = document.getElementById('view-ekyc-line-progress');
-  if (line) line.style.width = percent + '%';
-
-  document.querySelectorAll('.view-ekyc-panel').forEach(panel => panel.classList.add('hidden'));
-  const targetPanel = document.getElementById(`view-ekyc-panel-step-${step}`);
-  if (targetPanel) targetPanel.classList.remove('hidden');
-
-  if (step === 3) {
-    startViewEkycWebcam();
-  } else {
-    stopViewEkycWebcam();
-  }
-}
-
-async function startViewEkycWebcam() {
-  const video = document.getElementById('view-ekyc-webcam-video');
-  if (!video) return;
-
-  try {
-    viewEkycWebcamStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-    video.srcObject = viewEkycWebcamStream;
-  } catch (err) {
-    console.warn('Webcam access error:', err);
-    const hint = document.getElementById('view-ekyc-liveness-hint');
-    if (hint) hint.textContent = 'Ảnh mô phỏng Liveness (Bật webcam để chụp mặt)';
-  }
-}
-
-function stopViewEkycWebcam() {
-  if (viewEkycWebcamStream) {
-    viewEkycWebcamStream.getTracks().forEach(t => t.stop());
-    viewEkycWebcamStream = null;
-  }
-}
-
-function setupViewEkycEvents() {
-  const btnNext1 = document.getElementById('view-btn-ekyc-next-1');
-  const btnNext2 = document.getElementById('view-btn-ekyc-next-2');
-  const btnNext3 = document.getElementById('view-btn-ekyc-next-3');
-  const btnBack2 = document.getElementById('view-btn-ekyc-back-2');
-  const btnBack3 = document.getElementById('view-btn-ekyc-back-3');
-  const btnBack4 = document.getElementById('view-btn-ekyc-back-4');
-  const btnFinal = document.getElementById('view-btn-ekyc-submit-final');
-
-  if (btnNext1) btnNext1.onclick = () => showViewEkycStep(2);
-  if (btnNext2) btnNext2.onclick = () => showViewEkycStep(3);
-  if (btnNext3) btnNext3.onclick = () => {
-    const score = (95.0 + Math.random() * 4.5).toFixed(1);
-    const matchEl = document.getElementById('view-ekyc-match-percentage');
-    if (matchEl) matchEl.textContent = score + '%';
-    const user = store.data.currentUser;
-    const cust = CustomerService.findCustomer(user);
-    if (cust) {
-      const nameEl = document.getElementById('view-ekyc-ocr-name');
-      const idEl = document.getElementById('view-ekyc-ocr-idcard');
-      if (nameEl) nameEl.textContent = cust.fullName || user.fullName;
-      if (idEl) idEl.textContent = cust.idCard || '001098123456';
-    }
-    showViewEkycStep(4);
-  };
-
-  if (btnBack2) btnBack2.onclick = () => showViewEkycStep(1);
-  if (btnBack3) btnBack3.onclick = () => showViewEkycStep(2);
-  if (btnBack4) btnBack4.onclick = () => showViewEkycStep(3);
-
-  const fileFront = document.getElementById('view-input-ekyc-file-front');
-  if (fileFront) {
-    fileFront.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          viewEkycData.idCardFront = ev.target.result;
-          document.getElementById('view-ekyc-preview-front').src = ev.target.result;
-          document.getElementById('view-ekyc-preview-front').style.display = 'block';
-          document.getElementById('view-ekyc-placeholder-front').style.display = 'none';
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-  }
-  const btnUploadFront = document.getElementById('view-btn-upload-front');
-  if (btnUploadFront && fileFront) {
-    btnUploadFront.onclick = () => fileFront.click();
-  }
-
-  const fileBack = document.getElementById('view-input-ekyc-file-back');
-  if (fileBack) {
-    fileBack.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          viewEkycData.idCardBack = ev.target.result;
-          document.getElementById('view-ekyc-preview-back').src = ev.target.result;
-          document.getElementById('view-ekyc-preview-back').style.display = 'block';
-          document.getElementById('view-ekyc-placeholder-back').style.display = 'none';
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-  }
-  const btnUploadBack = document.getElementById('view-btn-upload-back');
-  if (btnUploadBack && fileBack) {
-    btnUploadBack.onclick = () => fileBack.click();
-  }
-
-  const btnCamFront = document.getElementById('view-btn-cam-front');
-  if (btnCamFront) {
-    btnCamFront.onclick = () => {
-      const svgFront = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250" viewBox="0 0 400 250"><rect width="400" height="250" rx="12" fill="%23f8fafc" stroke="%230284c7" stroke-width="3"/><text x="140" y="40" font-family="sans-serif" font-weight="bold" font-size="16" fill="%230369a1">CĂN CƯỚC CÔNG DÂN</text><text x="140" y="60" font-family="sans-serif" font-size="11" fill="%2364748b">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</text><circle cx="65" cy="130" r="40" fill="%23cbd5e1" stroke="%230284c7" stroke-width="2"/><text x="130" y="110" font-family="sans-serif" font-size="12" fill="%23334155">Số / No.: <tspan font-weight="bold" fill="%230f172a">001098123456</tspan></text><text x="130" y="135" font-family="sans-serif" font-size="12" fill="%23334155">Họ và tên: <tspan font-weight="bold" fill="%230f172a">NGUYỄN VĂN AN</tspan></text><text x="130" y="160" font-family="sans-serif" font-size="12" fill="%23334155">Ngày sinh: <tspan font-weight="bold" fill="%230f172a">15/08/1995</tspan></text><text x="130" y="185" font-family="sans-serif" font-size="12" fill="%23334155">Giới tính: Nam   Quốc tịch: Việt Nam</text></svg>`;
-      viewEkycData.idCardFront = svgFront;
-      document.getElementById('view-ekyc-preview-front').src = svgFront;
-      document.getElementById('view-ekyc-preview-front').style.display = 'block';
-      document.getElementById('view-ekyc-placeholder-front').style.display = 'none';
-      showToast('Đã tải ảnh mẫu mặt trước CCCD thành công', 'success');
-    };
-  }
-
-  const btnCamBack = document.getElementById('view-btn-cam-back');
-  if (btnCamBack) {
-    btnCamBack.onclick = () => {
-      const svgBack = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250" viewBox="0 0 400 250"><rect width="400" height="250" rx="12" fill="%23f8fafc" stroke="%230284c7" stroke-width="3"/><text x="20" y="40" font-family="sans-serif" font-weight="bold" font-size="13" fill="%230369a1">ĐẶC ĐIỂM NHÂN DẠNG & DẤU VÂN TAY</text><rect x="20" y="60" width="80" height="100" fill="%23e2e8f0" rx="4"/><rect x="110" y="60" width="80" height="100" fill="%23e2e8f0" rx="4"/><text x="200" y="90" font-family="sans-serif" font-size="11" fill="%23334155">Ngày cấp: 20/01/2022</text><text x="200" y="115" font-family="sans-serif" font-size="11" fill="%23334155">Nơi cấp: CỤC CẢNH SÁT QLHC</text></svg>`;
-      viewEkycData.idCardBack = svgBack;
-      document.getElementById('view-ekyc-preview-back').src = svgBack;
-      document.getElementById('view-ekyc-preview-back').style.display = 'block';
-      document.getElementById('view-ekyc-placeholder-back').style.display = 'none';
-      showToast('Đã tải ảnh mẫu mặt sau CCCD thành công', 'success');
-    };
-  }
-
-  const btnCaptureSelfie = document.getElementById('view-btn-ekyc-capture-selfie');
-  if (btnCaptureSelfie) {
-    btnCaptureSelfie.onclick = () => {
-      const video = document.getElementById('view-ekyc-webcam-video');
-      const canvas = document.getElementById('view-ekyc-snapshot-canvas');
-      const preview = document.getElementById('view-ekyc-preview-selfie');
-
-      let photoData = null;
-      if (viewEkycWebcamStream && video.readyState === 4) {
-        canvas.width = video.videoWidth || 400;
-        canvas.height = video.videoHeight || 300;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        photoData = canvas.toDataURL('image/png');
-      } else {
-        photoData = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%230f172a"/><circle cx="150" cy="110" r="50" fill="%2338bdf8"/><path d="M70 250 c0 -50 40 -80 80 -80 s80 30 80 80" fill="%2338bdf8"/></svg>`;
-      }
-
-      viewEkycData.selfiePhoto = photoData;
-      preview.src = photoData;
-      preview.style.display = 'block';
-      video.style.display = 'none';
-      stopViewEkycWebcam();
-
-      showToast('Đã chụp ảnh chân dung Liveness thành công!', 'success');
-      const next3 = document.getElementById('view-btn-ekyc-next-3');
-      if (next3) next3.disabled = false;
-    };
-  }
-
-  if (btnFinal) {
-    btnFinal.onclick = async () => {
-      btnFinal.disabled = true;
-      btnFinal.textContent = 'Đang xử lý eKYC...';
-      try {
-        const res = CustomerService.submitEKyc(viewEkycData);
-        if (res.success) {
-          showToast(res.message, 'success');
-          updateEkycHeaderBadge();
-          switchNavView('view-customer-dashboard');
-        } else {
-          showToast(res.message, 'danger');
-        }
-      } finally {
-        btnFinal.disabled = false;
-        btnFinal.textContent = 'Hoàn Tất Định Danh eKYC';
-      }
-    };
   }
 }
 

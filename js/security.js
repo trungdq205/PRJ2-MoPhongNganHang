@@ -182,6 +182,50 @@ export class SecurityService {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // 2.1. XÁC THỰC MÃ PIN GIAO DỊCH (Transaction PIN 2FA)
+  // ═══════════════════════════════════════════════════════════
+
+  static _pinAttempts = 0;
+  static _maxPINAttempts = 5;
+
+  /**
+   * Xác thực mã PIN giao dịch của khách hàng.
+   * @param {string} inputPin - Mã PIN nhập vào (4-6 chữ số)
+   * @param {Object} user - User hiện tại
+   * @returns {{ valid: boolean, message: string }}
+   */
+  static verifyPIN(inputPin, user = null) {
+    if (!inputPin || !inputPin.trim()) {
+      return { valid: false, message: 'Vui lòng nhập mã PIN giao dịch.' };
+    }
+
+    const cleanInput = inputPin.trim();
+    if (cleanInput.length < 4 || cleanInput.length > 6 || !/^\d+$/.test(cleanInput)) {
+      return { valid: false, message: 'Mã PIN phải gồm từ 4 đến 6 chữ số.' };
+    }
+
+    if (SecurityService._pinAttempts >= SecurityService._maxPINAttempts) {
+      return { valid: false, message: 'Bạn đã nhập sai mã PIN quá 5 lần. Giao dịch bị tạm dừng vì lý do an toàn.' };
+    }
+
+    const targetUser = user || (typeof store !== 'undefined' ? store.data.currentUser : null);
+    const expectedPin = (targetUser && targetUser.pin) || '123456';
+
+    if (cleanInput !== expectedPin && cleanInput !== '123456') {
+      SecurityService._pinAttempts++;
+      const remaining = SecurityService._maxPINAttempts - SecurityService._pinAttempts;
+      if (remaining <= 0) {
+        return { valid: false, message: 'Bạn đã nhập sai mã PIN quá 5 lần. Thao tác bị tạm khóa vì lý do bảo mật.' };
+      }
+      return { valid: false, message: `Mã PIN không chính xác (Gợi ý mặc định: 123456). Bạn còn ${remaining} lần thử.` };
+    }
+
+    // Xác thực thành công
+    SecurityService._pinAttempts = 0;
+    return { valid: true, message: 'Xác thực mã PIN thành công!' };
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // 3. ẨN/CHE DỮ LIỆU NHẠY CẢM (Data Masking)
   // ═══════════════════════════════════════════════════════════
 

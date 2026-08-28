@@ -3,84 +3,93 @@
  */
 import { store } from './store.js';
 import { BankApiService } from './api.js';
-import { CccdOcrService } from './ocr.js';
 
 export class TellerService {
 
   /**
-   * Thêm mới hồ sơ khách hàng (Async: Backend REST API + LocalStore)
+   * Đồng bộ toàn bộ danh sách khách hàng trực tiếp từ CSDL Backend
    */
-  static async createCustomerAsync(custPayload) {
-    const { fullName, idCard, phone, email, address, initialBalance } = custPayload;
+  static async syncCustomersAsync() {
     try {
-      const apiResult = await BankApiService.tellerCreateCustomer(fullName, idCard, phone, email, address, initialBalance);
-      if (apiResult && apiResult.success && apiResult.data) {
-        const currentTeller = store.data.currentUser?.username || 'GDV';
-        store.addAuditLog(currentTeller, `Thêm mới hồ sơ KH qua Backend: ${fullName}`);
-        // Synchronize into local store for local UI state
-        TellerService.createCustomer(custPayload);
-        return { success: true, message: apiResult.message || 'Tạo hồ sơ thành công!', source: 'backend' };
-      } else if (apiResult && !apiResult.success) {
-        return { success: false, message: apiResult.message };
+      const apiResult = await BankApiService.tellerGetAllCustomers();
+      if (apiResult && apiResult.success && Array.isArray(apiResult.data)) {
+        store.data.customers = apiResult.data;
+        return store.data.customers;
       }
     } catch (e) {
-      console.warn('[Teller] Backend createCustomer lỗi, fallback sang LocalStore', e);
+      console.warn('Lỗi tải danh sách khách hàng từ CSDL Backend:', e);
     }
-    return TellerService.createCustomer(custPayload);
+    return store.data.customers || [];
   }
 
   /**
-   * Cập nhật thông tin khách hàng (Async: Backend REST API + LocalStore)
+   * Thêm mới hồ sơ khách hàng trực tiếp vào CSDL Backend
+   */
+  static async createCustomerAsync(custPayload) {
+    const { fullName, idCard, phone, email, address, initialBalance, password } = custPayload;
+    try {
+      const apiResult = await BankApiService.tellerCreateCustomer(fullName, idCard, phone, email, address, initialBalance);
+      if (apiResult && apiResult.success) {
+        const currentTeller = store.data.currentUser?.username || 'GDV';
+        store.addAuditLog(currentTeller, `Thêm mới hồ sơ KH qua CSDL Backend: ${fullName}`);
+
+        return { 
+          success: true, 
+          message: apiResult.message || 'Tạo hồ sơ khách hàng trong CSDL thành công!', 
+          source: 'database',
+          customer: apiResult.data
+        };
+      } else {
+        return { 
+          success: false, 
+          message: apiResult ? apiResult.message : 'Không nhận được phản hồi từ CSDL Backend' 
+        };
+      }
+    } catch (e) {
+      console.error('[Teller] Lỗi khi kết nối CSDL Backend:', e);
+      return { 
+        success: false, 
+        message: 'Lỗi kết nối máy chủ CSDL: ' + (e.message || 'Không thể lưu hồ sơ') 
+      };
+    }
+  }
+
+
+
+  /**
+   * Cập nhật thông tin khách hàng trực tiếp trong CSDL Backend
    */
   static async updateCustomerAsync(customerId, { fullName, phone, email, address }) {
     try {
       const apiResult = await BankApiService.tellerUpdateCustomer(customerId, fullName, phone, email, address);
       if (apiResult && apiResult.success) {
-        TellerService.updateCustomer(customerId, { fullName, phone, email, address });
-        return { success: true, message: apiResult.message || 'Cập nhật thông tin khách hàng thành công!', source: 'backend' };
-      } else if (apiResult && !apiResult.success) {
-        return { success: false, message: apiResult.message };
+        await TellerService.syncCustomersAsync();
+        return { success: true, message: apiResult.message || 'Cập nhật thông tin khách hàng trong CSDL thành công!', source: 'database' };
+      } else {
+        return { success: false, message: apiResult ? apiResult.message : 'Lỗi cập nhật CSDL' };
       }
     } catch (e) {
-      console.warn('[Teller] Backend updateCustomer lỗi, fallback sang LocalStore', e);
+      console.error('[Teller] Lỗi updateCustomer Backend:', e);
+      return { success: false, message: 'Lỗi kết nối CSDL: ' + e.message };
     }
-    return TellerService.updateCustomer(customerId, { fullName, phone, email, address });
   }
 
   /**
-   * Quản lý tài khoản (Đổi trạng thái Khóa / Mở khóa / Đóng tài khoản) (Async)
+   * Quản lý tài khoản (Đổi trạng thái Khóa / Mở khóa / Đóng tài khoản) trực tiếp trong CSDL Backend
    */
   static async toggleAccountStatusAsync(accountNo, newStatus) {
     try {
       const apiResult = await BankApiService.tellerToggleAccountStatus(accountNo, newStatus);
       if (apiResult && apiResult.success) {
-        TellerService.toggleAccountStatus(accountNo, newStatus);
-        return { success: true, message: apiResult.message || `Đã chuyển trạng thái tài khoản thành ${newStatus}`, source: 'backend' };
-      } else if (apiResult && !apiResult.success) {
-        return { success: false, message: apiResult.message };
+        await TellerService.syncCustomersAsync();
+        return { success: true, message: apiResult.message || `Đã chuyển trạng thái tài khoản thành ${newStatus}`, source: 'database' };
+      } else {
+        return { success: false, message: apiResult ? apiResult.message : 'Lỗi cập nhật trạng thái trong CSDL' };
       }
     } catch (e) {
-      console.warn('[Teller] Backend toggleAccountStatus lỗi, fallback sang LocalStore', e);
+      console.error('[Teller] Lỗi toggleAccountStatus Backend:', e);
+      return { success: false, message: 'Lỗi kết nối CSDL: ' + e.message };
     }
-    return TellerService.toggleAccountStatus(accountNo, newStatus);
-  }
-
-  /**
-   * Xử lý hỗ trợ / khiếu nại (Async: Backend REST API + LocalStore)
-   */
-  static async resolveTicketAsync(ticketId, responseText, actionStatus = 'RESOLVED') {
-    try {
-      const apiResult = await BankApiService.tellerResolveTicket(ticketId, responseText, actionStatus);
-      if (apiResult && apiResult.success) {
-        TellerService.resolveTicket(ticketId, responseText, actionStatus);
-        return { success: true, message: apiResult.message || `Đã xử lý đơn hỗ trợ thành công!`, source: 'backend' };
-      } else if (apiResult && !apiResult.success) {
-        return { success: false, message: apiResult.message };
-      }
-    } catch (e) {
-      console.warn('[Teller] Backend resolveTicket lỗi, fallback sang LocalStore', e);
-    }
-    return TellerService.resolveTicket(ticketId, responseText, actionStatus);
   }
 
   /**
@@ -95,19 +104,30 @@ export class TellerService {
     const trimmedPhone = phone.trim();
     const finalPassword = (password && password.trim()) ? password.trim() : 'Abc@1234';
 
-    // Kiểm tra trùng lặp Số CCCD/CMND hoặc Số điện thoại
-    const exists = store.data.customers.some(c => (c.idCard && c.idCard === trimmedIdCard) || c.phone === trimmedPhone);
-    if (exists) {
-      return { success: false, message: `Số điện thoại ${trimmedPhone} hoặc Số CCCD ${trimmedIdCard} đã tồn tại trên hệ thống` };
+    // Kiểm tra nếu đã tồn tại trong local store
+    const existingCust = store.data.customers.find(c => (c.idCard && c.idCard === trimmedIdCard) || c.phone === trimmedPhone);
+    if (existingCust) {
+      if (!existingCust.accounts || !Array.isArray(existingCust.accounts)) {
+        existingCust.accounts = [{
+          accountNo: '1000' + Math.floor(100000 + Math.random() * 900000),
+          type: 'PAYMENT',
+          balance: parseFloat(initialBalance) || 0,
+          currency: 'VND',
+          status: 'ACTIVE',
+          createdAt: store.todayGMT7String()
+        }];
+      }
+      return { 
+        success: true, 
+        message: `Hồ sơ khách hàng ${existingCust.fullName} (${trimmedPhone}) đã được lưu trên hệ thống.`, 
+        customer: existingCust 
+      };
     }
 
     const nextId = 'CUST-' + (1000 + store.data.customers.length + 1);
     const newAccNo = '1000' + Math.floor(100000 + Math.random() * 900000);
     const balance = parseFloat(initialBalance) || 0;
     const finalAddress = address || 'TP. Hà Nội, Việt Nam';
-
-    // Dữ liệu khuôn mặt ban đầu (Live Webcam Snapshot hoặc Biometric Template)
-    const finalFaceData = faceData || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%230f172a"/><circle cx="150" cy="110" r="50" fill="%2338bdf8"/><path d="M70 250 c0 -50 40 -80 80 -80 s80 30 80 80" fill="%2338bdf8"/></svg>`;
 
     const newCustomer = {
       id: nextId,
@@ -121,7 +141,7 @@ export class TellerService {
       address: finalAddress,
       kycStatus: 'VERIFIED',
       kycVerifiedAt: store.nowGMT7String(),
-      faceData: finalFaceData,
+      faceData: null,
       accounts: [
         {
           accountNo: newAccNo,
@@ -140,7 +160,7 @@ export class TellerService {
     // Ghi nhận giao dịch nộp tiền nếu số dư ban đầu > 0
     if (balance > 0) {
       store.data.transactions.unshift({
-        id: 'TXN-' + Math.floor(10000 + Math.random() * 90000),
+        id: store.generateTxnId(),
         fromAccount: 'NẠP TẠI QUẦY',
         fromName: 'Giao dịch viên mở TK',
         toAccount: newAccNo,
@@ -155,7 +175,7 @@ export class TellerService {
     }
 
     const currentTeller = store.data.currentUser?.username || 'GDV';
-    store.addAuditLog(currentTeller, `Thêm mới hồ sơ KH (Quét Mặt Sinh Trắc Học): ${fullName} (CCCD: ${trimmedIdCard}, TK: ${newAccNo})`);
+    store.addAuditLog(currentTeller, `Thêm mới hồ sơ KH: ${fullName} (CCCD: ${trimmedIdCard}, TK: ${newAccNo})`);
     store.saveData();
 
     return { 
@@ -240,34 +260,108 @@ export class TellerService {
     return { success: true, message: `Đã mở tài khoản tiết kiệm thành công. Số tài khoản: ${newSavNo}` };
   }
 
+
+
   /**
-   * Xử lý hỗ trợ / khiếu nại
+   * Lấy danh sách tất cả hồ sơ vay vốn trong toàn hệ thống (Async: ưu tiên REST/gRPC API)
    */
-  static resolveTicket(ticketId, responseText, actionStatus = 'RESOLVED') {
-    const ticket = store.data.tickets.find(t => t.id === ticketId);
-    if (!ticket) return { success: false, message: 'Đơn hỗ trợ không tồn tại' };
-
-    const currentTeller = store.data.currentUser?.username || 'GDV';
-    ticket.status = actionStatus; // RESOLVED: Đã giải quyết hoặc REJECTED: Từ chối
-    ticket.response = responseText || 'Đã tiếp nhận và xử lý yêu cầu.';
-    ticket.assignedTo = currentTeller;
-
-    store.addAuditLog(currentTeller, `Xử lý đơn khiếu nại ${ticketId}: ${actionStatus}`);
-    store.saveData();
-
-    return { success: true, message: `Đã xử lý đơn hỗ trợ ${ticketId}` };
+  static async getAllLoansAsync() {
+    try {
+      if (BankApiService.hasToken()) {
+        const apiRes = await BankApiService.tellerGetAllLoans();
+        if (apiRes && apiRes.success && Array.isArray(apiRes.loans || apiRes.data)) {
+          const fetched = apiRes.loans || apiRes.data;
+          store.data.loans = fetched.map(l => ({
+            id: l.id,
+            contractNo: l.contractNo,
+            customerId: l.customerId,
+            customerName: l.customerName,
+            accountNo: l.accountNo,
+            loanType: l.loanType,
+            title: l.title,
+            principalAmount: parseFloat(l.principalAmount) || 0,
+            remainingBalance: parseFloat(l.remainingBalance) || 0,
+            termMonths: parseInt(l.termMonths, 10) || 12,
+            interestRate: parseFloat(l.interestRate) || 0,
+            monthlyPayment: parseFloat(l.monthlyPayment) || 0,
+            nextDueDate: l.nextDueDate,
+            installmentPaidCount: parseInt(l.installmentPaidCount, 10) || 0,
+            status: l.status,
+            rejectionReason: l.rejectionReason,
+            approvedBy: l.approvedBy,
+            appliedAt: l.appliedAt
+          }));
+          store.saveData();
+          return store.data.loans;
+        }
+      }
+    } catch (e) {
+      console.warn('[Teller] API tellerGetAllLoans gặp lỗi, dùng local:', e);
+    }
+    return TellerService.getAllLoans();
   }
 
-  /**
-   * Lấy danh sách tất cả các khoản vay trong hệ thống
-   */
   static getAllLoans() {
     return store.data.loans || [];
   }
 
   /**
-   * Phê duyệt hồ sơ vay và GIẢI NGÂN TRỰC TIẾP vào tài khoản thanh toán của khách hàng
-   * Phê duyệt & Giải ngân khoản vay (Hỗ trợ cả khoản vay tín chấp và vay thế chấp có TSBĐ)
+   * Phê duyệt & Giải ngân khoản vay (Async: ưu tiên REST/gRPC API)
+   */
+  static async approveLoanAsync(loanId, officerNote = '', collateralHandoverCode = null) {
+    try {
+      if (BankApiService.hasToken()) {
+        const apiRes = await BankApiService.tellerApproveLoan(loanId, officerNote, collateralHandoverCode);
+        if (apiRes && apiRes.success) {
+          if (typeof BroadcastChannel !== 'undefined') {
+            try {
+              const bc = new BroadcastChannel('bank_realtime_events');
+              bc.postMessage({
+                type: 'LOAN_APPROVED',
+                loanId: loanId,
+                contractNo: apiRes.data?.contractNo || loanId,
+                amount: apiRes.data?.disbursedAmount || 0,
+                accountNo: apiRes.data?.accountNo,
+                balanceAfter: apiRes.data?.newAccountBalance,
+                message: apiRes.message,
+                timestamp: Date.now()
+              });
+            } catch (err) {}
+          }
+          await TellerService.getAllLoansAsync();
+          return { success: true, message: apiRes.message || 'Phê duyệt & giải ngân thành công!', data: apiRes.data };
+        } else if (apiRes && !apiRes.success) {
+          return { success: false, message: apiRes.message || 'Phê duyệt thất bại' };
+        }
+      }
+    } catch (e) {
+      console.warn('[Teller] API approveLoan gặp lỗi, chuyển sang local:', e);
+    }
+    return TellerService.approveLoan(loanId, officerNote, collateralHandoverCode);
+  }
+
+  /**
+   * Từ chối cấp tín dụng cho khoản vay (Async: ưu tiên REST/gRPC API)
+   */
+  static async rejectLoanAsync(loanId, reason = '') {
+    try {
+      if (BankApiService.hasToken()) {
+        const apiRes = await BankApiService.tellerRejectLoan(loanId, reason);
+        if (apiRes && apiRes.success) {
+          await TellerService.getAllLoansAsync();
+          return { success: true, message: apiRes.message || 'Đã từ chối cấp tín dụng' };
+        } else if (apiRes && !apiRes.success) {
+          return { success: false, message: apiRes.message || 'Từ chối thất bại' };
+        }
+      }
+    } catch (e) {
+      console.warn('[Teller] API rejectLoan gặp lỗi, chuyển sang local:', e);
+    }
+    return TellerService.rejectLoan(loanId, reason);
+  }
+
+  /**
+   * Phê duyệt hồ sơ vay và GIẢI NGÂN TRỰC TIẾP vào tài khoản thanh toán của khách hàng (Local Fallback)
    */
   static approveLoan(loanId, officerNote = '', collateralHandoverCode = null) {
     const loan = (store.data.loans || []).find(l => l.id === loanId);
@@ -296,16 +390,15 @@ export class TellerService {
       loan.collateralStatus = 'SECURED_IN_VAULT';
     }
 
-    const nextDueDate = new Date();
-    nextDueDate.setMonth(nextDueDate.getMonth() + 1);
-    loan.nextDueDate = store.formatDate(nextDueDate);
+    loan.installmentPaidCount = 0;
+    loan.nextDueDate = store.getLoanInstallmentDueDate(nowStr, 1);
 
     // Cộng tiền giải ngân vào tài khoản thanh toán của KH
     acc.balance += loan.principalAmount;
 
     // Ghi nhận biến động số dư
     const txn = {
-      id: 'TXN-' + Math.floor(10000 + Math.random() * 90000),
+      id: store.generateTxnId(),
       fromAccount: 'QUỸ TÍN DỤNG QUANGTRUNG BANK',
       fromName: 'Ngân hàng TMCP QuangTrung (QTB)',
       toAccount: acc.accountNo,
@@ -344,25 +437,6 @@ export class TellerService {
     store.saveData();
 
     return { success: true, message: `Đã từ chối cấp tín dụng cho khoản vay ${loan.id}` };
-  }
-
-  /**
-   * Phê duyệt / Từ chối hồ sơ định danh eKYC của khách hàng
-   */
-  static approveEKyc(customerId, status) {
-    const cust = (store.data.customers || []).find(c => c.id === customerId);
-    if (!cust) return { success: false, message: 'Khách hàng không tồn tại' };
-
-    const currentTeller = store.data.currentUser?.username || 'GDV001';
-    cust.kycStatus = status;
-    if (status === 'VERIFIED') {
-      cust.kycVerifiedAt = store.nowGMT7String();
-    }
-
-    store.addAuditLog(currentTeller, `Cập nhật trạng thái eKYC của khách hàng ${cust.fullName} (${cust.id}) thành: ${status}`);
-    store.saveData();
-
-    return { success: true, message: `Cập nhật trạng thái eKYC thành công: ${status}` };
   }
 }
 

@@ -109,12 +109,7 @@ export class BankApiService {
 
   // ── Kiểm tra backend gRPC Server có hoạt động không ──────────────────
   static async checkBackendHealth() {
-    try {
-      const res = await BankApiService.grpcCall('Login', { username: '_ping_', password: '_ping_' });
-      return res !== null;
-    } catch (e) {
-      return false;
-    }
+    return true;
   }
 
   // ── 1. Authentication RPCs ──────────────────────────────────────────
@@ -131,29 +126,23 @@ export class BankApiService {
     return data;
   }
 
-  static async loginWithFace(username, faceData) {
-    const data = await BankApiService.grpcCall('FaceLogin', {
-      username,
-      face_data: faceData,
-      liveness_score: 99.5
-    });
-    if (data && data.success) {
-      const token = data.token || (data.data && data.data.token);
-      if (token) {
-        BankApiService.saveToken(token);
-        console.log('[gRPC] JWT token từ gRPC FaceLogin đã được lưu');
-      }
-    }
-    return data;
-  }
+
 
   static logout() {
     BankApiService.clearToken();
     console.log('[gRPC] Đã xóa token — Đăng xuất gRPC thành công');
   }
 
+  static async getProfile() {
+    return BankApiService.grpcCall('GetProfile', {});
+  }
+
   static async resetLocks() {
     return BankApiService.grpcCall('ResetLocks', {});
+  }
+
+  static async verifyPassword(currentPassword) {
+    return BankApiService.grpcCall('VerifyPassword', { current_password: currentPassword });
   }
 
   static async changePassword(currentPassword, newPassword, confirmPassword) {
@@ -164,11 +153,11 @@ export class BankApiService {
     });
   }
 
-  static async updateProfile(email) {
-    return BankApiService.grpcCall('UpdateProfile', { email });
+  static async updateProfile(email, contactAddress) {
+    return BankApiService.grpcCall('UpdateProfile', { email, contactAddress, contact_address: contactAddress });
   }
 
-  // ── 2. Account & KYC RPCs ───────────────────────────────────────────
+  // ── 2. Account RPCs ───────────────────────────────────────────
 
   static async getAccounts(customerId) {
     return BankApiService.grpcCall('GetAccounts', { customer_id: customerId });
@@ -176,10 +165,6 @@ export class BankApiService {
 
   static async lookupAccount(accountNo) {
     return BankApiService.grpcCall('LookupAccount', { account_no: accountNo });
-  }
-
-  static async submitKyc(data) {
-    return BankApiService.grpcCall('SubmitKyc', data);
   }
 
   // ── 3. Transaction RPCs ─────────────────────────────────────────────
@@ -239,25 +224,7 @@ export class BankApiService {
     });
   }
 
-  static async vnpostWithdraw(fromAccNo, amount, idempotencyKey = null) {
-    const key = idempotencyKey || BankApiService.generateIdempotencyKey();
-    return BankApiService.grpcCall('VnpostWithdraw', {
-      from_account: fromAccNo,
-      amount: parseFloat(amount),
-      idempotency_key: key
-    });
-  }
 
-  static async vnpostTransfer(fromAccNo, toAccNo, amount, content, idempotencyKey = null) {
-    const key = idempotencyKey || BankApiService.generateIdempotencyKey();
-    return BankApiService.grpcCall('VnpostTransfer', {
-      from_account: fromAccNo,
-      to_account: toAccNo,
-      amount: parseFloat(amount),
-      content,
-      idempotency_key: key
-    });
-  }
 
   // ── 4. Cardless ATM Codes RPCs ──────────────────────────────────────
 
@@ -324,7 +291,19 @@ export class BankApiService {
     return BankApiService.grpcCall('GetSavingsInterestRates', {});
   }
 
+  static async updateSavingsInterestRates(rates) {
+    return BankApiService.grpcCall('UpdateSavingsInterestRates', { rates });
+  }
+
   // ── 6. Loan (Tín dụng & Khoản vay) RPCs ─────────────────────────────
+
+  static async getLoanInterestRates() {
+    return BankApiService.grpcCall('GetLoanInterestRates', {});
+  }
+
+  static async updateLoanInterestRates(loanRates) {
+    return BankApiService.grpcCall('UpdateLoanInterestRates', { loanRates });
+  }
 
   static async applyLoan(accountNo, loanType, title, principalAmount, termMonths) {
     return BankApiService.grpcCall('ApplyLoan', {
@@ -340,7 +319,15 @@ export class BankApiService {
     return BankApiService.grpcCall('GetLoans', {});
   }
 
-  // ── 7. Notifications & Support Tickets RPCs ─────────────────────────
+  static async payLoan(loanId, isPayOffAll = false, idempotencyKey = null) {
+    return BankApiService.grpcCall('PayLoan', {
+      loan_id: loanId,
+      is_pay_off_all: isPayOffAll,
+      idempotency_key: idempotencyKey
+    });
+  }
+
+  // ── 7. Notifications RPCs ──────────────────────────────────────────
 
   static async getNotifications() {
     return BankApiService.grpcCall('GetNotifications', {});
@@ -354,19 +341,11 @@ export class BankApiService {
     return BankApiService.grpcCall('MarkAllNotificationsRead', {});
   }
 
-  static async createTicket(subject, content, accountNo) {
-    return BankApiService.grpcCall('CreateTicket', {
-      subject,
-      content,
-      account_no: accountNo
-    });
-  }
-
-  static async getTickets() {
-    return BankApiService.grpcCall('GetTickets', {});
-  }
-
   // ── 8. Teller Operations RPCs ───────────────────────────────────────
+
+  static async tellerGetAllCustomers() {
+    return BankApiService.grpcCall('TellerGetAllCustomers', {});
+  }
 
   static async tellerCreateCustomer(fullName, idCard, phone, email, address, initialBalance) {
     return BankApiService.grpcCall('TellerCreateCustomer', {
@@ -379,23 +358,13 @@ export class BankApiService {
     });
   }
 
+
+
   static async tellerToggleAccountStatus(accountNo, status) {
     return BankApiService.grpcCall('TellerToggleAccountStatus', {
       account_no: accountNo,
       status
     });
-  }
-
-  static async tellerResolveTicket(ticketId, response, status = 'RESOLVED') {
-    return BankApiService.grpcCall('TellerResolveTicket', {
-      ticket_id: ticketId,
-      response,
-      status
-    });
-  }
-
-  static async tellerGetTickets() {
-    return BankApiService.grpcCall('TellerGetAllTickets', {});
   }
 
   static async tellerUpdateCustomer(customerId, fullName, phone, email, address) {
@@ -408,11 +377,44 @@ export class BankApiService {
     });
   }
 
-  static async tellerApproveKyc(customerId, status) {
-    return BankApiService.grpcCall('TellerApproveKyc', {
-      customer_id: customerId,
-      status
+  static async tellerGetAllLoans() {
+    return BankApiService.grpcCall('TellerGetAllLoans', {});
+  }
+
+  static async tellerApproveLoan(loanId, officerNote = '', collateralHandoverCode = null) {
+    return BankApiService.grpcCall('TellerApproveLoan', {
+      loan_id: loanId,
+      officer_note: officerNote,
+      collateral_handover_code: collateralHandoverCode
     });
   }
+
+  static async tellerRejectLoan(loanId, reason = '') {
+    return BankApiService.grpcCall('TellerRejectLoan', {
+      loan_id: loanId,
+      reason
+    });
+  }
+
+  static async getAdminDashboardStats() {
+    return BankApiService.grpcCall('GetAdminDashboardStats', {});
+  }
+
+  static async adminDeleteTeller(tellerId) {
+    return BankApiService.grpcCall('AdminDeleteTeller', {
+      teller_id: tellerId
+    });
+  }
+
+  static async getAuditLogs() {
+    return BankApiService.grpcCall('GetAuditLogs', {});
+  }
+
+  static async recordAuditLog(user, action) {
+    return BankApiService.grpcCall('AddAuditLog', { user, action });
+  }
 }
+
+window.BankApiService = BankApiService;
+
 

@@ -8,7 +8,7 @@ import { store } from './store.js';
 const VIETNAMESE_FONT = "'Be Vietnam Pro', 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
 
 export class ReportService {
-  static renderAdminCharts(liquidityCanvasId, transactionCanvasId) {
+  static renderAdminCharts(liquidityCanvasId, transactionCanvasId, customMetrics = null) {
     if (typeof Chart === 'undefined') {
       console.warn('Thư viện Chart.js CDN chưa được tải');
       return;
@@ -17,7 +17,7 @@ export class ReportService {
     // Cấu hình font chữ mặc định cho toàn bộ Chart.js
     Chart.defaults.font.family = VIETNAMESE_FONT;
 
-    const metrics = AdminService.getSystemMetrics();
+    const metrics = customMetrics || AdminService.getSystemMetrics();
 
     // Biểu đồ 1: Cơ cấu Thanh khoản
     const ctx1 = document.getElementById(liquidityCanvasId);
@@ -73,10 +73,13 @@ export class ReportService {
     // Biểu đồ 2: Phân loại Giao dịch
     const ctx2 = document.getElementById(transactionCanvasId);
     if (ctx2) {
-      const typeCounts = { TRANSFER: 0, DEPOSIT: 0, WITHDRAW: 0 };
-      store.data.transactions.forEach(t => {
-        typeCounts[t.type] = (typeCounts[t.type] || 0) + 1;
-      });
+      const typeCounts = metrics.transactionTypeCounts || { TRANSFER: 0, DEPOSIT: 0, WITHDRAW: 0 };
+      if (!metrics.transactionTypeCounts) {
+        (store.data.transactions || []).forEach(t => {
+          const tp = t.type || 'TRANSFER';
+          typeCounts[tp] = (typeCounts[tp] || 0) + 1;
+        });
+      }
 
       if (window.transactionChartInstance) {
         window.transactionChartInstance.destroy();
@@ -87,7 +90,7 @@ export class ReportService {
           labels: ['Chuyển tiền', 'Nạp tiền', 'Rút tiền'],
           datasets: [{
             label: 'Số lượng giao dịch',
-            data: [typeCounts.TRANSFER, typeCounts.DEPOSIT, typeCounts.WITHDRAW],
+            data: [typeCounts.TRANSFER || 0, typeCounts.DEPOSIT || 0, typeCounts.WITHDRAW || 0],
             backgroundColor: ['#4facfe', '#10b981', '#ef4444'],
             borderRadius: 8
           }]
@@ -132,7 +135,7 @@ export class ReportService {
     if (content.includes('hoa don') || content.includes('hóa đơn') || content.includes('dien') || content.includes('điện') || content.includes('nuoc') || content.includes('nước') || content.includes('internet') || content.includes('hoc phi') || content.includes('học phí')) {
       return { id: 'BILL', name: 'Thanh toán hóa đơn', icon: '💡', color: '#ec4899' };
     }
-    if (content.includes('atm') || content.includes('rut tien') || content.includes('rút tiền') || content.includes('bưu cục') || content.includes('vnpost')) {
+    if (content.includes('atm') || content.includes('rut tien') || content.includes('rút tiền')) {
       return { id: 'ATM', name: 'Rút tiền mặt ATM', icon: '🏧', color: '#10b981' };
     }
     if (content.includes('winmart') || content.includes('shopee') || content.includes('lazada') || content.includes('tiki') || content.includes('sieu thi') || content.includes('siêu thị') || content.includes('mua sam') || content.includes('mua sắm')) {
